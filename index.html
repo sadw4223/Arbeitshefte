@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#ffffff">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Übungen">
+<title>Übungen – Lerncampus Wascherde</title>
+<style>
+  :root {
+    --ink: #1a1a1a;
+    --syl: #767676;          /* zweite Silbenfarbe (grau) */
+    --line: #1a1a1a;
+    --muted: #bdbdbd;
+    --paper: #ffffff;
+    --de-bg: #f6dfdd; --de-bd: #b97a74;
+    --en-bg: #fbf1cc; --en-bd: #bd9a3c;
+    --ma-bg: #dde7f4; --ma-bd: #6f8fba;
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+    font-size: 20px;
+    line-height: 1.5;
+  }
+  .page { max-width: 900px; margin: 0 auto; padding: 24px 16px 48px; }
+
+  /* Silbenschrift: jedes Wort beginnt schwarz, dann abwechselnd grau */
+  .w { white-space: nowrap; }
+  .w > span:nth-child(even) { color: var(--syl); }
+
+  header {
+    border-bottom: 2px solid var(--line);
+    padding-bottom: 14px;
+    margin-bottom: 32px;
+  }
+  .school {
+    font-size: 15px;
+    letter-spacing: 0.12em;
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+  h1 { font-size: 40px; line-height: 1.15; margin: 6px 0 0; }
+
+  .hint { font-size: 22px; margin: 0 0 20px; }
+
+  .subjects {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 20px;
+  }
+  .subject {
+    display: block;
+    border: 2px solid var(--line);
+    border-left-width: 14px;
+    padding: 22px 20px 20px;
+    min-height: 150px;
+    color: inherit;
+    text-decoration: none;
+  }
+  .subject h2 { font-size: 30px; margin: 0 0 10px; }
+  .subject p { margin: 0; font-size: 19px; }
+  .de { background: var(--de-bg); border-left-color: var(--de-bd); }
+  .en { background: var(--en-bg); border-left-color: var(--en-bd); }
+  .ma { background: var(--ma-bg); border-left-color: var(--ma-bd); }
+
+  @media (max-width: 520px) {
+    body { font-size: 18px; }
+    h1 { font-size: 32px; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+  <header>
+    <div class="school">
+      <span class="w"><span>Lern</span><span>cam</span><span>pus</span></span>
+      <span class="w"><span>Wa</span><span>scher</span><span>de</span></span>
+    </div>
+    <h1><span class="w"><span>Ü</span><span>bun</span><span>gen</span></span></h1>
+  </header>
+
+  <main>
+    <p class="hint">
+      <span class="w"><span>Wäh</span><span>le</span></span>
+      <span class="w"><span>ein</span></span>
+      <span class="w"><span>Fach</span></span>.
+    </p>
+
+    <div class="subjects">
+      <section class="subject de">
+        <h2><span class="w"><span>Deutsch</span></span></h2>
+        <p>
+          <span class="w"><span>Bald</span></span>
+          <span class="w"><span>gibt</span></span>
+          <span class="w"><span>es</span></span>
+          <span class="w"><span>hier</span></span>
+          <span class="w"><span>Ü</span><span>bun</span><span>gen</span></span>.
+        </p>
+      </section>
+
+      <section class="subject en">
+        <h2><span class="w"><span>Eng</span><span>lisch</span></span></h2>
+        <p>
+          <span class="w"><span>Bald</span></span>
+          <span class="w"><span>gibt</span></span>
+          <span class="w"><span>es</span></span>
+          <span class="w"><span>hier</span></span>
+          <span class="w"><span>Ü</span><span>bun</span><span>gen</span></span>.
+        </p>
+      </section>
+
+      <section class="subject ma">
+        <h2><span class="w"><span>Ma</span><span>the</span><span>ma</span><span>tik</span></span></h2>
+        <p>
+          <span class="w"><span>Bald</span></span>
+          <span class="w"><span>gibt</span></span>
+          <span class="w"><span>es</span></span>
+          <span class="w"><span>hier</span></span>
+          <span class="w"><span>Ü</span><span>bun</span><span>gen</span></span>.
+        </p>
+      </section>
+    </div>
+  </main>
+</div>
+</body>
+</html>
