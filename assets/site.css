@@ -1,0 +1,159 @@
+/* Lerncampus Wascherde – Übungen. Gemeinsame Gestaltung aller Seiten (wie die Startseite). */
+:root {
+  --ink: #1a1a1a;
+  --syl: #767676;          /* zweite Silbenfarbe (grau) */
+  --line: #1a1a1a;
+  --muted: #bdbdbd;
+  --soft: #f2f2f2;
+  --paper: #ffffff;
+  --de-bg: #f6dfdd; --de-bd: #b97a74;
+  --en-bg: #fbf1cc; --en-bd: #bd9a3c;
+  --ma-bg: #dde7f4; --ma-bd: #6f8fba;
+  --ok: #2e7d46;  --ok-bg: #e2f1e6;
+  --no: #b3261e;  --no-bg: #fbe4e1;
+  --nomen: #2a6fd6; --verb: #d22222; --adj: #2e9d4a; --gelb: #fde95a;
+  --ac: var(--de-bd); --ac-bg: var(--de-bg);
+}
+body.f-en { --ac: var(--en-bd); --ac-bg: var(--en-bg); }
+body.f-ma { --ac: var(--ma-bd); --ac-bg: var(--ma-bg); }
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0; background: var(--paper); color: var(--ink);
+  font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+  font-size: 20px; line-height: 1.5;
+}
+.page { max-width: 900px; margin: 0 auto; padding: 24px 16px 48px; }
+
+/* Silbenschrift: jedes Wort beginnt schwarz, dann abwechselnd grau */
+.w { white-space: nowrap; }
+.w > span:nth-child(even) { color: var(--syl); }
+
+header {
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  border-bottom: 2px solid var(--line); padding-bottom: 14px; margin-bottom: 24px;
+}
+.logo { width: 76px; height: 76px; flex: none; }
+.school { font-size: 15px; letter-spacing: 0.12em; font-weight: 700; text-transform: uppercase; }
+h1 { font-size: 40px; line-height: 1.15; margin: 6px 0 0; }
+h2 { font-size: 28px; line-height: 1.2; margin: 32px 0 12px; }
+.hint { font-size: 22px; margin: 0 0 20px; }
+a { color: inherit; }
+
+.back {
+  display: inline-flex; align-items: center; gap: 6px; font-size: 18px; text-decoration: none;
+  border: 2px solid var(--line); padding: 6px 14px 6px 10px; margin: 0 0 18px; background: #fff;
+}
+.back svg { width: 22px; height: 22px; }
+.ic { display: inline-block; width: 1.15em; height: 1.15em; vertical-align: -0.2em; flex: none; }
+.ic svg { width: 100%; height: 100%; fill: currentColor; display: block; }
+
+/* Kacheln */
+.subjects { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; }
+.subject {
+  display: block; border: 2px solid var(--line); border-left-width: 14px;
+  padding: 22px 20px 20px; min-height: 150px; color: inherit; text-decoration: none;
+}
+.subject h2 { font-size: 30px; margin: 0 0 10px; }
+.subject p { margin: 0; font-size: 19px; }
+a.subject:active { filter: brightness(0.96); }
+.de { background: var(--de-bg); border-left-color: var(--de-bd); }
+.en { background: var(--en-bg); border-left-color: var(--en-bd); }
+.ma { background: var(--ma-bg); border-left-color: var(--ma-bd); }
+
+.list { display: grid; gap: 12px; margin: 0 0 8px; }
+.item {
+  display: flex; align-items: center; gap: 14px; border: 2px solid var(--line); background: #fff;
+  padding: 14px 16px; color: inherit; text-decoration: none; min-height: 64px;
+}
+a.item:active { background: var(--ac-bg); }
+.item .ic { width: 30px; height: 30px; color: var(--ac); }
+.item .nr { font-weight: 700; min-width: 5.2em; }
+.item .tt { flex: 1; }
+.item .tag { font-size: 15px; border: 1.5px solid var(--ac); padding: 1px 10px; white-space: nowrap; }
+.item.soon { border-color: var(--muted); color: #777; }
+.item.soon .ic { color: var(--muted); }
+.empty { color: #555; }
+
+/* Abspielseite */
+.player { border: 2px solid var(--line); border-left: 14px solid var(--ac); background: var(--ac-bg); padding: 22px 20px; }
+.trk { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 24px; }
+.trk .ic { width: 34px; height: 34px; color: var(--ac); }
+.player h1 { margin: 6px 0 4px; }
+.meta { margin: 0 0 18px; font-size: 18px; }
+.play {
+  display: flex; align-items: center; justify-content: center; gap: 12px; width: 100%;
+  font: inherit; font-size: 26px; font-weight: 700; padding: 18px; min-height: 84px;
+  background: var(--ink); color: #fff; border: 0; cursor: pointer;
+}
+.play .ic { width: 44px; height: 44px; }
+.bar { display: flex; align-items: center; gap: 12px; margin: 18px 0 6px; }
+.bar input { flex: 1; height: 40px; accent-color: var(--ink); }
+.time { font-variant-numeric: tabular-nums; font-size: 18px; min-width: 6.5em; text-align: right; }
+.ctl { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px; }
+.btn {
+  display: inline-flex; align-items: center; gap: 8px; font: inherit; font-size: 19px; font-weight: 700;
+  padding: 10px 16px; min-height: 56px; border: 2px solid var(--line); background: #fff; color: var(--ink); cursor: pointer;
+}
+.btn .ic { width: 28px; height: 28px; }
+.btn.on { background: var(--ink); color: #fff; }
+.btn.pri { background: var(--ink); color: #fff; }
+.btn[disabled] { opacity: .4; }
+.note { display: flex; gap: 10px; margin: 16px 0 0; font-size: 19px; }
+.note .ic { color: var(--ac); width: 28px; height: 28px; }
+.msg { border: 2px solid var(--muted); padding: 14px 16px; margin: 16px 0 0; background: #fff; }
+
+/* Übungen */
+.task { display: flex; gap: 12px; align-items: flex-start; font-size: 22px; margin: 0 0 18px; }
+.task .ic { width: 30px; height: 30px; margin-top: 2px; }
+.cap { font-size: 17px; font-weight: 700; border: 2px solid var(--ac); border-radius: 999px; padding: 1px 12px; white-space: nowrap; }
+.tip { display: flex; gap: 10px; align-items: flex-start; font-size: 19px; margin: 16px 0; }
+.tip .ic { color: #d4a400; width: 28px; height: 28px; }
+.score { font-weight: 700; font-size: 22px; margin: 18px 0; }
+.done { border: 2px solid var(--ok); background: var(--ok-bg); padding: 16px 18px; margin: 18px 0; font-size: 22px; }
+
+.row { border: 2px solid var(--line); padding: 14px 16px; margin: 0 0 12px; background: #fff; }
+.row .s { font-size: 24px; line-height: 1.8; }
+.gap { display: inline-block; min-width: 1.3em; border: 2px solid var(--line); text-align: center; margin: 0 1px; line-height: 1.2; background: #fff; }
+.choices { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px; }
+.ch {
+  font: inherit; font-size: 24px; font-weight: 700; min-width: 64px; min-height: 60px; padding: 6px 18px;
+  border: 2px solid var(--line); background: #fff; color: var(--ink); cursor: pointer; text-align: left;
+}
+.ch.wide { width: 100%; font-size: 21px; font-weight: 400; }
+.ok { border-color: var(--ok) !important; background: var(--ok-bg) !important; }
+.no { border-color: var(--no) !important; background: var(--no-bg) !important; }
+.fb { margin-top: 8px; font-size: 19px; }
+.fb.okt { color: var(--ok); } .fb.not { color: var(--no); }
+
+.text { border: 2px solid var(--line); padding: 16px 18px; font-size: 24px; line-height: 2.1; background: #fff; }
+.tok { cursor: pointer; padding: 2px 1px; border-bottom: 3px solid transparent; -webkit-tap-highlight-color: transparent; }
+.tok.up { border-bottom-color: var(--ink); }
+.tok.lock { cursor: default; }
+.tok.ok { background: var(--ok-bg); border-bottom-color: var(--ok); }
+.tok.no { background: var(--no-bg); border-bottom-color: var(--no); }
+.tok.miss { border-bottom: 3px dashed var(--no); }
+
+.card { border: 2px solid var(--line); padding: 26px 18px; text-align: center; font-size: 36px; font-weight: 700; letter-spacing: .04em; background: #fff; margin: 0 0 14px; }
+.cats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.cat { font: inherit; font-size: 22px; font-weight: 700; min-height: 64px; border: 2px solid var(--line); background: #fff; cursor: pointer; padding: 8px; }
+.cat u { text-decoration-thickness: 4px; text-underline-offset: 6px; }
+.cat.n u { text-decoration-color: var(--nomen); } .cat.v u { text-decoration-color: var(--verb); } .cat.a u { text-decoration-color: var(--adj); }
+.bins { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 18px; }
+.bin { border: 2px solid var(--muted); min-height: 80px; padding: 8px 10px; font-size: 18px; }
+.bin b { display: block; margin-bottom: 4px; }
+.bin span.x { display: inline-block; margin: 2px 6px 2px 0; }
+
+.mini { display: flex; align-items: center; gap: 12px; border: 2px solid var(--line); border-left: 10px solid var(--ac); background: var(--ac-bg); padding: 12px 14px; margin: 0 0 20px; }
+.mini .btn { min-height: 52px; }
+.q { border: 2px solid var(--line); padding: 14px 16px; margin: 0 0 14px; background: #fff; }
+.q .qt { font-size: 22px; font-weight: 700; margin: 0 0 8px; }
+.q .choices { flex-direction: column; }
+
+@media (max-width: 520px) {
+  body { font-size: 18px; }
+  h1 { font-size: 32px; }
+  .logo { width: 60px; height: 60px; }
+  .cats, .bins { grid-template-columns: 1fr; }
+  .card { font-size: 30px; }
+}
