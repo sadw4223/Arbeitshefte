@@ -12,8 +12,7 @@
   }
 
   if (!t) {
-    app.innerHTML = '<div class="msg">' + L.notfound + '</div>' +
-      '<p><a class="back" href="../">' + L.icBack + L.home + '</a></p>';
+    app.innerHTML = '<div class="msg">' + L.notfound + '</div>';
     return;
   }
 
@@ -21,7 +20,6 @@
   document.title = t.p + ' – Lerncampus Wascherde';
 
   app.innerHTML =
-    '<a class="back" href="../' + t.h + '">' + L.icBack + t.hs + '</a>' +
     '<div class="player">' +
     '<div class="trk">' + L.icHead + '<span>' + L.track + ' ' + t.n + (t.k === 'diktat' ? ' · ' + L.diktat : '') + '</span></div>' +
     '<h1>' + t.ts + '</h1>' +

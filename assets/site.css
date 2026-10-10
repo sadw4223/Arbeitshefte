@@ -34,10 +34,12 @@ header {
   border-bottom: 2px solid var(--line); padding-bottom: 14px; margin-bottom: 24px;
 }
 .logo { width: 76px; height: 76px; flex: none; }
-.school { font-size: 15px; letter-spacing: 0.12em; font-weight: 700; text-transform: uppercase; }
+.school { font-size: 15px; letter-spacing: 0.12em; font-weight: 800; text-transform: uppercase; }
+.lc1 { color: #2e7fe0; } .lc2 { color: #f2852b; }
 h1 { font-size: 40px; line-height: 1.15; margin: 6px 0 0; }
 h2 { font-size: 28px; line-height: 1.2; margin: 32px 0 12px; }
 .hint { font-size: 22px; margin: 0 0 20px; }
+.hint .ic { color: var(--ac); width: 30px; height: 30px; }
 a { color: inherit; }
 
 .back {
