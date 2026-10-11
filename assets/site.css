@@ -152,6 +152,22 @@ a.item:active { background: var(--ac-bg); }
 .q .qt { font-size: 22px; font-weight: 700; margin: 0 0 8px; }
 .q .choices { flex-direction: column; }
 
+/* Vokabeln */
+.ten { display: block; font-weight: 700; }
+.vcnt { font-size: 18px; color: #555; margin: 0 0 6px; }
+.vctl { display: flex; flex-wrap: wrap; gap: 10px; margin: 6px 0 14px; }
+.vbig { min-height: 68px; font-size: 22px; padding: 10px 20px; }
+.vbig .ic { width: 32px; height: 32px; }
+.vgrid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+.vch { font: inherit; border: 2px solid var(--line); background: #fff; padding: 10px; cursor: pointer; min-height: 120px; color: var(--ink);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; -webkit-tap-highlight-color: transparent; }
+.vch[disabled] { cursor: default; color: var(--ink); }
+.vch[disabled]:not(.ok) { opacity: .45; }
+.vpic { display: flex; align-items: center; justify-content: center; }
+.vpic img { max-width: 100%; max-height: 180px; display: block; }
+.vpic .ic { width: 100px; height: 100px; color: var(--ink); }
+.vde { font-size: 22px; }
+
 @media (max-width: 520px) {
   body { font-size: 18px; }
   h1 { font-size: 32px; }

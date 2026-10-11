@@ -1,4 +1,4 @@
-/* Übungs-Baukasten: Typen gk (Groß oder klein?), mark (Wörter antippen), sort (Wortarten), mc (Fragen).
+/* Übungs-Baukasten: Typen gk (Groß oder klein?), mark (Wörter antippen), sort (Wortarten), mc (Fragen), vok (Vokabeln).
    Daten und Beschriftungen (Silbenschrift) stehen als JSON in der Seite. */
 (function () {
   var D = JSON.parse(document.getElementById('data').textContent);
@@ -149,5 +149,50 @@
     });
   }
 
-  ({ gk: gk, mark: mark, sort: sort, mc: mc })[D.type]();
+  /* ---------- Vokabeln: englisches Wort hören, passendes Bild (mit deutschem Wort) antippen ---------- */
+  function vok() {
+    var au = new Audio(), order = shuffle(D.words), i = 0, first = 0, tries = 0;
+    function say(w) { try { au.pause(); au.src = w.a; var p = au.play(); if (p && p.catch) p.catch(function () {}); } catch (e) {} }
+    function btn(cls, html, fn) { var b = el('button', cls, html); b.type = 'button'; b.onclick = fn; return b; }
+    function card(w) {
+      var d = el('div', 'vpic');
+      if (w.img) { var im = new Image(); im.src = w.img; im.alt = ''; d.appendChild(im); }
+      else if (w.ic) d.innerHTML = w.ic;
+      return d;
+    }
+    var cnt = el('div', 'vcnt', ''), ctl = el('div', 'vctl'), grid = el('div', 'vgrid'), fb = el('div', 'fb');
+    [cnt, ctl, grid, fb].forEach(function (x) { app.appendChild(x); });
+    var play = btn('btn pri vbig', L.icSpeaker + '<span>' + L.listen + '</span>', function () { say(order[i]); });
+    var next = btn('btn vbig', '', function () {
+      i++;
+      if (i >= order.length) { ctl.innerHTML = ''; grid.innerHTML = ''; fb.innerHTML = ''; finish(first, order.length); return; }
+      round(); say(order[i]);
+    });
+    ctl.appendChild(play); ctl.appendChild(next);
+    function round() {
+      var t = order[i]; tries = 0; next.style.display = 'none'; fb.className = 'fb'; fb.innerHTML = '';
+      cnt.textContent = (i + 1) + ' / ' + order.length;
+      next.innerHTML = i === order.length - 1 ? L.icCheck + '<span>' + L.fertig + '</span>' : L.icNext + '<span>' + L.next + '</span>';
+      var seen = {}; seen[t.e] = 1;
+      var others = shuffle(D.words).filter(function (w) { if (seen[w.e]) return false; seen[w.e] = 1; return true; }).slice(0, 3);
+      grid.innerHTML = '';
+      shuffle(others.concat([t])).forEach(function (w) {
+        var b = btn('vch', '', function () {
+          tries++;
+          if (w === t) {
+            b.classList.add('ok'); grid.querySelectorAll('button').forEach(function (x) { x.disabled = true; });
+            b.querySelector('.vde').innerHTML = '<b>' + t.en + '</b> = ' + t.de;
+            if (tries === 1) first++;
+            fb.className = 'fb okt'; fb.innerHTML = L.right; next.style.display = '';
+          } else { b.classList.add('no'); b.disabled = true; fb.className = 'fb not'; fb.innerHTML = L.wrong + ' ' + L.again2; say(t); }
+        });
+        if (w.img || w.ic) b.appendChild(card(w));
+        b.appendChild(el('div', 'vde', w.de));
+        grid.appendChild(b);
+      });
+    }
+    round(); say(order[0]);
+  }
+
+  ({ gk: gk, mark: mark, sort: sort, mc: mc, vok: vok })[D.type]();
 })();

@@ -21,9 +21,8 @@
 
   app.innerHTML =
     '<div class="player">' +
-    '<div class="trk">' + L.icHead + '<span>' + L.track + ' ' + t.n + (t.k === 'diktat' ? ' · ' + L.diktat : '') + '</span></div>' +
+    '<div class="trk">' + L.icHead + '<span>' + (t.n < 10 ? '0' : '') + t.n + '</span></div>' +
     '<h1>' + t.ts + '</h1>' +
-    '<p class="meta">' + t.ms + '</p>' +
     '<button class="play" id="pl" type="button">' + L.icPlay + '<span>' + L.play + '</span></button>' +
     '<div class="bar"><input id="pos" type="range" min="0" max="1000" value="0" aria-label="Position">' +
     '<span class="time" id="tm">0:00 / –:––</span></div>' +
