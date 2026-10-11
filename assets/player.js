@@ -1,4 +1,5 @@
-/* Abspielseite: t/?<id>  (Track-Daten in tracks.js, Beschriftungen in Silbenschrift aus dem Seitenkopf) */
+/* Abspielseite: t/?<id>  (Daten in tracks.js, Beschriftungen in Silbenschrift aus dem Seitenkopf).
+   Oben (über dem Strich): Titel des Heftes. Im Kasten: Kopfhörer + Nummer, darunter Titel des Textes bzw. der Aufgabe. */
 (function () {
   var L = JSON.parse(document.getElementById('labels').textContent);
   var app = document.getElementById('app');
@@ -16,13 +17,16 @@
     return;
   }
 
+  var nn = (t.n < 10 ? '0' : '') + t.n;
   document.body.className = t.f === 'Englisch' ? 'f-en' : (t.f === 'Mathematik' ? 'f-ma' : 'f-de');
-  document.title = t.p + ' – Lerncampus Wascherde';
+  document.title = t.hp + ' · ' + nn + ' ' + t.p;
+  var hd = document.querySelector('header h1');
+  if (hd) hd.innerHTML = t.hs;
 
   app.innerHTML =
     '<div class="player">' +
-    '<div class="trk">' + L.icHead + '<span>' + (t.n < 10 ? '0' : '') + t.n + '</span></div>' +
-    '<h1>' + t.ts + '</h1>' +
+    '<div class="trk">' + L.icHead + '<span>' + nn + '</span></div>' +
+    '<h2 class="ttl">' + t.ts + '</h2>' +
     '<button class="play" id="pl" type="button">' + L.icPlay + '<span>' + L.play + '</span></button>' +
     '<div class="bar"><input id="pos" type="range" min="0" max="1000" value="0" aria-label="Position">' +
     '<span class="time" id="tm">0:00 / –:––</span></div>' +
@@ -67,6 +71,6 @@
     pl.disabled = true; pl.style.opacity = '.4';
   };
   if ('mediaSession' in navigator && window.MediaMetadata) {
-    navigator.mediaSession.metadata = new MediaMetadata({ title: t.p, artist: 'Lerncampus Wascherde', album: t.hp });
+    navigator.mediaSession.metadata = new MediaMetadata({ title: nn + ' ' + t.p, artist: 'Lerncampus Wascherde', album: t.hp });
   }
 })();

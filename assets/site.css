@@ -81,7 +81,7 @@ a.item:active { background: var(--ac-bg); }
 .player { border: 2px solid var(--line); border-left: 14px solid var(--ac); background: var(--ac-bg); padding: 22px 20px; }
 .trk { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 24px; }
 .trk .ic { width: 34px; height: 34px; color: var(--ac); }
-.player h1 { margin: 6px 0 4px; }
+.player .ttl { font-size: 32px; line-height: 1.2; margin: 10px 0 20px; }
 .meta { margin: 0 0 18px; font-size: 18px; }
 .play {
   display: flex; align-items: center; justify-content: center; gap: 12px; width: 100%;
@@ -171,6 +171,7 @@ a.item:active { background: var(--ac-bg); }
 @media (max-width: 520px) {
   body { font-size: 18px; }
   h1 { font-size: 32px; }
+  .player .ttl { font-size: 26px; }
   .logo { width: 60px; height: 60px; }
   .cats, .bins { grid-template-columns: 1fr; }
   .card { font-size: 30px; }
