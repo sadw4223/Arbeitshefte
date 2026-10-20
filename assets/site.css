@@ -207,4 +207,7 @@ a.item:active { background: var(--ac-bg); }
 .okb { border-color: var(--ok); background: var(--ok-bg); color: var(--ink); } .okb .ic { color: var(--ok); }
 .nob { border-color: var(--no); background: var(--no-bg); color: var(--ink); } .nob .ic { color: var(--no); }
 .nxt { width: 100%; justify-content: center; min-height: 72px; font-size: 24px; }
-.vnote { margin: -4px 0 12px; color: #555; }
+.scap { font-size: 24px; line-height: 1.45; min-height: 3.2em; margin: 0 0 16px; padding: 14px 16px; background: #fff; border: 2px solid var(--line); }
+.snav { display: grid; grid-template-columns: 1fr 2fr; gap: 12px; }
+.snav .sbk { justify-content: center; min-height: 84px; font-size: 22px; }
+.snav .snx { margin: 0; }
