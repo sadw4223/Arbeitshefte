@@ -298,7 +298,7 @@
   // ============================================================ Addition und Subtraktion
   function eqCard(parts) { return '<div class="card cmpq eqc">' + parts.map(function (p) { return '<span>' + p + '</span>'; }).join('') + '</div>'; }
   function dig(n, p) { return Math.floor(n / Math.pow(10, p)) % 10; }
-  var NAMES = [['Ben', 'er'], ['Mia', 'sie'], ['Lena', 'sie'], ['Tim', 'er'], ['Emma', 'sie'], ['Noah', 'er'], ['Lea', 'sie'], ['Finn', 'er'], ['Ayla', 'sie'], ['Jonas', 'er']];
+  var NAMES = [['Ben', 'er'], ['Mia', 'sie'], ['Lena', 'sie'], ['Tim', 'er'], ['Emma', 'sie'], ['Noah', 'er'], ['Lea', 'sie'], ['Emil', 'er'], ['Ayla', 'sie'], ['Jonas', 'er']];
 
   GEN.begriffe = function () {
     var plan = shuffle(['p0', 'p1', 'p2', 'm0', 'm1', 'm2', 'p2', 'm2']).concat(shuffle(['wa', 'ws']));
