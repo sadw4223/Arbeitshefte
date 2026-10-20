@@ -207,8 +207,32 @@ a.item:active { background: var(--ac-bg); }
 .okb { border-color: var(--ok); background: var(--ok-bg); color: var(--ink); } .okb .ic { color: var(--ok); }
 .nob { border-color: var(--no); background: var(--no-bg); color: var(--ink); } .nob .ic { color: var(--no); }
 .nxt { width: 100%; justify-content: center; min-height: 72px; font-size: 24px; }
-.scap { font-size: 24px; line-height: 1.45; min-height: 6.1em; margin: 0 0 16px; padding: 14px 16px; background: #fff; border: 2px solid var(--line); }
+.scap { font-size: 24px; line-height: 1.45; min-height: 3em; margin: 0 0 16px; padding: 14px 16px; background: #fff; border: 2px solid var(--line); }
 .snav { display: grid; grid-template-columns: 1fr 2fr; gap: 12px; }
 .snav .sbk { justify-content: center; min-height: 84px; font-size: 22px; }
 .snav .snx { margin: 0; }
 .play .w > span:nth-child(even), .btn.pri .w > span:nth-child(even) { color: #b8b8b8; }
+/* Kopf der Erklärung: „Erklärung“ und Titel in einer Zeile (spart Höhe) */
+.ekh { display: flex; flex-wrap: wrap; align-items: center; column-gap: 22px; row-gap: 4px; margin: 0 0 18px; }
+.ekh .ttl { margin: 0; }
+/* Tablet quer und Computer: Zeichnung links, Text und Knöpfe rechts – alles auf einen Blick, ohne Scrollen */
+@media (orientation: landscape) and (min-width: 900px) {
+  .erk .page { max-width: 1180px; }
+  .ekg { display: grid; grid-template-columns: minmax(0, 1.75fr) minmax(0, 1fr); gap: 18px; }
+  .ekl .segs { margin-bottom: 0; }
+  .ekr { display: flex; flex-direction: column; }
+  .ekr .scap { flex: 1; margin: 0 0 14px; font-size: 23px; }
+  .ekr .snav { grid-template-columns: 76px minmax(0, 1fr); }
+  .ekr .sbk > span:not(.ic) { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .ekr .snx { font-size: 24px; gap: 10px; padding: 12px; }
+  .ekr .sbk .ic { width: 36px; height: 36px; }
+  .snav .sbk, .snav .snx { min-height: 76px; }
+}
+.snx span { white-space: nowrap; }
+@media (max-width: 520px) {
+  .snav { grid-template-columns: 84px minmax(0, 1fr); }
+  .snav .snx .ic { width: 34px; height: 34px; }
+  .snav .sbk .ic { width: 34px; height: 34px; }
+  .snav .sbk > span:not(.ic) { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .snav .snx { font-size: 23px; gap: 10px; padding: 12px; }
+}

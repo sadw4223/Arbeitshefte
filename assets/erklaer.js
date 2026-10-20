@@ -21,6 +21,17 @@
     bk.disabled = k === 0;
     nx.innerHTML = (k === N - 1 ? L.icAgain + '<span>' + L.again : L.icNext + '<span>' + L.next) + '</span>';
   }
+  // Textfeld so hoch wie der längste Schritt: dann verschiebt sich beim Weiterklicken nichts
+  function fitCap() {
+    cp.style.minHeight = '0px';
+    var m = 0;
+    for (var t = 0; t < N; t++) { cp.innerHTML = S[t]; m = Math.max(m, cp.offsetHeight); }
+    cp.style.minHeight = m + 'px';
+    cp.innerHTML = S[k];
+  }
+  var rt = null;
+  window.addEventListener('resize', function () { clearTimeout(rt); rt = setTimeout(fitCap, 120); });
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitCap);
   nx.onclick = function () { show(k === N - 1 ? 0 : k + 1); };
   bk.onclick = function () { show(k - 1); };
   document.addEventListener('keydown', function (e) {
@@ -34,6 +45,6 @@
     var dx = e.changedTouches[0].clientX - x0, dy = e.changedTouches[0].clientY - y0; x0 = null;
     if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy)) show(dx < 0 ? k + 1 : k - 1);
   }, { passive: true });
-  show(0);
+  show(0); fitCap();
   window.__erk = { show: show };
 })();
