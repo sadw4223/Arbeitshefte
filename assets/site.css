@@ -176,3 +176,35 @@ a.item:active { background: var(--ac-bg); }
   .cats, .bins { grid-template-columns: 1fr; }
   .card { font-size: 30px; }
 }
+
+/* Mathe-Pilot: Erklärvideo und Übung „Runden“ */
+.vplayer .stage { background: #fff; border: 2px solid var(--line); margin: 0 0 14px; line-height: 0; }
+.stg { width: 100%; height: auto; display: block; }
+.stg .el { opacity: 0; transition: opacity .45s ease; }
+.stg .el.on { opacity: 1; }
+.stg .drw .l { stroke-dasharray: 1; stroke-dashoffset: 1; transition: stroke-dashoffset 1s ease; }
+.stg .drw.on .l { stroke-dashoffset: 0; }
+.stg .drw .hd { opacity: 0; transition: opacity .3s ease .85s; }
+.stg .drw.on .hd { opacity: 1; }
+.segs { display: flex; gap: 6px; margin: 0 0 14px; }
+.seg { flex: 1; height: 16px; border: 2px solid var(--line); background: #fff; padding: 0; cursor: pointer; }
+.seg.done { background: var(--ac); border-color: var(--ac); }
+.seg.cur { background: var(--ac-bg); border-color: var(--ac); }
+
+.cnt { font-size: 18px; color: #555; margin: 0 0 4px; }
+.rq { font-size: 26px; font-weight: 700; margin: 0 0 12px; }
+.rnum { font-size: 64px; letter-spacing: .06em; font-variant-numeric: tabular-nums; padding: 18px 18px 30px; }
+.rnum .th { display: inline-block; width: .25em; }
+.rnum .rs { position: relative; display: inline-block; }
+.rnum .rs::after { content: ""; position: absolute; left: 50%; bottom: -16px; width: 14px; height: 14px; margin-left: -7px; border-radius: 50%; background: var(--ink); }
+.rnum .nx { color: var(--ac); }
+.rlw { border: 2px solid var(--line); background: #fff; margin: 0 0 14px; padding: 6px 4px 0; }
+.rl { width: 100%; height: auto; display: block; }
+.rch { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.rch .ch { font-size: 40px; min-height: 96px; text-align: center; font-variant-numeric: tabular-nums; }
+.fbx { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 21px; margin: 16px 0 12px; padding: 12px 14px; border: 2px solid; }
+.fbx .ic { width: 30px; height: 30px; }
+.okb { border-color: var(--ok); background: var(--ok-bg); color: var(--ink); } .okb .ic { color: var(--ok); }
+.nob { border-color: var(--no); background: var(--no-bg); color: var(--ink); } .nob .ic { color: var(--no); }
+.nxt { width: 100%; justify-content: center; min-height: 72px; font-size: 24px; }
+.vnote { margin: -4px 0 12px; color: #555; }
