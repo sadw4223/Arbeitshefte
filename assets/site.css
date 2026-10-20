@@ -188,8 +188,8 @@ a.item:active { background: var(--ac-bg); }
 .stg .drw.on .hd { opacity: 1; }
 .segs { display: flex; gap: 6px; margin: 0 0 14px; }
 .seg { flex: 1; height: 16px; border: 2px solid var(--line); background: #fff; padding: 0; cursor: pointer; }
-.seg.done { background: var(--ac); border-color: var(--ac); }
-.seg.cur { background: var(--ac-bg); border-color: var(--ac); }
+.seg.sgd { background: var(--ac); border-color: var(--ac); }
+.seg.sgc { background: var(--ac-bg); border-color: var(--ac); }
 
 .cnt { font-size: 18px; color: #555; margin: 0 0 4px; }
 .rq { font-size: 26px; font-weight: 700; margin: 0 0 12px; }
@@ -207,7 +207,8 @@ a.item:active { background: var(--ac-bg); }
 .okb { border-color: var(--ok); background: var(--ok-bg); color: var(--ink); } .okb .ic { color: var(--ok); }
 .nob { border-color: var(--no); background: var(--no-bg); color: var(--ink); } .nob .ic { color: var(--no); }
 .nxt { width: 100%; justify-content: center; min-height: 72px; font-size: 24px; }
-.scap { font-size: 24px; line-height: 1.45; min-height: 3.2em; margin: 0 0 16px; padding: 14px 16px; background: #fff; border: 2px solid var(--line); }
+.scap { font-size: 24px; line-height: 1.45; min-height: 6.1em; margin: 0 0 16px; padding: 14px 16px; background: #fff; border: 2px solid var(--line); }
 .snav { display: grid; grid-template-columns: 1fr 2fr; gap: 12px; }
 .snav .sbk { justify-content: center; min-height: 84px; font-size: 22px; }
 .snav .snx { margin: 0; }
+.play .w > span:nth-child(even), .btn.pri .w > span:nth-child(even) { color: #b8b8b8; }

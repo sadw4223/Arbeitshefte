@@ -16,8 +16,8 @@
     k = Math.max(0, Math.min(N - 1, j));
     var s = k + 1;
     els.forEach(function (e) { e.classList.toggle('on', s >= +e.dataset.s && s <= +e.dataset.e); });
-    segs.forEach(function (b, t) { b.classList.toggle('done', t < k); b.classList.toggle('cur', t === k); });
-    cp.textContent = S[k];
+    segs.forEach(function (b, t) { b.classList.toggle('sgd', t < k); b.classList.toggle('sgc', t === k); });
+    cp.innerHTML = S[k];   // Text in Silbenschrift (vorbereitet in mathe.py)
     bk.disabled = k === 0;
     nx.innerHTML = (k === N - 1 ? L.icAgain + '<span>' + L.again : L.icNext + '<span>' + L.next) + '</span>';
   }
