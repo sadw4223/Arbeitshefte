@@ -268,3 +268,6 @@ a.item:active { background: var(--ac-bg); }
   .cmpq { font-size: 40px; }
   .os { font-size: 22px; min-width: 3.6em; }
 }
+/* Zahlwörter in der Übung: Silbenschrift, Trennstrich nach „tausend“ als Lesehilfe, Umbruch nur an sinnvollen Stellen */
+.zwd .w { white-space: normal; }
+.zdiv { display: inline-block; margin: 0 .3em; color: var(--ac); font-weight: 400; }

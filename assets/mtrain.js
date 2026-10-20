@@ -11,6 +11,19 @@
   function fmt(n) { return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, NB); }
   function uniq(a) { var s = {}, o = []; a.forEach(function (x) { var k = String(x); if (!s[k]) { s[k] = 1; o.push(x); } }); return o; }
   function nums(list) { return list.map(function (v) { return { v: v, h: fmt(v) }; }); }
+  // Silbenschrift wie auf den Erklärungen: jedes Wort beginnt schwarz, dann abwechselnd grau (Silben aus den Seitendaten);
+  // Wörter mit „|“ (Zahlwörter) sind schon getrennt. Alles andere wird als Text ausgegeben.
+  var SY = D.syl || {};
+  function esc(t) { return t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+  function S(t) {
+    return String(t).split(/([A-Za-zÄÖÜäöüß|]+)/).map(function (tok, k) {
+      if (k % 2 === 0) return esc(tok);
+      var p = tok.indexOf('|') >= 0 ? tok.split('|') : (SY[tok] || [tok]);
+      return '<span class="w">' + p.map(function (x, j) {
+        return '<span>' + x + '</span>' + (/^(send|dert)$/.test(x) && j < p.length - 1 && p.length > 5 ? '<wbr>' : '');
+      }).join('') + '</span>';
+    }).join('');
+  }
   // drei Antworten: richtige + zwei passende falsche (aus der Liste der typischen Fehler)
   function three(ans, wrong, sort) {
     var w = uniq(wrong.filter(function (x) { return x !== ans && x > 0 && x < 1000000; }));
@@ -71,14 +84,17 @@
   }
 
   // ------------------------------------------------------------ Zahlwörter
-  var U = ['', 'eins', 'zwei', 'drei', 'vier', 'fünf', 'sechs', 'sieben', 'acht', 'neun'];
-  var UC = ['', 'ein', 'zwei', 'drei', 'vier', 'fünf', 'sechs', 'sieben', 'acht', 'neun'];
-  var TEEN = ['zehn', 'elf', 'zwölf', 'dreizehn', 'vierzehn', 'fünfzehn', 'sechzehn', 'siebzehn', 'achtzehn', 'neunzehn'];
-  var TEN = ['', '', 'zwanzig', 'dreißig', 'vierzig', 'fünfzig', 'sechzig', 'siebzig', 'achtzig', 'neunzig'];
-  function u100(n, c) { if (n < 10) return (c ? UC : U)[n]; if (n < 20) return TEEN[n - 10]; var u = n % 10; return (u ? UC[u] + 'und' : '') + TEN[Math.floor(n / 10)]; }
-  function u1000(n, c) { var h = Math.floor(n / 100), r = n % 100; return (h ? UC[h] + 'hundert' : '') + (r ? u100(r, c) : ''); }
-  function zw(n) { var t = Math.floor(n / 1000), r = n % 1000; return (t ? u1000(t, true) + 'tausend' : '') + (r ? u1000(r, false) : ''); }
-  function wbr(w) { return w.replace(/tausend(?=.)/g, 'tausend<wbr>').replace(/hundert(?=.)/g, 'hundert<wbr>'); }
+  var U = ['', 'eins', 'zwei', 'drei', 'vier', 'fünf', 'sechs', 'sie|ben', 'acht', 'neun'];
+  var UC = ['', 'ein', 'zwei', 'drei', 'vier', 'fünf', 'sechs', 'sie|ben', 'acht', 'neun'];
+  var TEEN = ['zehn', 'elf', 'zwölf', 'drei|zehn', 'vier|zehn', 'fünf|zehn', 'sech|zehn', 'sieb|zehn', 'acht|zehn', 'neun|zehn'];
+  var TEN = ['', '', 'zwan|zig', 'drei|ßig', 'vier|zig', 'fünf|zig', 'sech|zig', 'sieb|zig', 'acht|zig', 'neun|zig'];
+  function u100(n, c) { if (n < 10) return (c ? UC : U)[n]; if (n < 20) return TEEN[n - 10]; var u = n % 10; return (u ? UC[u] + '|und|' : '') + TEN[Math.floor(n / 10)]; }
+  function u1000(n, c) { var h = Math.floor(n / 100), r = n % 100, p = []; if (h) p.push(UC[h] + '|hun|dert'); if (r) p.push(u100(r, c)); return p.join('|'); }
+  // Zahlwort in Silbenschrift; nach „tausend“ ein Trennstrich als Lesehilfe (z. B. siebenhunderttausend | dreihundertvierzig)
+  function zwHtml(n) {
+    var t = Math.floor(n / 1000), r = n % 1000, a = t ? u1000(t, true) + '|tau|send' : '', b = r ? u1000(r, false) : '';
+    return (a ? S(a) : '') + (a && b ? '<span class="zdiv" aria-hidden="true">|</span><wbr>' : '') + (b ? S(b) : '');
+  }
 
   // ------------------------------------------------------------ Aufgaben-Erzeuger
   var GEN = {};
@@ -102,11 +118,11 @@
       var u = x[0], n = pick(u, x[1], x[2], x[4]), lo = Math.floor(n / u) * u, hi = lo + u, ans = (n % u) >= u / 2 ? hi : lo, pos = { 10: 1, 100: 2, 1000: 3 }[u];
       var d = Math.floor(n / (u / 10)) % 10, up = d >= 5;
       var it = {
-        head: 'Runde auf ' + NAME[u] + '.',
+        head: S('Runde auf ' + NAME[u] + '.'),
         body: '<div class="card rnum">' + digitHtml(n, { dot: pos, blue: pos - 1 }) + '</div>' +
           (x[3] ? '<div class="rlw" id="lw">' + nline({ lo: lo, st: u / 10, dot: n, dotLab: true }) + '</div>' : ''),
         choices: nums([lo, hi]), ans: ans,
-        why: 'Rechts neben dem Punkt steht ' + d + '. ' + (up ? '5, 6, 7, 8, 9: aufrunden.' : '0, 1, 2, 3, 4: abrunden.') + ' ' + fmt(n) + ' → ' + fmt(ans)
+        why: S('Rechts neben dem Punkt steht ' + d + '. ' + (up ? '5, 6, 7, 8, 9: aufrunden.' : '0, 1, 2, 3, 4: abrunden.') + ' ' + fmt(n) + ' → ' + fmt(ans))
       };
       if (x[3]) it.after = function () { document.getElementById('lw').innerHTML = nline({ lo: lo, st: u / 10, dot: n, dotLab: true, arcTo: ans }); };
       return it;
@@ -137,11 +153,11 @@
     }
     var spec = [[4, false], [4, true], [4, true], [5, false], [5, true], [5, true], [5, false], [6, true], [6, false], [6, true]];
     return spec.map(function (x) {
-      var n = num(x[0], x[1]), w = zw(n), t = Math.floor(n / 1000), r = n % 1000;
+      var n = num(x[0], x[1]), t = Math.floor(n / 1000), r = n % 1000;
       var rs = String(r); while (rs.length < 3) rs = '0' + rs;
-      var why = 'Suche das Wort „tausend“. Davor steht <b>' + u1000(t, true) + '</b>: ' + fmt(t) + '. Danach steht ' +
-        (r ? '<b>' + u1000(r, false) + '</b>: ' + rs + '.' : 'nichts: 000.') + ' Zusammen: ' + fmt(n);
-      return { head: 'Welche Zahl ist das?', body: '<div class="card zwd">' + wbr(w) + '</div>', choices: nums(three(n, wrongs(n))), ans: n, why: why, cols: 3 };
+      var why = S('Suche das Wort „tausend“. Davor steht ') + '<b>' + S(u1000(t, true)) + '</b>' + S(': ' + fmt(t) + '. Danach steht ') +
+        (r ? '<b>' + S(u1000(r, false)) + '</b>' + S(': ' + rs + '.') : S('nichts: 000.')) + S(' Zusammen: ' + fmt(n));
+      return { head: S('Welche Zahl ist das?'), body: '<div class="card zwd">' + zwHtml(n) + '</div>', choices: nums(three(n, wrongs(n))), ans: n, why: why, cols: 3 };
     });
   };
 
@@ -172,9 +188,9 @@
       for (var k = k0; k < k0 + 3; k++) ch.push(d * Math.pow(10, k));
       var ans = d * Math.pow(10, pos);
       return {
-        head: 'Welchen Wert hat die blaue Ziffer?', body: '<div class="card rnum">' + digitHtml(n, { blue: pos }) + '</div>',
+        head: S('Welchen Wert hat die blaue Ziffer?'), body: '<div class="card rnum">' + digitHtml(n, { blue: pos }) + '</div>',
         choices: nums(ch), ans: ans, cols: 3,
-        why: 'Die ' + d + ' steht bei den ' + PL[pos] + '. Sie ist ' + fmt(ans) + ' wert.' + swTable(n, pos)
+        why: S('Die ' + d + ' steht bei den ' + PL[pos] + '. Sie ist ' + fmt(ans) + ' wert.') + swTable(n, pos)
       };
     });
   };
@@ -191,8 +207,8 @@
       if (ty === 'vg0') { do { n = R(11, 989) * 10; } while (Math.floor(n / 10) % 10 === 0); ans = n - 1; w = [n + 9, n + 1]; }
       if (ty === 'nf99') { n = one([R(1, 8) * 100 + 99, R(10, 98) * 100 + 99, R(1, 8) * 1000 + 999]); ans = n + 1; w = [Math.floor(n / 10) * 100 + 10, n - 9]; }
       if (ty === 'vg00') { n = one([R(2, 9) * 100, R(1, 9) * 1000, R(11, 98) * 100]); ans = n - 1; w = [n + 9, n - 91]; }
-      if (ty === 'nf' || ty === 'nf9' || ty === 'nf99') { head = 'Nachfolger (+' + NB + '1)'; why = 'Der Nachfolger ist 1 mehr: ' + fmt(n) + ' + 1 = ' + fmt(ans); }
-      if (ty === 'vg' || ty === 'vg0' || ty === 'vg00') { head = 'Vorgänger (–' + NB + '1)'; why = 'Der Vorgänger ist 1 weniger: ' + fmt(n) + ' – 1 = ' + fmt(ans); }
+      if (ty === 'nf' || ty === 'nf9' || ty === 'nf99') { head = S('Nachfolger (+' + NB + '1)'); why = S('Der Nachfolger ist 1 mehr: ' + fmt(n) + ' + 1 = ' + fmt(ans)); }
+      if (ty === 'vg' || ty === 'vg0' || ty === 'vg00') { head = S('Vorgänger (–' + NB + '1)'); why = S('Der Vorgänger ist 1 weniger: ' + fmt(n) + ' – 1 = ' + fmt(ans)); }
       if (ty === 'nz' || ty === 'nh') {
         var u = ty === 'nz' ? 10 : 100;
         do { n = ty === 'nz' ? R(11, 9989) : R(101, 9989); } while (n % u === 0 || (ty === 'nh' && n % 10 === 0 && Math.random() < .5));
@@ -201,12 +217,12 @@
         if (ty === 'nh' && zlo !== lo) cand[1] = [zlo, zlo + 10];
         if (cand[1][0] <= 0) cand[1] = [hi, hi + u];
         if (cand[1][0] === cand[2][0]) cand[2] = [lo - u > 0 ? lo - u : hi + u, lo - u > 0 ? lo : hi + 2 * u];
-        head = ty === 'nz' ? 'Nachbarzehner' : 'Nachbarhunderter';
-        why = fmt(n) + ' liegt zwischen ' + fmt(lo) + ' und ' + fmt(hi) + ': ' + fmt(lo) + ' < ' + fmt(n) + ' < ' + fmt(hi) + '. ' +
-          (ty === 'nz' ? 'Nachbarzehner enden mit 0.' : 'Nachbarhunderter enden mit 00.');
+        head = S(ty === 'nz' ? 'Nachbarzehner' : 'Nachbarhunderter');
+        why = S(fmt(n) + ' liegt zwischen ' + fmt(lo) + ' und ' + fmt(hi) + ': ' + fmt(lo) + ' < ' + fmt(n) + ' < ' + fmt(hi) + '. ' +
+          (ty === 'nz' ? 'Nachbarzehner enden mit 0.' : 'Nachbarhunderter enden mit 00.'));
         return {
           head: head, body: '<div class="card rnum">' + fmt(n) + '</div>', cols: 1, ans: lo + '-' + hi, why: why,
-          choices: shuffle(cand.map(function (p) { return { v: p[0] + '-' + p[1], h: fmt(p[0]) + ' und ' + fmt(p[1]) }; }))
+          choices: shuffle(cand.map(function (p) { return { v: p[0] + '-' + p[1], h: S(fmt(p[0]) + ' und ' + fmt(p[1])) }; }))
         };
       }
       return { head: head, body: '<div class="card rnum">' + fmt(n) + '</div>', choices: nums(three(ans, w)), ans: ans, why: why, cols: 3 };
@@ -214,21 +230,21 @@
   };
 
   GEN.zstrahl = function () {
-    var S = { a: [0, 1], b: [0, 10], c: [0, 5], d: [100, 10], e: [0, 100], f: [2000, 100], g: [0, 2], h: [500, 50] };
+    var SC = { a: [0, 1], b: [0, 10], c: [0, 5], d: [100, 10], e: [0, 100], f: [2000, 100], g: [0, 2], h: [500, 50] };
     var plan = [['read', 'a'], ['read', 'b'], ['read', 'c'], ['read', 'd'], ['read', 'e'], ['tap', 'b'], ['tap', 'g'], ['tap', 'd'], ['tap', 'h'], ['tap', 'f']];
     return plan.map(function (p) {
-      var lo = S[p[1]][0], st = S[p[1]][1], k = one([1, 2, 3, 4, 6, 7, 8, 9]), v = lo + k * st, mid = lo + 5 * st;
+      var lo = SC[p[1]][0], st = SC[p[1]][1], k = one([1, 2, 3, 4, 6, 7, 8, 9]), v = lo + k * st, mid = lo + 5 * st;
       var from = k < 5 ? lo : mid, cnt = [];
       for (var x = from + st; x <= v; x += st) cnt.push(fmt(x));
-      var why = 'Von ' + fmt(lo) + ' bis ' + fmt(mid) + ' sind es 5 Schritte. Ein Schritt ist ' + fmt(st) + '. Zähle: ' + fmt(from) + ', ' + cnt.join(', ') + '.';
+      var why = S('Von ' + fmt(lo) + ' bis ' + fmt(mid) + ' sind es 5 Schritte. Ein Schritt ist ' + fmt(st) + '. Zähle: ' + fmt(from) + ', ' + cnt.join(', ') + '.');
       if (p[0] === 'read') {
         var hi = lo + 10 * st, side = Math.random() < .5 ? st : -st;
         var w = [lo + k, v + side, v - side, v + 2 * side, v - 2 * side].filter(function (z) { return z > lo && z < hi && z !== mid && z !== v; });
-        var it = { head: 'Welche Zahl ist markiert?', body: '<div class="rlw" id="lw">' + nline({ lo: lo, st: st, dot: v }) + '</div>', choices: nums(three(v, w)), ans: v, why: why, cols: 3 };
+        var it = { head: S('Welche Zahl ist markiert?'), body: '<div class="rlw" id="lw">' + nline({ lo: lo, st: st, dot: v }) + '</div>', choices: nums(three(v, w)), ans: v, why: why, cols: 3 };
         it.after = function () { document.getElementById('lw').innerHTML = nline({ lo: lo, st: st, dot: v, dotLab: true, dotCol: OKC }); };
         return it;
       }
-      var it2 = { kind: 'tap', head: 'Tippe auf die ' + fmt(v) + '.', body: '<div class="rlw tap" id="lw">' + nline({ lo: lo, st: st, tap: true }) + '</div>', ans: v, why: why };
+      var it2 = { kind: 'tap', head: S('Tippe auf die ' + fmt(v) + '.'), body: '<div class="rlw tap" id="lw">' + nline({ lo: lo, st: st, tap: true }) + '</div>', ans: v, why: why };
       it2.after = function (good, got) { var r = {}; r[v] = 'ok'; if (!good) r[got] = 'no'; document.getElementById('lw').innerHTML = nline({ lo: lo, st: st, res: r }); };
       return it2;
     });
@@ -256,7 +272,7 @@
     var items = shuffle([1, 2, 3, 4, 5, 6, 7]).map(function (kind) {
       var p = pairOf(kind), a = p[0], b = p[1], sg = a < b ? '<' : (a > b ? '>' : '=');
       var it = {
-        head: 'Setze das passende Zeichen ein.', ans: sg, why: why(a, b), cols: 3,
+        head: S('Setze das passende Zeichen ein.'), ans: sg, why: S(why(a, b)), cols: 3,
         body: '<div class="card cmpq"><span>' + fmt(a) + '</span><span class="cmq" id="cq">?</span><span>' + fmt(b) + '</span></div>',
         choices: [{ v: '<', h: '&lt;' }, { v: '>', h: '&gt;' }, { v: '=', h: '=' }]
       };
@@ -272,8 +288,8 @@
     }
     [0, 1, 2].forEach(function (kind) {
       var s = ordSet(kind), sorted = s.slice().sort(function (a, b) { return a - b; });
-      items.push({ kind: 'order', head: 'Tippe die Zahlen der Reihe nach an. Beginne mit der kleinsten.', nums: shuffle(s.slice()), ans: sorted,
-        why: 'Richtig ist: ' + sorted.map(fmt).join(' < ') });
+      items.push({ kind: 'order', head: S('Tippe die Zahlen der Reihe nach an. Beginne mit der kleinsten.'), nums: shuffle(s.slice()), ans: sorted,
+        why: S('Richtig ist: ' + sorted.map(fmt).join(' < ')) });
     });
     return items;
   };
