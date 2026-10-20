@@ -1,6 +1,7 @@
 /* Übungen am Tablet (Mathe): zehn Aufgaben zum Antippen, nach jeder Antwort Rückmeldung mit kurzer Begründung, am Ende Auswertung.
    Der Typ steht in den Seitendaten: runden, zahlwort, wert, nachbar, zstrahl, vergl (Natürliche Zahlen);
-   begriffe, kopf, luecke, add, sub, ueb, sach (Addition und Subtraktion). Schreibweise wie im Heft. */
+   begriffe, kopf, luecke, add, sub, ueb, sach (Addition und Subtraktion);
+   mdbegriffe, einmaleins, mdluecke, regeln, mdueb, halb, mul1, mul2, div, mdsach (Multiplikation und Division). Schreibweise wie im Heft. */
 (function () {
   var D = JSON.parse(document.getElementById('data').textContent), L = D.labels;
   var app = document.getElementById('app');
@@ -498,6 +499,279 @@
     return shuffle(T.slice()).map(function (f, k) {
       var q = f(names[k % names.length]), x = q.x, y = q.y, r = q.op === '+' ? x + y : x - y;
       var good = x + ' ' + q.op + ' ' + y, alt = q.op === '+' ? [x + ' – ' + y, y + ' – ' + x] : [x + ' + ' + y, y + ' – ' + x];
+      return { head: S('Welche Rechnung passt?'), body: '<div class="card story">' + S(q.t) + '</div>', cols: 1, ans: good,
+        choices: shuffle([good].concat(alt)).map(function (c) { return { v: c, h: c }; }),
+        why: S(q.why + ' ' + good + ' = ' + fmt(r) + '.') };
+    });
+  };
+
+  // ============================================================ Multiplikation und Division
+  var MP = '·';
+  function td(c, k) { return '<td' + (k ? ' class="' + k + '"' : '') + '>' + (c === undefined || c === null ? '' : c) + '</td>'; }
+  function sum(a) { return a.reduce(function (x, y) { return x + y; }, 0); }
+  function rnd1(n) { var p = Math.pow(10, String(n).length - 1); return Math.round(n / p) * p; }
+  function nxt(n) { var s = String(n); return s.length > 1 ? +s[1] : 0; }
+  function mulCarries(a, d) { var A = String(a), c = 0, cin = {}; for (var p = 0; p < A.length; p++) { var s = +A[A.length - 1 - p] * d + c; c = Math.floor(s / 10); if (p < A.length - 1) cin[p + 1] = c; } return cin; }
+  function hasCarry(a, d) { var A = String(a); for (var p = 0; p < A.length - 1; p++) if (+A[A.length - 1 - p] * d > 9) return true; var cin = mulCarries(a, d); return Object.keys(cin).some(function (k) { return cin[k] > 0; }); }
+  // Karo-Feld wie im Heft: Aufgabe in der ersten Zeile, = und Ergebniskästchen rechts; fill: Rechnung eingetragen
+  function kgMul(a, b, fill) {
+    var A = String(a), B = String(b), task = [''].concat(A.split(''), [MP], B.split('')), W = task.length, Rs = String(a * b);
+    var h = '<table class="kgr"><tr>' + task.map(function (c) { return td(c, 'k pr'); }).join('') + td('=', 'sy') +
+      Rs.split('').map(function (c) { return td(fill ? c : '', 'rb' + (fill ? ' ac' : '')); }).join('') + '</tr>';
+    if (B.length === 1) {
+      var cin = mulCarries(a, +B), lr = Rs.length, row = '';
+      for (var k = 0; k <= W; k++) row += td('', 'x');
+      for (var i = 0; i < lr; i++) { var p = lr - 1 - i; row += (p >= 1 && p <= A.length - 1) ? td(fill && cin[p] ? cin[p] : '', 'mz' + (fill ? ' ac' : '')) : td('', 'x'); }
+      return h + '<tr class="mzr">' + row + '</tr></table>';
+    }
+    if (!fill) return h + '</table>';
+    var rows = [[a * +B[0], W - 2], [a * +B[1], W - 1]], col = {};
+    rows.forEach(function (r) { var s = String(r[0]); for (var i = 0; i < s.length; i++) { var c = r[1] - s.length + 1 + i; (col[c] = col[c] || []).push(+s[i]); } });
+    var car = {}, cr = 0;
+    for (var c = W - 1; c >= 0; c--) { var t = cr + sum(col[c] || []); cr = Math.floor(t / 10); if (cr && c > 0) car[c - 1] = cr; }
+    rows.forEach(function (r) {
+      var s = String(r[0]), m = {}; for (var i = 0; i < s.length; i++) m[r[1] - s.length + 1 + i] = s[i];
+      h += '<tr>'; for (var c = 0; c < W; c++) h += td(m[c], 'k'); h += '<td class="x" colspan="9"></td></tr>';
+    });
+    h += '<tr class="uer">'; for (var c2 = 0; c2 < W; c2++) h += td(car[c2], 'k uc ac'); h += '<td class="x" colspan="9"></td></tr>';
+    h += '<tr>'; for (var c3 = 0; c3 < W; c3++) { var j = c3 - (W - Rs.length); h += td(j >= 0 ? Rs[j] : '', 'k ac' + (c3 >= 1 ? ' ln' : '') + (j >= 0 ? ' dl' : '')); }
+    return h + '<td class="x" colspan="9"></td></tr></table>';
+  }
+  function divRows(dd, dv) {
+    var D = String(dd), n = D.length, rows = [], cur = +D[0], k = 0, txt = [];
+    while (true) {
+      var q = Math.floor(cur / dv), p = q * dv, end = k + 1, ps = String(p), st = end - ps.length + 1, r = { _: [] };
+      r[st - 1] = '–'; for (var i = 0; i < ps.length; i++) r[st + i] = ps[i]; for (var c = st - 1; c <= end; c++) r._.push(c); rows.push(r);
+      var rem = cur - p, rs = String(rem);
+      txt.push(cur + ' : ' + dv + ' = ' + q + '. ' + q + ' · ' + dv + ' = ' + p + '. ' + cur + ' – ' + p + ' = ' + rem + '.');
+      if (k + 1 < n) {
+        var r2 = {}; for (var i2 = 0; i2 < rs.length; i2++) r2[end - rs.length + 1 + i2] = rs[i2]; r2[end + 1] = D[k + 1]; r2.dn = end + 1; rows.push(r2);
+        cur = rem * 10 + (+D[k + 1]); k++; txt.push('Hole die ' + D[k] + ' herunter.');
+      } else { var r3 = {}; for (var i3 = 0; i3 < rs.length; i3++) r3[end - rs.length + 1 + i3] = rs[i3]; rows.push(r3); break; }
+    }
+    return { rows: rows, txt: txt };
+  }
+  function kgDiv(dd, dv, fill) {
+    var D = String(dd), n = D.length, W = n + 1, Q = String(Math.floor(dd / dv));
+    var h = '<table class="kgr"><tr>' + td('', 'k') + D.split('').map(function (c) { return td(c, 'k pr'); }).join('') + td(':', 'sy') + td(dv, 'k pr') + td('=', 'sy') +
+      Q.split('').map(function (c) { return td(fill ? c : '', 'rb' + (fill ? ' ac' : '')); }).join('') + '</tr>';
+    if (!fill) return h + '</table>';
+    divRows(dd, dv).rows.forEach(function (r) {
+      h += '<tr>'; for (var c = 0; c < W; c++) h += td(r[c], 'k' + ((r._ || []).indexOf(c) >= 0 ? ' ul' : '') + (r.dn === c ? ' ac' : '')); h += '<td class="x" colspan="9"></td></tr>';
+    });
+    return h + '</table>';
+  }
+
+  GEN.mdbegriffe = function () {
+    var plan = shuffle(['m0', 'm1', 'm2', 'd0', 'd1', 'd2', 'm2', 'd2']).concat(shuffle(['wm', 'wd']));
+    return plan.map(function (t) {
+      if (t === 'wm' || t === 'wd') {
+        var m = t === 'wm';
+        return { head: S(m ? 'Was heißt multiplizieren?' : 'Was heißt dividieren?'), body: '', cols: 1, ans: m ? 'm' : 'd',
+          choices: [{ v: 'p', h: S('plus rechnen') }, { v: 'm', h: S('mal rechnen') }, { v: 'd', h: S('geteilt rechnen') }],
+          why: S(m ? 'Multiplizieren heißt mal rechnen.' : 'Dividieren heißt geteilt rechnen.') };
+      }
+      var mul = t[0] === 'm', k = +t[1], a = R(2, 9), b = R(2, 9), c = a * b, nn, parts;
+      if (mul) { nn = [a, b, c]; parts = [String(a), MP, String(b), '=', String(c)]; } else { nn = [c, b, a]; parts = [String(c), ':', String(b), '=', String(a)]; }
+      parts[k * 2] = '<b class="nx">' + nn[k] + '</b>';
+      var names = mul ? ['Faktor', 'Faktor', 'Produkt'] : ['Dividend', 'Divisor', 'Quotient'];
+      var pool = mul ? ['Faktor', 'Produkt', 'Quotient'] : (k === 2 ? ['Produkt', 'Divisor', 'Quotient'] : ['Dividend', 'Divisor', 'Quotient']);
+      return { head: S('Wie heißt die blaue Zahl?'), body: eqCard(parts), cols: 3, ans: names[k], choices: pool.map(function (w) { return { v: w, h: S(w) }; }),
+        why: S(mul ? 'Bei der Malaufgabe heißen die Zahlen vorne Faktoren. Das Ergebnis heißt Produkt.'
+          : 'Bei der Geteiltaufgabe heißt die erste Zahl Dividend, die Zahl nach dem Geteiltzeichen Divisor. Das Ergebnis heißt Quotient.') };
+    });
+  };
+
+  GEN.einmaleins = function () {
+    var plan = shuffle(['e', 'e', 'e', 'e', 'g', 'g', 'n0', 'n1', 'z10', 'zz']);
+    return plan.map(function (t) {
+      var a, b, ans, why, w, parts;
+      if (t === 'e') {
+        a = R(3, 9); b = R(3, 9); ans = a * b; parts = [a, MP, b, '=', '?']; w = [ans + b, ans - b, ans + 10];
+        if (a > 5) why = '5 · ' + b + ' = ' + 5 * b + '. ' + (a - 5) + ' · ' + b + ' = ' + (a - 5) * b + '. ' + 5 * b + ' + ' + (a - 5) * b + ' = ' + ans + '.';
+        else if (a === 5) why = '10 · ' + b + ' = ' + 10 * b + '. Die Hälfte ist ' + ans + '.';
+        else why = a + ' · ' + b + ' = ' + Array(a + 1).join(b + ' + ').slice(0, -3) + ' = ' + ans + '.';
+      }
+      if (t === 'g') { a = R(3, 9); b = R(3, 9); ans = a; parts = [a * b, ':', b, '=', '?']; w = [a + 1, a - 1, b];
+        why = 'Denke an die Malaufgabe: ' + a + ' · ' + b + ' = ' + a * b + '. Also ist ' + a * b + ' : ' + b + ' = ' + a + '.'; }
+      if (t === 'n0') { b = R(3, 19); var f = one([0, 1, 2]); ans = 0; w = [b, 1];
+        parts = f === 0 ? [0, MP, b, '=', '?'] : f === 1 ? [b, MP, 0, '=', '?'] : [0, ':', b, '=', '?'];
+        why = f === 2 ? '0 geteilt durch eine Zahl ist 0.' : 'Mal 0 ist immer 0.'; }
+      if (t === 'n1') { b = R(3, 19); var g = one([0, 1, 2]); ans = g === 2 ? 1 : b; w = g === 2 ? [b, 0, 2] : [b + 1, 1, b * 10];
+        parts = g === 0 ? [b, MP, 1, '=', '?'] : g === 1 ? [b, ':', 1, '=', '?'] : [b, ':', b, '=', '?'];
+        why = g === 0 ? 'Mal 1 bleibt die Zahl gleich.' : g === 1 ? 'Geteilt durch 1 bleibt die Zahl gleich.' : 'Eine Zahl geteilt durch sich selbst ist 1.'; }
+      if (t === 'z10') { a = R(12, 99); var u = one([10, 100]); ans = a * u; parts = [a, MP, fmt(u), '=', '?']; w = [ans * 10, ans / 10, a + u];
+        why = u === 10 ? 'Mal 10: Hänge eine 0 an.' : 'Mal 100: Hänge zwei Nullen an.'; why += ' ' + a + ' · ' + fmt(u) + ' = ' + fmt(ans) + '.'; }
+      if (t === 'zz') { a = R(2, 9); var z = one([10, 100]); b = R(2, 9); ans = a * z * b; parts = [fmt(a * z), MP, b, '=', '?']; w = [ans / 10, ans * 10];
+        why = a + ' · ' + b + ' = ' + a * b + '. Hänge ' + (z === 10 ? 'die 0' : 'die zwei Nullen') + ' an: ' + fmt(ans) + '.'; }
+      return { head: S('Rechne im Kopf.'), body: eqCard(parts), choices: nums(three(ans, w)), ans: ans, why: S(why), cols: 3 };
+    });
+  };
+
+  GEN.mdluecke = function () {
+    var plan = shuffle(['xb', 'ax', 'xd', 'ad', 'xb', 'ax', 'xd', 'ad', 'xb', 'xd']);
+    var Q = '<b class="qb" id="qb">?</b>';
+    return plan.map(function (t) {
+      var x, b, c, a, parts, ans, why, wr;
+      if (t === 'xb' || t === 'ax') { x = R(2, 9); b = R(2, 9); c = x * b; ans = x; wr = [c - b, b, x + 1];
+        parts = t === 'xb' ? [Q, MP, b, '=', c] : [b, MP, Q, '=', c];
+        why = 'Umkehraufgabe: Aus mal wird geteilt. ' + c + ' : ' + b + ' = ' + x + '. Prüfe: ' + (t === 'xb' ? x + ' · ' + b : b + ' · ' + x) + ' = ' + c + '.'; }
+      if (t === 'xd') { c = R(2, 9); b = R(2, 9); x = c * b; ans = x; parts = [Q, ':', b, '=', c]; wr = [x + b, x - b, c + b];
+        why = 'Umkehraufgabe: Aus geteilt wird mal. ' + c + ' · ' + b + ' = ' + x + '. Prüfe: ' + x + ' : ' + b + ' = ' + c + '.'; }
+      if (t === 'ad') { x = R(2, 9); c = R(2, 9); a = x * c; ans = x; parts = [a, ':', Q, '=', c]; wr = [x + 1, x - 1, c];
+        why = 'Welche Zahl mal ' + c + ' ergibt ' + a + '? ' + a + ' : ' + c + ' = ' + x + '. Prüfe: ' + a + ' : ' + x + ' = ' + c + '.'; }
+      var it = { head: S('Welche Zahl fehlt?'), body: eqCard(parts), choices: nums(three(ans, wr)), ans: ans, why: S(why), cols: 3 };
+      it.after = function () { var q = document.getElementById('qb'); q.textContent = ans; q.classList.add('set'); };
+      return it;
+    });
+  };
+
+  GEN.regeln = function () {
+    var plan = shuffle(['pa', 'pm', 'pb', 'pd', 'ka', 'km', 'kd', 'lr', 'pa', 'ka']);
+    return plan.map(function (t) {
+      var a, b, c, ex, ans, wrong, why;
+      if (t === 'pa') { a = R(2, 9); b = R(2, 9); c = R(2, 9); ex = a + ' + ' + b + ' · ' + c; ans = a + b * c; wrong = (a + b) * c;
+        why = 'Punkt vor Strich: ' + b + ' · ' + c + ' = ' + b * c + '. Dann ' + a + ' + ' + b * c + ' = ' + ans + '.'; }
+      if (t === 'pm') { b = R(2, 5); c = R(2, 6); a = b * c + R(3, 20); ex = a + ' – ' + b + ' · ' + c; ans = a - b * c; wrong = (a - b) * c;
+        why = 'Punkt vor Strich: ' + b + ' · ' + c + ' = ' + b * c + '. Dann ' + a + ' – ' + b * c + ' = ' + ans + '.'; }
+      if (t === 'pb') { a = R(2, 9); b = R(2, 9); c = R(2, 15); ex = a + ' · ' + b + ' + ' + c; ans = a * b + c; wrong = a * (b + c);
+        why = 'Punkt vor Strich: ' + a + ' · ' + b + ' = ' + a * b + '. Dann ' + a * b + ' + ' + c + ' = ' + ans + '.'; }
+      if (t === 'pd') { c = R(2, 6); b = c * R(2, 6); a = R(2, 20); ex = a + ' + ' + b + ' : ' + c; ans = a + b / c; wrong = (a + b) % c === 0 ? (a + b) / c : a + b;
+        why = 'Punkt vor Strich: ' + b + ' : ' + c + ' = ' + b / c + '. Dann ' + a + ' + ' + b / c + ' = ' + ans + '.'; }
+      if (t === 'ka') { a = R(2, 9); b = R(2, 9); c = R(2, 9); ex = '(' + a + ' + ' + b + ') · ' + c; ans = (a + b) * c; wrong = a + b * c;
+        why = 'Klammer zuerst: ' + a + ' + ' + b + ' = ' + (a + b) + '. Dann ' + (a + b) + ' · ' + c + ' = ' + ans + '.'; }
+      if (t === 'km') { b = R(2, 7); a = b + R(2, 8); c = R(2, 9); ex = c + ' · (' + a + ' – ' + b + ')'; ans = c * (a - b); wrong = c * a - b;
+        why = 'Klammer zuerst: ' + a + ' – ' + b + ' = ' + (a - b) + '. Dann ' + c + ' · ' + (a - b) + ' = ' + ans + '.'; }
+      if (t === 'kd') { c = R(2, 6); var s = c * R(3, 9); a = R(2, s - 2); b = s - a; ex = '(' + a + ' + ' + b + ') : ' + c; ans = s / c; wrong = b % c === 0 ? a + b / c : ans + c;
+        why = 'Klammer zuerst: ' + a + ' + ' + b + ' = ' + s + '. Dann ' + s + ' : ' + c + ' = ' + ans + '.'; }
+      if (t === 'lr') { a = R(20, 40); b = R(3, 9); c = R(2, 9); ex = a + ' – ' + b + ' + ' + c; ans = a - b + c; wrong = a - (b + c);
+        why = 'Nur Strich: Rechne von links nach rechts. ' + a + ' – ' + b + ' = ' + (a - b) + '. Dann ' + (a - b) + ' + ' + c + ' = ' + ans + '.'; }
+      return { head: S('Rechne. Denke an die Rechenregeln.'), body: '<div class="card cmpq eqc">' + ex + ' = ?</div>', choices: nums(three(ans, [wrong, ans + 2, ans - 2])), ans: ans, why: S(why), cols: 3 };
+    });
+  };
+
+  GEN.mdueb = function () {
+    function pick(len) { for (var t = 0; t < 400; t++) { var n = R(Math.pow(10, len - 1) + 1, Math.pow(10, len) - 1), d = nxt(n); if (d === 4 || d === 5 || n % Math.pow(10, len - 1) === 0) continue; return n; } return 38; }
+    var plan = shuffle(['r2', 'r2', 'r3', 'r3', 'r3', 'r4']).concat(shuffle(['ky', 'kn', 'ky', 'kn']));
+    return plan.map(function (t) {
+      var a = pick(t === 'r2' ? 2 : t === 'r4' ? 4 : 3), b = R(2, 9), x = rnd1(a), u = x * b, ex = a * b, p = Math.pow(10, String(a).length - 1);
+      var other = x === Math.floor(a / p) * p ? x + p : x - p;
+      var why = fmt(a) + ' ≈ ' + fmt(x) + '. Die ' + b + ' bleibt. Ü: ' + fmt(x) + ' · ' + b + ' = ' + fmt(u) + '.';
+      if (t[0] === 'r') return { head: S('Mache einen Überschlag.'), body: eqCard([fmt(a), MP, b]), choices: nums(three(u, [other * b, u * 10, u + p])), ans: u, cols: 3, why: S(why) };
+      var good = t === 'ky', shown = good ? ex : (Math.random() < .5 || ex < 100 ? ex * 10 : Math.floor(ex / 10));
+      return { head: S('Kann das Ergebnis stimmen? Mache einen Überschlag.'), body: eqCard([fmt(a), MP, b, '=', fmt(shown)]), cols: 2,
+        ans: good ? 'j' : 'n', choices: [{ v: 'j', h: S('kann stimmen') }, { v: 'n', h: S('kann nicht stimmen') }],
+        why: S(why + ' ' + fmt(shown) + (good ? ' ist nah an ' + fmt(u) + '. Es kann stimmen.' : ' ist weit weg von ' + fmt(u) + '. Richtig ist ' + fmt(ex) + '.')) };
+    });
+  };
+
+  GEN.halb = function () {
+    var plan = shuffle(['2z', '2e', '2s', '2s', '2e', '3h', '3z', '3s', '3s', '2s']);
+    return plan.map(function (t) {
+      var a, b, parts;
+      do { a = t[0] === '2' ? R(21, 98) : R(112, 489); b = R(2, 9); } while (a % 10 === 0 || (t[0] === '3' && Math.floor(a / 10) % 10 === 0));
+      var A = String(a); parts = A.split('').map(function (d, k) { return +d * Math.pow(10, A.length - 1 - k); });
+      var prods = parts.map(function (p) { return p * b; }), total = a * b;
+      var miss = t[1] === 's' ? parts.length : t[1] === 'e' ? parts.length - 1 : t[1] === 'z' ? parts.length - 2 : 0;
+      var lines = parts.map(function (p, k) { return [fmt(p) + ' · ' + b + ' = ', fmt(prods[k])]; });
+      lines.push([prods.map(fmt).join(' + ') + ' = ', fmt(total)]);
+      var ans = miss === parts.length ? total : prods[miss];
+      function card(done) {
+        return '<div class="card hlw"><div class="hlq">' + a + ' · ' + b + '</div>' + lines.map(function (l, k) {
+          if (done || k < miss) return '<div class="hll">' + l[0] + '<b>' + l[1] + '</b></div>';
+          if (k === miss) return '<div class="hll">' + l[0] + '<b class="qb' + (done ? ' set' : '') + '">?</b></div>';
+          return '<div class="hll hid">…</div>';
+        }).join('') + '</div>';
+      }
+      var w = miss === parts.length ? [total + 10, total - 10, sum(parts.slice(0, -1).map(function (p) { return p * b; })) + parts[parts.length - 1]] : [ans * 10, ans % 10 === 0 ? ans / 10 : ans + b, ans + b];
+      var it = { head: S('Rechne halbschriftlich. Welche Zahl fehlt?'), body: '<div id="hw">' + card(false) + '</div>', choices: nums(three(ans, w)), ans: ans, cols: 3,
+        why: S('Zerlege ' + a + ' in ' + parts.map(fmt).join(' und ') + '. Multipliziere jeden Teil mit ' + b + '. Addiere am Schluss: ' + prods.map(fmt).join(' + ') + ' = ' + fmt(total) + '.') };
+      it.after = function () { document.getElementById('hw').innerHTML = card(true); };
+      return it;
+    });
+  };
+
+  GEN.mul1 = function () {
+    var spec = ['o3', 'o3', 'c2', 'c3', 'c3', 'c3', 'c3', 'k4', 'k4', 'c2'];
+    return spec.map(function (t) {
+      var a, b, tries = 0, ok;
+      do {
+        tries++; b = R(2, 9); a = t === 'c2' ? R(12, 98) : R(102, 989);
+        var r = a * b, c = hasCarry(a, b);
+        ok = t === 'o3' ? !c && r < 1000 : t === 'c2' ? c : t === 'c3' ? c && r < 1000 : c && r >= 1000;
+      } while (!ok && tries < 800);
+      var ans = a * b, A = String(a), forgot = 0, steps = [], cr = 0, NAME = ['Einer', 'Zehner', 'Hunderter'];
+      for (var p = 0; p < A.length; p++) {
+        var d = +A[A.length - 1 - p], s = d * b, s2 = s + cr, last = p === A.length - 1;
+        forgot += (last ? s : s % 10) * Math.pow(10, p);
+        steps.push(NAME[p] + ': ' + b + ' · ' + d + ' = ' + s + (cr ? ', ' + s + ' + ' + cr + ' = ' + s2 : '') + '. ' + (last ? 'Schreibe ' + s2 + '.' : 'Schreibe ' + (s2 % 10) + (Math.floor(s2 / 10) ? ', merke ' + Math.floor(s2 / 10) : '') + '.'));
+        cr = Math.floor(s2 / 10);
+      }
+      var it = { head: S('Rechne schriftlich. Was kommt heraus?'), body: '<div class="card kgw" id="kg">' + kgMul(a, b, false) + '</div>',
+        choices: nums(three(ans, [forgot !== ans ? forgot : ans + 10 * b, ans + 100, ans - 10])), ans: ans, cols: 3, why: S('Beginne hinten bei den Einern. ' + steps.join(' ')) };
+      it.after = function () { document.getElementById('kg').innerHTML = kgMul(a, b, true); };
+      return it;
+    });
+  };
+
+  GEN.mul2 = function () {
+    function addCarry(a, b) { var p1 = a * Math.floor(b / 10) * 10, p2 = a * (b % 10); for (var k = 0; k < 5; k++) if (dig(p1, k) + dig(p2, k) > 9) return true; return false; }
+    var spec = ['o', 'o', 'c', 'c', 'c', 'c', 'c', 'k', 'k', 'c'];
+    return spec.map(function (t) {
+      var a, b, tries = 0, ok;
+      do {
+        tries++; a = R(12, 98); b = R(12, 98);
+        var r = a * b, c = addCarry(a, b) || hasCarry(a, Math.floor(b / 10)) || hasCarry(a, b % 10);
+        ok = b % 10 !== 0 && a % 10 !== 0 && (t === 'o' ? !c && r < 1000 : t === 'c' ? c && r < 10000 : r >= 2000);
+      } while (!ok && tries < 800);
+      var z = Math.floor(b / 10), e = b % 10, ans = a * b, noShift = a * z + a * e;
+      var why = 'Zehner zuerst: ' + a + ' · ' + z + ' = ' + fmt(a * z) + '. Dann die Einer: ' + a + ' · ' + e + ' = ' + fmt(a * e) + '. Diese Zeile rückt eine Stelle nach rechts. Addiere die beiden Zeilen: ' + fmt(ans) + '.';
+      var it = { head: S('Rechne schriftlich. Was kommt heraus?'), body: '<div class="card kgw" id="kg">' + kgMul(a, b, false) + '</div>',
+        choices: nums(three(ans, [noShift, ans + 100, ans - 10])), ans: ans, cols: 3, why: S(why) };
+      it.after = function () { document.getElementById('kg').innerHTML = kgMul(a, b, true); };
+      return it;
+    });
+  };
+
+  GEN.div = function () {
+    function classify(dd, dv) { var D = String(dd), cur = +D[0], rem = false, zero = false;
+      for (var k = 0; k < D.length; k++) { if (k) cur = cur * 10 + (+D[k]); var q = Math.floor(cur / dv); if (q === 0) zero = true; cur -= q * dv; if (cur && k < D.length - 1) rem = true; }
+      return { rem: rem, zero: zero }; }
+    var spec = ['3o', '3r', '3r', '3r', '30', '4r', '4r', '4r', '40', '3r'];
+    return spec.map(function (t) {
+      var dv, dd, tries = 0, ok;
+      do {
+        tries++; dv = R(2, 9); var len = +t[0];
+        dd = dv * R(Math.ceil(Math.pow(10, len - 1) / dv), Math.floor((Math.pow(10, len) - 1) / dv));
+        var f = +String(dd)[0], cl = classify(dd, dv);
+        ok = String(dd).length === len && f % dv === 0 && (t[1] === 'o' ? !cl.rem && !cl.zero : t[1] === 'r' ? cl.rem && !cl.zero : cl.zero);
+      } while (!ok && tries < 2000);
+      var ans = dd / dv, A = String(ans), dropZero = +A.replace(/0/g, '') || ans + 1;
+      var it = { head: S('Rechne schriftlich. Was kommt heraus?'), body: '<div class="card kgw" id="kg">' + kgDiv(dd, dv, false) + '</div>',
+        choices: nums(three(ans, [dropZero !== ans ? dropZero : ans + 10, ans + 1, ans - 1])), ans: ans, cols: 3,
+        why: S(divRows(dd, dv).txt.join(' ') + ' Probe: ' + fmt(ans) + ' · ' + dv + ' = ' + fmt(dd) + '.') };
+      it.after = function () { document.getElementById('kg').innerHTML = kgDiv(dd, dv, true); };
+      return it;
+    });
+  };
+
+  GEN.mdsach = function () {
+    var T = [
+      function () { var a = R(5, 9), b = R(3, 4); return { t: 'Im Bus sitzen die Kinder in ' + a + ' Reihen. In jeder Reihe sitzen ' + b + ' Kinder. Wie viele Kinder sitzen im Bus?', x: a, y: b, op: MP, why: 'Gleich viele in jeder Reihe, und du suchst alle zusammen: Du rechnest mal.' }; },
+      function (n) { var a = R(3, 6); return { t: 'Eine Fahrt mit der Sommerrodelbahn kostet 2 €. ' + n[0] + ' fährt ' + a + '-mal. Wie viel bezahlt ' + n[1] + ' zusammen?', x: a, y: 2, op: MP, why: 'Jede Fahrt kostet gleich viel. Du rechnest mal.' }; },
+      function () { var g = R(3, 6), k = g * R(4, 6); return { t: k + ' Kinder werden auf ' + g + ' gleich große Gruppen verteilt. Wie viele Kinder sind in einer Gruppe?', x: k, y: g, op: ':', why: 'Die Kinder werden verteilt. Du rechnest geteilt.' }; },
+      function () { var a = R(6, 12), b = R(3, 4); return { t: 'In der Jugendherberge gibt es ' + a + ' Zimmer. In jedem Zimmer stehen ' + b + ' Betten. Wie viele Betten sind es zusammen?', x: a, y: b, op: MP, why: 'In jedem Zimmer gleich viele Betten: Du rechnest mal.' }; },
+      function (n) { var p = R(4, 6), k = p * R(3, 6); return { t: n[0] + ' verteilt ' + k + ' Kekse gerecht auf ' + p + ' Teller. Wie viele Kekse liegen auf einem Teller?', x: k, y: p, op: ':', why: 'Gerecht verteilen heißt: Du rechnest geteilt.' }; },
+      function (n) { var a = R(2, 4); return { t: 'In einer Kiste sind 12 Flaschen Wasser. ' + n[0] + ' trägt ' + a + ' Kisten in den Bus. Wie viele Flaschen sind das?', x: a, y: 12, op: MP, why: 'In jeder Kiste gleich viele Flaschen: Du rechnest mal.' }; },
+      function () { var k = R(4, 6), p = R(12, 18); return { t: 'Der Kletterwald kostet für ' + k + ' Kinder zusammen ' + k * p + ' €. Wie viel kostet er für ein Kind?', x: k * p, y: k, op: ':', why: 'Der Preis wird gerecht auf die Kinder verteilt. Du rechnest geteilt.' }; },
+      function () { var d = R(2, 3), km = R(6, 9); return { t: 'Die Klasse wandert ' + d + ' Tage lang. Jeden Tag wandert sie ' + km + ' Kilometer. Wie viele Kilometer sind das zusammen?', x: d, y: km, op: MP, why: 'Jeden Tag gleich weit, und du suchst alles zusammen: Du rechnest mal.' }; },
+      function () { var p = R(3, 4), k = p * R(6, 9); return { t: 'In ein Kanu passen ' + p + ' Kinder. Wie viele Kanus braucht man für ' + k + ' Kinder?', x: k, y: p, op: ':', why: 'Die Kinder werden auf die Kanus verteilt. Du rechnest geteilt.' }; },
+      function (n) { var a = R(3, 6); return { t: n[0] + ' kauft ' + a + ' Postkarten. Eine Postkarte kostet 2 €. Wie viel bezahlt ' + n[1] + '?', x: a, y: 2, op: MP, why: 'Jede Postkarte kostet gleich viel. Du rechnest mal.' }; }
+    ];
+    var names = shuffle(NAMES.slice());
+    return shuffle(T.slice()).map(function (f, k) {
+      var q = f(names[k % names.length]), x = q.x, y = q.y, r = q.op === MP ? x * y : x / y;
+      var good = x + ' ' + q.op + ' ' + y, alt = q.op === MP ? [x + ' + ' + y, x + ' : ' + y] : [x + ' · ' + y, x + ' – ' + y];
       return { head: S('Welche Rechnung passt?'), body: '<div class="card story">' + S(q.t) + '</div>', cols: 1, ans: good,
         choices: shuffle([good].concat(alt)).map(function (c) { return { v: c, h: c }; }),
         why: S(q.why + ' ' + good + ' = ' + fmt(r) + '.') };

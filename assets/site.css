@@ -288,3 +288,25 @@ a.item:active { background: var(--ac-bg); }
 .sgr tr.rs td.o { border-top: 0; }
 .card.story { text-align: left; font-size: 24px; font-weight: 400; letter-spacing: 0; line-height: 1.5; padding: 18px 20px; }
 @media (max-width: 520px) { .sgr td { font-size: 32px; } .card.story { font-size: 20px; } }
+/* Multiplikation und Division: Karo-Feld wie im Heft, halbschriftlich */
+.kgw { display: flex; justify-content: center; padding: 16px 10px 18px; overflow-x: auto; }
+.kgr { border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.kgr td { width: 1.15em; height: 1.15em; min-width: 1.15em; padding: 0; text-align: center; font-size: 36px; font-weight: 700; line-height: 1; box-sizing: border-box; }
+.kgr td.k { border: 2px solid #c3c3c3; background: #fff; }
+.kgr td.sy { font-weight: 400; }
+.kgr td.rb { border: 3px solid #555; background: #fff; }
+.kgr td.ac { color: var(--ac); }
+.kgr td.x { border: 0; background: none; }
+.kgr tr.mzr td { height: .62em; font-size: 22px; }
+.kgr td.mz { background: #e6e6e6; border: 2px solid #c3c3c3; }
+.kgr tr.uer td { height: .62em; font-size: 22px; }
+.kgr td.uc { background: #e6e6e6; }
+.kgr td.ln { border-top: 4px solid var(--ink); }
+.kgr td.dl { border-bottom: 6px double var(--ink); }
+.kgr td.ul { border-bottom: 4px solid var(--ink); }
+.hlw { text-align: left; font-size: 30px; font-weight: 600; line-height: 1.5; padding: 16px 22px; font-variant-numeric: tabular-nums; }
+.hlq { font-size: 36px; font-weight: 800; margin: 0 0 6px; }
+.hll b { font-weight: 800; }
+.hll .qb { font-size: 30px; }
+.hll.hid { color: #bbb; }
+@media (max-width: 520px) { .kgr td { font-size: 26px; } .hlw { font-size: 22px; } .hlq { font-size: 28px; } }
