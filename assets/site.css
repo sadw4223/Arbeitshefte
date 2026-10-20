@@ -271,3 +271,20 @@ a.item:active { background: var(--ac-bg); }
 /* Zahlwörter in der Übung: Silbenschrift, Trennstrich nach „tausend“ als Lesehilfe, Umbruch nur an sinnvollen Stellen */
 .zwd .w { white-space: normal; }
 .zdiv { display: inline-block; margin: 0 .3em; color: var(--ac); font-weight: 400; }
+/* Addition und Subtraktion */
+.eqc span { display: inline-block; }
+.eqc .nx { color: var(--ac); }
+.qb { display: inline-block; min-width: 1.6em; padding: 0 .15em; border: 3px solid var(--ac); color: #9a9a9a; line-height: 1.15; }
+.qb.set { color: var(--ac); }
+.sgw { display: flex; justify-content: center; padding: 14px 10px 18px; }
+.sgr { border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.sgr td { width: 1.45em; height: 1.45em; border: 2px solid #b5b5b5; text-align: center; font-size: 40px; font-weight: 700; padding: 0; }
+.sgr td.o { border: 0; width: 1em; }
+.sgr tr.hd td { border: 0; height: auto; font-size: 18px; color: #555; }
+.sgr tr.ue td { height: .9em; font-size: 22px; background: #ececec; color: var(--ac); }
+.sgr tr.ue td.o { background: none; }
+.sgr tr.rs td { border-top: 4px solid var(--ink); border-bottom: 6px double var(--ink); color: var(--ac); }
+.sgr tr.rs td.o, .sgr tr.rs td.nb { border-left: 0; border-right: 0; border-bottom: 0; }
+.sgr tr.rs td.o { border-top: 0; }
+.card.story { text-align: left; font-size: 24px; font-weight: 400; letter-spacing: 0; line-height: 1.5; padding: 18px 20px; }
+@media (max-width: 520px) { .sgr td { font-size: 32px; } .card.story { font-size: 20px; } }
