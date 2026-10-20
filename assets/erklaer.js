@@ -29,6 +29,24 @@
     cp.style.minHeight = m + 'px';
     cp.innerHTML = S[k];
   }
+  // Unterstreichungen (Sachaufgaben): Linie genau unter die Wörter mit data-u legen – die Breite misst der Browser selbst
+  function drawUl() {
+    [].forEach.call(document.querySelectorAll('.stg .ulx'), function (g) {
+      var x0 = Infinity, x1 = -Infinity;
+      [].forEach.call(document.querySelectorAll('.stg tspan[data-u="' + g.getAttribute('data-u') + '"]'), function (t) {
+        var n = t.getNumberOfChars();
+        if (!n || !t.textContent.trim()) return;
+        try { x0 = Math.min(x0, t.getStartPositionOfChar(0).x); x1 = Math.max(x1, t.getEndPositionOfChar(n - 1).x); } catch (e) {}
+      });
+      if (!(x1 > x0)) return;
+      var l = g.firstChild || g.appendChild(document.createElementNS('http://www.w3.org/2000/svg', 'line'));
+      var y = g.getAttribute('data-y');
+      l.setAttribute('x1', x0); l.setAttribute('x2', x1); l.setAttribute('y1', y); l.setAttribute('y2', y);
+      l.setAttribute('stroke', g.getAttribute('data-c')); l.setAttribute('stroke-width', '4'); l.setAttribute('stroke-linecap', 'round');
+    });
+  }
+  drawUl();
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(drawUl);
   var rt = null;
   window.addEventListener('resize', function () { clearTimeout(rt); rt = setTimeout(fitCap, 120); });
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitCap);

@@ -1,7 +1,9 @@
 /* Übungen am Tablet (Mathe): zehn Aufgaben zum Antippen, nach jeder Antwort Rückmeldung mit kurzer Begründung, am Ende Auswertung.
    Der Typ steht in den Seitendaten: runden, zahlwort, wert, nachbar, zstrahl, vergl (Natürliche Zahlen);
-   begriffe, kopf, luecke, add, sub, ueb, sach (Addition und Subtraktion);
-   mdbegriffe, einmaleins, mdluecke, regeln, mdueb, halb, mul1, mul2, div, mdsach (Multiplikation und Division). Schreibweise wie im Heft. */
+   begriffe, kopf, luecke, add, sub, ueb, sach, klammern (Addition und Subtraktion);
+   mdbegriffe, einmaleins, mdluecke, regeln, mdueb, halb, mul1, mul2, div, mdsach (Multiplikation und Division);
+   linien, messen, senkpar, koord, symm, spiegeln, schatz (Grundlagen der Geometrie: auch Ziehen, Zuordnen, Verbinden und Antippen in der Zeichnung).
+   Schreibweise wie im Heft. */
 (function () {
   var D = JSON.parse(document.getElementById('data').textContent), L = D.labels;
   var app = document.getElementById('app');
@@ -20,6 +22,7 @@
   function S(t) {
     return String(t).split(/([A-Za-zÄÖÜäöüßé|]+)/).map(function (tok, k) {
       if (k % 2 === 0) return esc(tok);
+      if (tok === '|') return '|';   // Koordinaten (3 | 2)
       var p = tok.indexOf('|') >= 0 ? tok.split('|') : (SY[tok] || [tok]);
       return '<span class="w">' + p.map(function (x, j) {
         return '<span>' + x + '</span>' + (/^(send|dert)$/.test(x) && j < p.length - 1 && p.length > 5 ? '<wbr>' : '');
@@ -519,10 +522,11 @@
     var h = '<table class="kgr"><tr>' + task.map(function (c) { return td(c, 'k pr'); }).join('') + td('=', 'sy') +
       Rs.split('').map(function (c) { return td(fill ? c : '', 'rb' + (fill ? ' ac' : '')); }).join('') + '</tr>';
     if (B.length === 1) {
+      // Zeile über der Aufgabe: Zahl im Sinn klein über dem nächsten Ergebniskästchen (wie im Heft)
       var cin = mulCarries(a, +B), lr = Rs.length, row = '';
       for (var k = 0; k <= W; k++) row += td('', 'x');
-      for (var i = 0; i < lr; i++) { var p = lr - 1 - i; row += (p >= 1 && p <= A.length - 1) ? td(fill && cin[p] ? cin[p] : '', 'mz' + (fill ? ' ac' : '')) : td('', 'x'); }
-      return h + '<tr class="mzr">' + row + '</tr></table>';
+      for (var i = 0; i < lr; i++) { var p = lr - 1 - i; row += td(fill && p >= 1 && p <= A.length - 1 && cin[p] ? cin[p] : '', 'x ob'); }
+      return h.replace('<table class="kgr"><tr>', '<table class="kgr"><tr class="obr">' + row + '</tr><tr>') + '</table>';
     }
     if (!fill) return h + '</table>';
     var rows = [[a * +B[0], W - 2], [a * +B[1], W - 1]], col = {};
@@ -533,7 +537,7 @@
       var s = String(r[0]), m = {}; for (var i = 0; i < s.length; i++) m[r[1] - s.length + 1 + i] = s[i];
       h += '<tr>'; for (var c = 0; c < W; c++) h += td(m[c], 'k'); h += '<td class="x" colspan="9"></td></tr>';
     });
-    h += '<tr class="uer">'; for (var c2 = 0; c2 < W; c2++) h += td(car[c2], 'k uc ac'); h += '<td class="x" colspan="9"></td></tr>';
+    h += '<tr class="uer">'; for (var c2 = 0; c2 < W; c2++) h += td(car[c2] ? '<small>' + car[c2] + '</small>' : '', 'k uw ac'); h += '<td class="x" colspan="9"></td></tr>';
     h += '<tr>'; for (var c3 = 0; c3 < W; c3++) { var j = c3 - (W - Rs.length); h += td(j >= 0 ? Rs[j] : '', 'k ac' + (c3 >= 1 ? ' ln' : '') + (j >= 0 ? ' dl' : '')); }
     return h + '<td class="x" colspan="9"></td></tr></table>';
   }
@@ -546,7 +550,7 @@
       txt.push(cur + ' : ' + dv + ' = ' + q + '. ' + q + ' · ' + dv + ' = ' + p + '. ' + cur + ' – ' + p + ' = ' + rem + '.');
       if (k + 1 < n) {
         var r2 = {}; for (var i2 = 0; i2 < rs.length; i2++) r2[end - rs.length + 1 + i2] = rs[i2]; r2[end + 1] = D[k + 1]; r2.dn = end + 1; rows.push(r2);
-        cur = rem * 10 + (+D[k + 1]); k++; txt.push('Hole die ' + D[k] + ' herunter.');
+        cur = rem * 10 + (+D[k + 1]); k++; txt.push('Ziehe die ' + D[k] + ' herunter.');
       } else { var r3 = {}; for (var i3 = 0; i3 < rs.length; i3++) r3[end - rs.length + 1 + i3] = rs[i3]; rows.push(r3); break; }
     }
     return { rows: rows, txt: txt };
@@ -626,27 +630,32 @@
     });
   };
 
+  // Farbig (blau) ist, was zuerst gerechnet wird, und sein Ergebnis: so sieht man, woher die Zahl kommt
+  function pv(t) { return '<span class="pv">' + S(t) + '</span>'; }
   GEN.regeln = function () {
     var plan = shuffle(['pa', 'pm', 'pb', 'pd', 'ka', 'km', 'kd', 'lr', 'pa', 'ka']);
     return plan.map(function (t) {
-      var a, b, c, ex, ans, wrong, why;
-      if (t === 'pa') { a = R(2, 9); b = R(2, 9); c = R(2, 9); ex = a + ' + ' + b + ' · ' + c; ans = a + b * c; wrong = (a + b) * c;
-        why = 'Punkt vor Strich: ' + b + ' · ' + c + ' = ' + b * c + '. Dann ' + a + ' + ' + b * c + ' = ' + ans + '.'; }
-      if (t === 'pm') { b = R(2, 5); c = R(2, 6); a = b * c + R(3, 20); ex = a + ' – ' + b + ' · ' + c; ans = a - b * c; wrong = (a - b) * c;
-        why = 'Punkt vor Strich: ' + b + ' · ' + c + ' = ' + b * c + '. Dann ' + a + ' – ' + b * c + ' = ' + ans + '.'; }
-      if (t === 'pb') { a = R(2, 9); b = R(2, 9); c = R(2, 15); ex = a + ' · ' + b + ' + ' + c; ans = a * b + c; wrong = a * (b + c);
-        why = 'Punkt vor Strich: ' + a + ' · ' + b + ' = ' + a * b + '. Dann ' + a * b + ' + ' + c + ' = ' + ans + '.'; }
-      if (t === 'pd') { c = R(2, 6); b = c * R(2, 6); a = R(2, 20); ex = a + ' + ' + b + ' : ' + c; ans = a + b / c; wrong = (a + b) % c === 0 ? (a + b) / c : a + b;
-        why = 'Punkt vor Strich: ' + b + ' : ' + c + ' = ' + b / c + '. Dann ' + a + ' + ' + b / c + ' = ' + ans + '.'; }
-      if (t === 'ka') { a = R(2, 9); b = R(2, 9); c = R(2, 9); ex = '(' + a + ' + ' + b + ') · ' + c; ans = (a + b) * c; wrong = a + b * c;
-        why = 'Klammer zuerst: ' + a + ' + ' + b + ' = ' + (a + b) + '. Dann ' + (a + b) + ' · ' + c + ' = ' + ans + '.'; }
-      if (t === 'km') { b = R(2, 7); a = b + R(2, 8); c = R(2, 9); ex = c + ' · (' + a + ' – ' + b + ')'; ans = c * (a - b); wrong = c * a - b;
-        why = 'Klammer zuerst: ' + a + ' – ' + b + ' = ' + (a - b) + '. Dann ' + c + ' · ' + (a - b) + ' = ' + ans + '.'; }
-      if (t === 'kd') { c = R(2, 6); var s = c * R(3, 9); a = R(2, s - 2); b = s - a; ex = '(' + a + ' + ' + b + ') : ' + c; ans = s / c; wrong = b % c === 0 ? a + b / c : ans + c;
-        why = 'Klammer zuerst: ' + a + ' + ' + b + ' = ' + s + '. Dann ' + s + ' : ' + c + ' = ' + ans + '.'; }
-      if (t === 'lr') { a = R(20, 40); b = R(3, 9); c = R(2, 9); ex = a + ' – ' + b + ' + ' + c; ans = a - b + c; wrong = a - (b + c);
-        why = 'Nur Strich: Rechne von links nach rechts. ' + a + ' – ' + b + ' = ' + (a - b) + '. Dann ' + (a - b) + ' + ' + c + ' = ' + ans + '.'; }
-      return { head: S('Rechne. Denke an die Rechenregeln.'), body: '<div class="card cmpq eqc">' + ex + ' = ?</div>', choices: nums(three(ans, [wrong, ans + 2, ans - 2])), ans: ans, why: S(why), cols: 3 };
+      var a, b, c, ex, ans, wrong, why, f, r;   // ex = [vorne, zuerst, hinten]; f = erste Rechnung, r = ihr Ergebnis
+      if (t === 'pa') { a = R(2, 9); b = R(2, 9); c = R(2, 9); r = b * c; ex = [a + ' + ', b + ' · ' + c, '']; ans = a + r; wrong = (a + b) * c;
+        why = S('Punkt vor Strich: ') + pv(b + ' · ' + c + ' = ' + r) + S('. Dann ' + a + ' + ') + pv(r) + S(' = ' + ans + '.'); }
+      if (t === 'pm') { b = R(2, 5); c = R(2, 6); a = b * c + R(3, 20); r = b * c; ex = [a + ' – ', b + ' · ' + c, '']; ans = a - r; wrong = (a - b) * c;
+        why = S('Punkt vor Strich: ') + pv(b + ' · ' + c + ' = ' + r) + S('. Dann ' + a + ' – ') + pv(r) + S(' = ' + ans + '.'); }
+      if (t === 'pb') { a = R(2, 9); b = R(2, 9); c = R(2, 15); r = a * b; ex = ['', a + ' · ' + b, ' + ' + c]; ans = r + c; wrong = a * (b + c);
+        why = S('Punkt vor Strich: ') + pv(a + ' · ' + b + ' = ' + r) + S('. Dann ') + pv(r) + S(' + ' + c + ' = ' + ans + '.'); }
+      if (t === 'pd') { c = R(2, 6); b = c * R(2, 6); a = R(2, 20); r = b / c; ex = [a + ' + ', b + ' : ' + c, '']; ans = a + r; wrong = (a + b) % c === 0 ? (a + b) / c : a + b;
+        why = S('Punkt vor Strich: ') + pv(b + ' : ' + c + ' = ' + r) + S('. Dann ' + a + ' + ') + pv(r) + S(' = ' + ans + '.'); }
+      if (t === 'ka') { a = R(2, 9); b = R(2, 9); c = R(2, 9); r = a + b; ex = ['', '(' + a + ' + ' + b + ')', ' · ' + c]; ans = r * c; wrong = a + b * c;
+        why = S('Klammer zuerst: ') + pv(a + ' + ' + b + ' = ' + r) + S('. Dann ') + pv(r) + S(' · ' + c + ' = ' + ans + '.'); }
+      if (t === 'km') { b = R(2, 7); a = b + R(2, 8); c = R(2, 9); r = a - b; ex = [c + ' · ', '(' + a + ' – ' + b + ')', '']; ans = c * r; wrong = c * a - b;
+        why = S('Klammer zuerst: ') + pv(a + ' – ' + b + ' = ' + r) + S('. Dann ' + c + ' · ') + pv(r) + S(' = ' + ans + '.'); }
+      if (t === 'kd') { c = R(2, 6); var s = c * R(3, 9); a = R(2, s - 2); b = s - a; r = s; ex = ['', '(' + a + ' + ' + b + ')', ' : ' + c]; ans = s / c; wrong = b % c === 0 ? a + b / c : ans + c;
+        why = S('Klammer zuerst: ') + pv(a + ' + ' + b + ' = ' + s) + S('. Dann ') + pv(s) + S(' : ' + c + ' = ' + ans + '.'); }
+      if (t === 'lr') { a = R(20, 40); b = R(3, 9); c = R(2, 9); r = a - b; ex = ['', a + ' – ' + b, ' + ' + c]; ans = r + c; wrong = a - (b + c);
+        why = S('Nur Strich: Rechne von links nach rechts. ') + pv(a + ' – ' + b + ' = ' + r) + S('. Dann ') + pv(r) + S(' + ' + c + ' = ' + ans + '.'); }
+      var it = { head: S('Rechne. Denke an die Rechenregeln.'), body: '<div class="card cmpq eqc" id="rq"><span>' + ex.join('') + ' = ?</span></div>', choices: nums(three(ans, [wrong, ans + 2, ans - 2])), ans: ans, why: why, cols: 3 };
+      // nach der Antwort: in der Aufgabe wird farbig, was zuerst gerechnet wird
+      it.after = function () { document.getElementById('rq').innerHTML = '<span>' + ex[0] + '<span class="pv">' + ex[1] + '</span>' + ex[2] + ' = ' + ans + '</span>'; };
+      return it;
     });
   };
 
@@ -665,27 +674,32 @@
     });
   };
 
+  // Stellenfarben beim Zerlegen (wie in der Erklärung): Hunderter lila, Zehner blau, Einer orange
+  function stc(len, k) { return ['ze', 'zz', 'zh'][len - 1 - k]; }
+  function cs(t, c) { return '<span class="' + c + '">' + t + '</span>'; }
   GEN.halb = function () {
     var plan = shuffle(['2z', '2e', '2s', '2s', '2e', '3h', '3z', '3s', '3s', '2s']);
     return plan.map(function (t) {
-      var a, b, parts;
+      var a, b;
       do { a = t[0] === '2' ? R(21, 98) : R(112, 489); b = R(2, 9); } while (a % 10 === 0 || (t[0] === '3' && Math.floor(a / 10) % 10 === 0));
-      var A = String(a); parts = A.split('').map(function (d, k) { return +d * Math.pow(10, A.length - 1 - k); });
+      var A = String(a), n = A.length, parts = A.split('').map(function (d, k) { return +d * Math.pow(10, n - 1 - k); });
       var prods = parts.map(function (p) { return p * b; }), total = a * b;
-      var miss = t[1] === 's' ? parts.length : t[1] === 'e' ? parts.length - 1 : t[1] === 'z' ? parts.length - 2 : 0;
-      var lines = parts.map(function (p, k) { return [fmt(p) + ' · ' + b + ' = ', fmt(prods[k])]; });
-      lines.push([prods.map(fmt).join(' + ') + ' = ', fmt(total)]);
-      var ans = miss === parts.length ? total : prods[miss];
+      var miss = t[1] === 's' ? n : t[1] === 'e' ? n - 1 : t[1] === 'z' ? n - 2 : 0;
+      var aCol = A.split('').map(function (d, k) { return cs(d, stc(n, k)); }).join('');
+      var lines = parts.map(function (p, k) { return [cs(fmt(p), stc(n, k)) + ' · ' + b + ' = ', fmt(prods[k]), stc(n, k)]; });
+      lines.push([prods.map(function (q, k) { return cs(fmt(q), stc(n, k)); }).join(' + ') + ' = ', fmt(total), '']);
+      var ans = miss === n ? total : prods[miss];
       function card(done) {
-        return '<div class="card hlw"><div class="hlq">' + a + ' · ' + b + '</div>' + lines.map(function (l, k) {
-          if (done || k < miss) return '<div class="hll">' + l[0] + '<b>' + l[1] + '</b></div>';
+        return '<div class="card hlw"><div class="hlq">' + aCol + ' · ' + b + '</div>' + lines.map(function (l, k) {
+          if (done || k < miss) return '<div class="hll">' + l[0] + '<b' + (l[2] ? ' class="' + l[2] + '"' : '') + '>' + l[1] + '</b></div>';
           if (k === miss) return '<div class="hll">' + l[0] + '<b class="qb' + (done ? ' set' : '') + '">?</b></div>';
           return '<div class="hll hid">…</div>';
         }).join('') + '</div>';
       }
-      var w = miss === parts.length ? [total + 10, total - 10, sum(parts.slice(0, -1).map(function (p) { return p * b; })) + parts[parts.length - 1]] : [ans * 10, ans % 10 === 0 ? ans / 10 : ans + b, ans + b];
+      var w = miss === n ? [total + 10, total - 10, sum(parts.slice(0, -1).map(function (p) { return p * b; })) + parts[n - 1]] : [ans * 10, ans % 10 === 0 ? ans / 10 : ans + b, ans + b];
       var it = { head: S('Rechne halbschriftlich. Welche Zahl fehlt?'), body: '<div id="hw">' + card(false) + '</div>', choices: nums(three(ans, w)), ans: ans, cols: 3,
-        why: S('Zerlege ' + a + ' in ' + parts.map(fmt).join(' und ') + '. Multipliziere jeden Teil mit ' + b + '. Addiere am Schluss: ' + prods.map(fmt).join(' + ') + ' = ' + fmt(total) + '.') };
+        why: S('Zerlege ' + a + ' in ') + parts.map(function (p, k) { return cs(S(fmt(p)), stc(n, k)); }).join(S(' und ')) +
+          S('. Multipliziere jeden Teil mit ' + b + '. Addiere am Schluss: ') + prods.map(function (q, k) { return cs(S(fmt(q)), stc(n, k)); }).join(' + ') + S(' = ' + fmt(total) + '.') };
       it.after = function () { document.getElementById('hw').innerHTML = card(true); };
       return it;
     });
@@ -704,7 +718,7 @@
       for (var p = 0; p < A.length; p++) {
         var d = +A[A.length - 1 - p], s = d * b, s2 = s + cr, last = p === A.length - 1;
         forgot += (last ? s : s % 10) * Math.pow(10, p);
-        steps.push(NAME[p] + ': ' + b + ' · ' + d + ' = ' + s + (cr ? ', ' + s + ' + ' + cr + ' = ' + s2 : '') + '. ' + (last ? 'Schreibe ' + s2 + '.' : 'Schreibe ' + (s2 % 10) + (Math.floor(s2 / 10) ? ', merke ' + Math.floor(s2 / 10) : '') + '.'));
+        steps.push(NAME[p] + ': ' + b + ' · ' + d + ' = ' + s + (cr ? '. Dazu die ' + cr + ' im Sinn: ' + s + ' + ' + cr + ' = ' + s2 : '') + '. ' + (last ? 'Schreibe ' + s2 + '.' : Math.floor(s2 / 10) ? (s2 % 10) + ' hin, ' + Math.floor(s2 / 10) + ' im Sinn.' : 'Schreibe ' + s2 + '.'));
         cr = Math.floor(s2 / 10);
       }
       var it = { head: S('Rechne schriftlich. Was kommt heraus?'), body: '<div class="card kgw" id="kg">' + kgMul(a, b, false) + '</div>',
@@ -725,7 +739,8 @@
         ok = b % 10 !== 0 && a % 10 !== 0 && (t === 'o' ? !c && r < 1000 : t === 'c' ? c && r < 10000 : r >= 2000);
       } while (!ok && tries < 800);
       var z = Math.floor(b / 10), e = b % 10, ans = a * b, noShift = a * z + a * e;
-      var why = 'Zehner zuerst: ' + a + ' · ' + z + ' = ' + fmt(a * z) + '. Dann die Einer: ' + a + ' · ' + e + ' = ' + fmt(a * e) + '. Diese Zeile rückt eine Stelle nach rechts. Addiere die beiden Zeilen: ' + fmt(ans) + '.';
+      var why = 'Zehner zuerst: ' + a + ' · ' + z + ' = ' + fmt(a * z) + '. Die letzte Ziffer steht unter der ' + z + '. Dann die Einer: ' + a + ' · ' + e + ' = ' + fmt(a * e) +
+        '. Diese Zeile rückt eine Stelle nach rechts. Behalte die Zahl im Sinn bei jedem Schritt. Addiere die beiden Zeilen: ' + fmt(ans) + '.';
       var it = { head: S('Rechne schriftlich. Was kommt heraus?'), body: '<div class="card kgw" id="kg">' + kgMul(a, b, false) + '</div>',
         choices: nums(three(ans, [noShift, ans + 100, ans - 10])), ans: ans, cols: 3, why: S(why) };
       it.after = function () { document.getElementById('kg').innerHTML = kgMul(a, b, true); };
@@ -778,6 +793,633 @@
     });
   };
 
+
+  // ------------------------------------------------------------ Klammern und Rechenvorteile (Addition und Subtraktion, Kapitel 8)
+  function kTrip() { var b = R(1, 4) * 10 + (Math.random() < .5 ? 5 : 0), c = R(2, 9), a = b + c + R(2, 5) * 10; return [a, b, c]; }
+  function kPar(t) { return t[0] + ' – <span class="pv">(' + t[1] + ' + ' + t[2] + ')</span>'; }
+  function kLin(t) { return t[0] + ' – ' + t[1] + ' + ' + t[2]; }
+  GEN.klammern = function () {
+    var set = [];
+    [1, 1, 1, 0, 0].forEach(function (par) {
+      var t = kTrip(), a = t[0], b = t[1], c = t[2], wp = a - (b + c), wl = a - b + c, ans = par ? wp : wl;
+      set.push({ head: S('Rechne. Was kommt heraus?'), body: '<div class="card cmpq">' + (par ? kPar(t) : kLin(t)) + '</div>', cols: 3, ans: ans,
+        choices: nums(three(ans, [par ? wl : wp, ans + 10, ans - 10])),
+        why: S(par ? 'Zuerst die Klammer: ' + b + ' + ' + c + ' = ' + (b + c) + '. Dann ' + a + ' – ' + (b + c) + ' = ' + ans + '.'
+          : 'Keine Klammer: Rechne von links nach rechts. ' + a + ' – ' + b + ' = ' + (a - b) + '. Dann ' + (a - b) + ' + ' + c + ' = ' + ans + '.') });
+    });
+    // Verbinden: Rechnung und Ergebnis
+    var t1, t2, ok2 = false, n2 = 0;
+    do { t1 = kTrip(); t2 = kTrip(); n2++; ok2 = [t1[0] - t1[1] - t1[2], t1[0] - t1[1] + t1[2], t2[0] - t2[1] - t2[2]].filter(function (v, i, A) { return A.indexOf(v) === i; }).length === 3; } while (!ok2 && n2 < 200);
+    var L3 = [{ h: kPar(t1), k: t1[0] - t1[1] - t1[2] }, { h: kLin(t1), k: t1[0] - t1[1] + t1[2] }, { h: kPar(t2), k: t2[0] - t2[1] - t2[2] }];
+    set.push({ kind: 'match', mcls: 'eq', head: S('Verbinde jede Rechnung mit ihrem Ergebnis.'), left: L3,
+      right: shuffle(L3.map(function (x) { return { h: String(x.k), k: x.k }; })),
+      why: S('Mit Klammer: die Klammer zuerst. Ohne Klammer: von links nach rechts.') });
+    // Welche Rechnung ergibt …?
+    [1, 0].forEach(function (par) {
+      var t = kTrip(), a = t[0], b = t[1], c = t[2], r = par ? a - (b + c) : a - b + c;
+      set.push({ head: S('Welche Rechnung ergibt ' + r + '?'), cols: 1, ans: par ? 'r' : 'l',
+        choices: shuffle([{ v: 'r', h: kPar(t) }, { v: 'l', h: '<span class="pv">(' + a + ' – ' + b + ')</span> + ' + c }]),
+        why: S(par ? a + ' – (' + b + ' + ' + c + ') = ' + a + ' – ' + (b + c) + ' = ' + r + '.' : '(' + a + ' – ' + b + ') + ' + c + ' = ' + (a - b) + ' + ' + c + ' = ' + r + '.') });
+    });
+    // Rechenvorteil: Welche zwei Zahlen zuerst?
+    for (var k = 0; k < 2; k++) {
+      var p, q, r2, e;
+      do { p = R(11, 48); e = p % 10; r2 = (10 - e) + (Math.random() < .5 ? 0 : R(1, 3) * 10); q = R(12, 49); }
+      while (e === 0 || q % 10 === 0 || (q % 10 + e) % 10 === 0 || (q % 10 + r2 % 10) % 10 === 0 || r2 === p);
+      var ord = shuffle([p, q, r2]), lab = function (x, y) { return x + ' + ' + y; };
+      var pairs = [[p, r2], [p, q], [q, r2]].map(function (x) { var s2 = x.slice().sort(function (u, w) { return ord.indexOf(u) - ord.indexOf(w); }); return lab(s2[0], s2[1]); });
+      set.push({ head: S('Rechne geschickt: Welche zwei Zahlen rechnest du zuerst?'), body: '<div class="card cmpq">' + ord.join(' + ') + '</div>', cols: 3, ans: pairs[0],
+        choices: shuffle(pairs.map(function (x) { return { v: x, h: x }; })),
+        why: S('Die Einer ' + e + ' und ' + (r2 % 10) + ' ergeben zusammen 10. ' + pairs[0] + ' = ' + (p + r2) + '. Dann ' + (p + r2) + ' + ' + q + ' = ' + (p + q + r2) + '.') });
+    }
+    return set;
+  };
+
+  // ============================================================ Grundlagen der Geometrie
+  // Zeichnungen exakt konstruiert wie im Heft: Punkte als ×, Anfang und Ende von Linien als ●, rechte Winkel mit Viertelkreis und Punkt.
+  var GRY = '#777', KLC = '#d9d9d9', ACL = '#e5edf5', IMGP = '../../assets/img/';
+  function f1(v) { return Math.round(v * 10) / 10; }
+  function sv(w, h, inner, cls, id) { return '<svg class="gsv ' + (cls || '') + '"' + (id ? ' id="' + id + '"' : '') + ' viewBox="0 0 ' + w + ' ' + h + '">' + inner + '</svg>'; }
+  function ln(x1, y1, x2, y2, c, sw, dash) {
+    return '<line x1="' + f1(x1) + '" y1="' + f1(y1) + '" x2="' + f1(x2) + '" y2="' + f1(y2) + '" stroke="' + (c || INK) + '" stroke-width="' + (sw || 4) +
+      '" stroke-linecap="' + (dash ? 'butt' : 'round') + '"' + (dash ? ' stroke-dasharray="' + dash + '"' : '') + '/>';
+  }
+  function cr(x, y, c, s, sw) { s = s || 9; return '<path d="M' + f1(x - s) + ' ' + f1(y - s) + 'L' + f1(x + s) + ' ' + f1(y + s) + 'M' + f1(x - s) + ' ' + f1(y + s) + 'L' + f1(x + s) + ' ' + f1(y - s) + '" stroke="' + (c || INK) + '" stroke-width="' + (sw || 4) + '" stroke-linecap="round"/>'; }
+  function dt(x, y, r, c) { return '<circle cx="' + f1(x) + '" cy="' + f1(y) + '" r="' + (r || 8) + '" fill="' + (c || INK) + '"/>'; }
+  function tx(x, y, t, size, c, w, anchor, it) {
+    return '<text x="' + f1(x) + '" y="' + f1(y) + '" font-size="' + (size || 26) + '" font-weight="' + (w || 700) + '" fill="' + (c || INK) + '" text-anchor="' + (anchor || 'middle') + '"' + (it ? ' font-style="italic"' : '') + '>' + t + '</text>';
+  }
+  function pg(pts, c, sw, fill) { return '<polygon points="' + pts.map(function (p) { return f1(p[0]) + ',' + f1(p[1]); }).join(' ') + '" fill="' + (fill || 'none') + '" stroke="' + (c || INK) + '" stroke-width="' + (sw || 4) + '" stroke-linejoin="round"/>'; }
+  function ax(x1, y1, x2, y2, c, sw) { return ln(x1, y1, x2, y2, c || AC, sw || 5, '14 9'); }
+  function rwj(x, y, ux, uy, vx, vy, c, r) {
+    r = r || 24; var n1 = Math.hypot(ux, uy), n2 = Math.hypot(vx, vy); ux /= n1; uy /= n1; vx /= n2; vy /= n2;
+    var sw = ux * vy - uy * vx > 0 ? 1 : 0;
+    return '<path d="M' + f1(x + ux * r) + ' ' + f1(y + uy * r) + ' A' + r + ' ' + r + ' 0 0 ' + sw + ' ' + f1(x + vx * r) + ' ' + f1(y + vy * r) + '" fill="none" stroke="' + (c || AC) + '" stroke-width="3"/>' +
+      dt(x + (ux + vx) * r * .42, y + (uy + vy) * r * .42, 3.4, c || AC);
+  }
+  function karoJ(x0, y0, nx, ny, c) {
+    var p = '';
+    for (var i = 0; i <= nx; i++) p += 'M' + (x0 + i * c) + ' ' + y0 + 'v' + ny * c;
+    for (var j = 0; j <= ny; j++) p += 'M' + x0 + ' ' + (y0 + j * c) + 'h' + nx * c;
+    return '<rect x="' + x0 + '" y="' + y0 + '" width="' + nx * c + '" height="' + ny * c + '" fill="#fff"/><path d="' + p + '" stroke="' + KLC + '" stroke-width="1.5" fill="none"/>';
+  }
+  // Gerade durch (px, py) mit Richtung (dx, dy), abgeschnitten am Rechteck W × H (mit Rand m)
+  function clip(px, py, dx, dy, W, H, m) {
+    m = m || 0; var t0 = -1e9, t1 = 1e9;
+    [[dx, px, m, W - m], [dy, py, m, H - m]].forEach(function (a) {
+      if (Math.abs(a[0]) < 1e-9) return;
+      var ta = (a[2] - a[1]) / a[0], tb = (a[3] - a[1]) / a[0];
+      t0 = Math.max(t0, Math.min(ta, tb)); t1 = Math.min(t1, Math.max(ta, tb));
+    });
+    return [px + dx * t0, py + dy * t0, px + dx * t1, py + dy * t1];
+  }
+  function deg(a) { return a * Math.PI / 180; }
+  function cxy(x, y) { return '(' + x + NB + '|' + NB + y + ')'; }
+
+  // ------------------------------------------------------------ Gerade, Strecke, Strahl
+  var LKIND = { strecke: 'Stre|cke', strahl: 'Strahl', gerade: 'Ge|ra|de' };
+  var LWHY = { strecke: 'Zwei Punkte an den Enden: Das ist eine Strecke. Sie hat einen Anfang und ein Ende.',
+    strahl: 'Ein Punkt am Anfang, dann geht die Linie bis zum Rand: Das ist ein Strahl.',
+    gerade: 'Kein Punkt, die Linie geht von Rand zu Rand: Das ist eine Gerade.' };
+  function linePic(kind, W, H) {
+    W = W || 700; H = H || 200;
+    var a = deg(R(-22, 22)), dx = Math.cos(a), dy = -Math.sin(a), cx = W / 2 + R(-40, 40), cy = H / 2 + R(-15, 15), o = '';
+    if (kind === 'strecke') {
+      var hl = R(Math.round(W * .2), Math.round(W * .32));
+      o = ln(cx - dx * hl, cy - dy * hl, cx + dx * hl, cy + dy * hl) + dt(cx - dx * hl, cy - dy * hl) + dt(cx + dx * hl, cy + dy * hl);
+    } else if (kind === 'strahl') {
+      var s = Math.random() < .5 ? 1 : -1, sx = cx - s * dx * W * .3, sy = cy - s * dy * W * .3, e = clip(sx, sy, s * dx, s * dy, W, H);
+      o = ln(sx, sy, e[2], e[3]) + dt(sx, sy);
+    } else {
+      var g = clip(cx, cy, dx, dy, W, H);
+      o = ln(g[0], g[1], g[2], g[3]);
+    }
+    return sv(W, H, o);
+  }
+  var LCATS = [{ v: 'strecke', h: S(LKIND.strecke) }, { v: 'strahl', h: S(LKIND.strahl) }, { v: 'gerade', h: S(LKIND.gerade) }];
+  GEN.linien = function () {
+    var set = [];
+    shuffle(['strecke', 'strahl', 'gerade', one(['strecke', 'strahl', 'gerade'])]).forEach(function (k) {
+      set.push({ head: S('Was ist das?'), body: '<div class="card gsw">' + linePic(k) + '</div>', choices: LCATS, ans: k, cols: 3, why: S(LWHY[k]) });
+    });
+    for (var r = 0; r < 3; r++) {
+      var ks = shuffle(['strecke', 'strahl', 'gerade', one(['strecke', 'strahl', 'gerade'])]);
+      set.push({ kind: 'sort', head: S('Ziehe jede Linie in das richtige Feld.'), cats: LCATS,
+        items: ks.map(function (k) { return { h: linePic(k, 420, 150), c: k }; }),
+        why: S('Zähle die Punkte: zwei Punkte = Strecke, ein Punkt = Strahl, kein Punkt = Gerade.') });
+    }
+    var RF = [['Eine Strecke hat einen Anfang und ein Ende.', 'r'], ['Ein Strahl hat einen Anfang.', 'r'], ['Eine Gerade hat keinen Anfang und kein Ende.', 'r'],
+      ['Eine Gerade hat ein Ende.', 'f'], ['Ein Strahl hat zwei Endpunkte.', 'f'], ['Eine Strecke geht immer weiter.', 'f'], ['Eine Strecke kann man messen.', 'r']];
+    var RFW = { r: 'Das stimmt.', f: 'Das stimmt nicht.' };
+    shuffle(RF).slice(0, 2).forEach(function (q) {
+      set.push({ head: S('Richtig oder falsch?'), body: '<div class="card story">' + S(q[0]) + '</div>', cols: 2, ans: q[1],
+        choices: [{ v: 'r', h: S('rich|tig') }, { v: 'f', h: S('falsch') }],
+        why: S(RFW[q[1]] + ' Strecke: Anfang und Ende. Strahl: Anfang, kein Ende. Gerade: kein Anfang und kein Ende.') });
+    });
+    set.push({ kind: 'match', head: S('Verbinde den Namen mit dem Bild.'),
+      left: LCATS.map(function (c) { return { h: c.h, k: c.v }; }),
+      right: shuffle(['strecke', 'strahl', 'gerade'].map(function (k) { return { h: linePic(k, 360, 130), k: k }; })),
+      why: S('Zwei Punkte = Strecke, ein Punkt = Strahl, kein Punkt = Gerade.') });
+    return set;
+  };
+
+  // ------------------------------------------------------------ Strecken messen (Lineal zum Ziehen)
+  function rulerSvg(n, u, hi) {
+    var o = '<rect x="-14" y="0" width="' + (n * u + 28) + '" height="54" fill="#f4f7fb" stroke="' + INK + '" stroke-width="2.5"/>', p = '';
+    for (var k = 0; k <= n * 10; k++) { var h = k % 10 === 0 ? 19 : (k % 5 === 0 ? 12 : 7); p += 'M' + f1(k * u / 10) + ' 0v' + h; }
+    o += '<path d="' + p + '" stroke="' + INK + '" stroke-width="2" fill="none"/>';
+    for (k = 0; k <= n; k++) o += tx(k * u, 44, String(k), hi === k ? 25 : 21, hi === k ? AC : INK, hi === k ? 800 : 400);
+    return o + '<rect x="-14" y="0" width="' + (n * u + 28) + '" height="54" fill="transparent" class="rgrip"/>';
+  }
+  GEN.messen = function () {
+    var U = 60, xa = 70, used = {};
+    var names = [['A', 'B'], ['C', 'D'], ['E', 'F'], ['G', 'H'], ['K', 'L'], ['M', 'N'], ['P', 'Q'], ['R', 'S'], ['T', 'U'], ['V', 'W']];
+    return names.map(function (nm, i) {
+      var n; do { n = R(2, 9); } while (used[n] && Object.keys(used).length < 8); used[n] = 1;
+      var y = 60, xb = xa + n * U, start = i < 5 ? R(5, 25) * U / 10 : -R(1, 2) * U;   // Lineal liegt verschoben
+      var seg = ln(xa, y, xb, y) + dt(xa, y) + dt(xb, y) + tx(xa, y - 22, nm[0], 26) + tx(xb, y - 22, nm[1], 26);
+      function pic(off, hi, fin) {
+        return sv(760, 160, seg + (fin ? ln(xb, y + 6, xb, y + 22, AC, 4) : '') +
+          '<g id="rul" class="rul" transform="translate(' + (xa + off) + ' ' + (y + 12) + ')">' + rulerSvg(11, U, hi) + '</g>', 'drag', 'rsv');
+      }
+      var ans = n, w = [n + 1, n - 1, n + 2];
+      if (start < 0) w = [n - start / U, n + 1, n - 1];
+      var it = { head: S('Ziehe das Lineal an die Strecke. Wie lang ist sie?'), body: '<div class="card gsw">' + pic(start) + '</div>',
+        choices: three(ans, w).map(function (v) { return { v: v, h: v + NB + 'cm' }; }), ans: ans, cols: 3,
+        why: S('Lege die 0 genau an den Punkt ' + nm[0] + '. Am Punkt ' + nm[1] + ' steht die ' + n + '. Die Strecke ist ' + n + ' cm lang.') };
+      it.init = function () { dragRuler(document.getElementById('rsv'), U, xa); };
+      it.after = function () {
+        var g = document.getElementById('rul'); if (!g) return;
+        g.style.transition = 'transform .6s ease'; g.setAttribute('transform', 'translate(' + xa + ' ' + (y + 12) + ')');
+        g.innerHTML = rulerSvg(11, U, n);
+        var s = document.getElementById('rsv'); s.insertAdjacentHTML('beforeend', ln(xb, y + 6, xb, y + 14, AC, 4));
+      };
+      return it;
+    });
+  };
+  // Lineal mit Finger oder Maus waagerecht ziehen (rastet in Millimetern ein)
+  function dragRuler(svg, U, xa) {
+    if (!svg) return;
+    var g = svg.querySelector('#rul'), m = /translate\(([-\d.]+) ([-\d.]+)\)/.exec(g.getAttribute('transform')), x = +m[1], y = +m[2], x0 = null, gx = 0;
+    function sx(e) { var p = svg.createSVGPoint(); p.x = e.clientX; p.y = e.clientY; return p.matrixTransform(svg.getScreenCTM().inverse()).x; }
+    g.addEventListener('pointerdown', function (e) { if (g.classList.contains('fix')) return; x0 = sx(e); gx = x; g.setPointerCapture(e.pointerId); g.classList.add('grab'); e.preventDefault(); });
+    g.addEventListener('pointermove', function (e) {
+      if (x0 === null) return;
+      x = Math.max(-11 * U + 40, Math.min(720, xa + Math.round((gx + sx(e) - x0 - xa) / (U / 10)) * (U / 10)));   // Millimeter ab dem Punkt
+      g.setAttribute('transform', 'translate(' + x + ' ' + y + ')');
+    });
+    function up() { x0 = null; g.classList.remove('grab'); }
+    g.addEventListener('pointerup', up); g.addEventListener('pointercancel', up);
+  }
+
+  // ------------------------------------------------------------ Senkrecht und parallel
+  function twoLines(kind, W, H) {
+    var a = R(-35, 35), b, cx = W / 2 + R(-60, 60), cy = H / 2 + R(-25, 25), o = '', ex = '';
+    var d1 = [Math.cos(deg(a)), -Math.sin(deg(a))], g1 = clip(cx, cy, d1[0], d1[1], W, H, 14), g2, n;
+    if (kind === 'senk') {
+      b = a + 90; var d2 = [Math.cos(deg(b)), -Math.sin(deg(b))]; g2 = clip(cx, cy, d2[0], d2[1], W, H, 14);
+      ex = rwj(cx, cy, d1[0], d1[1], d2[0], d2[1], OKC, 28);
+    } else if (kind === 'par') {
+      n = [-d1[1], d1[0]]; var dd = R(70, 110) * (Math.random() < .5 ? 1 : -1), qx = cx + n[0] * dd / 2, qy = cy + n[1] * dd / 2;
+      g1 = clip(cx - n[0] * dd / 2, cy - n[1] * dd / 2, d1[0], d1[1], W, H, 14); g2 = clip(qx, qy, d1[0], d1[1], W, H, 14);
+      [-.3, 0, .3].forEach(function (t) {
+        var px = cx - n[0] * dd / 2 + d1[0] * t * W, py = cy - n[1] * dd / 2 + d1[1] * t * W;
+        ex += ln(px, py, px + n[0] * dd, py + n[1] * dd, OKC, 4, '9 7');
+      });
+    } else {
+      var diff = Math.random() < .6 ? R(35, 60) : R(14, 20); b = a + diff * (Math.random() < .5 ? 1 : -1);
+      var d3 = [Math.cos(deg(b)), -Math.sin(deg(b))];
+      if (diff < 25) { n = [-d1[1], d1[0]]; var qx2 = cx + n[0] * 90, qy2 = cy + n[1] * 90; g2 = clip(qx2, qy2, d3[0], d3[1], W, H, 14); g1 = clip(cx - n[0] * 10, cy - n[1] * 10, d1[0], d1[1], W, H, 14); }
+      else g2 = clip(cx, cy, d3[0], d3[1], W, H, 14);
+    }
+    o = ln(g1[0], g1[1], g1[2], g1[3]) + ln(g2[0], g2[1], g2[2], g2[3]);
+    return { pic: function (sol) { return sv(W, H, o + (sol ? ex : '')); } };
+  }
+  GEN.senkpar = function () {
+    var CH = [{ v: 'senk', h: S('senk|recht') }, { v: 'par', h: S('pa|ral|lel') }, { v: 'nix', h: S('nichts da|von') }];
+    var WHY = { senk: 'Die Geraden bilden einen rechten Winkel. Sie sind senkrecht zueinander.',
+      par: 'Die Geraden sind überall gleich weit voneinander entfernt. Sie sind parallel.',
+      nix: 'Die Geraden kreuzen sich schief oder treffen sich irgendwann. Sie sind nicht senkrecht und nicht parallel.' };
+    var set = shuffle(['senk', 'senk', 'par', 'par', 'nix', 'nix']).map(function (k) {
+      var t = twoLines(k, 700, 300);
+      var it = { head: S('Senkrecht, parallel oder nichts davon?'), body: '<div class="card gsw" id="lw2">' + t.pic(false) + '</div>', choices: CH, ans: k, cols: 3, why: S(WHY[k]) };
+      it.after = function () { document.getElementById('lw2').innerHTML = t.pic(true); };
+      return it;
+    });
+    ['senk', 'par', 'senk', 'par'].forEach(function (k) {
+      var W = 700, H = 340, a = R(-30, 30), cx = 350 + R(-40, 40), cy = 170 + R(-20, 20), d = [Math.cos(deg(a)), -Math.sin(deg(a))], nrm = [-d[1], d[0]];
+      var gg = clip(cx, cy, d[0], d[1], W, H, 16), cands = [], labs = shuffle(['a', 'b', 'c']);
+      // richtige Gerade, die andere Art und eine schiefe
+      var pp = [cx + d[0] * R(-160, -90), cy + d[1] * R(-160, -90)];
+      var perp = clip(pp[0], pp[1], nrm[0], nrm[1], W, H, 16);
+      var off = 110 * (Math.random() < .5 ? 1 : -1), par = clip(cx + nrm[0] * off, cy + nrm[1] * off, d[0], d[1], W, H, 16);
+      var b = a + R(50, 65) * (Math.random() < .5 ? 1 : -1), ob = [Math.cos(deg(b)), -Math.sin(deg(b))], sp = [cx + d[0] * R(110, 170), cy + d[1] * R(110, 170)];
+      var obl = clip(sp[0], sp[1], ob[0], ob[1], W, H, 16);
+      cands = [{ l: perp, k: 'senk', at: pp, dir: nrm }, { l: par, k: 'par' }, { l: obl, k: 'nix' }];
+      cands.forEach(function (c, i) { c.n = labs[i]; });
+      var ans = cands.filter(function (c) { return c.k === k; })[0].n;
+      function lab(c) { var x = c.l[0] + (c.l[2] - c.l[0]) * .08, y = c.l[1] + (c.l[3] - c.l[1]) * .08; return tx(x + 18, y + 8, c.n, 30, INK, 700, 'middle', true); }
+      function pic(res) {
+        var o = ln(gg[0], gg[1], gg[2], gg[3], INK, 6) + tx(gg[2] - 18, gg[3] - 14, 'g', 32, INK, 700, 'middle', true);
+        cands.forEach(function (c) {
+          var col = res ? (c.n === ans ? OKC : (res === c.n ? NOC : '#9a9a9a')) : '#555';
+          o += '<g class="tp" data-v="' + c.n + '"><line x1="' + f1(c.l[0]) + '" y1="' + f1(c.l[1]) + '" x2="' + f1(c.l[2]) + '" y2="' + f1(c.l[3]) + '" stroke="transparent" stroke-width="40"/>' +
+            ln(c.l[0], c.l[1], c.l[2], c.l[3], col, 4) + lab(c) + '</g>';
+        });
+        if (res && k === 'senk') o += rwj(cands[0].at[0], cands[0].at[1], d[0], d[1], nrm[0], nrm[1], OKC, 28);
+        return sv(W, H, o, 'tapl');
+      }
+      var it = { kind: 'tap', head: S(k === 'senk' ? 'Tippe auf die Gerade, die senkrecht zu g ist.' : 'Tippe auf die Gerade, die parallel zu g ist.'),
+        body: '<div class="card gsw" id="lw3">' + pic(null) + '</div>', ans: ans,
+        why: S(k === 'senk' ? 'Die Gerade ' + ans + ' bildet mit g einen rechten Winkel.' : 'Die Gerade ' + ans + ' ist überall gleich weit von g entfernt.') };
+      it.after = function (good, got) { document.getElementById('lw3').innerHTML = pic(got || 'x'); };
+      set.push(it);
+    });
+    return set;
+  };
+
+  // ------------------------------------------------------------ Koordinatensystem
+  function kSys(nx, ny, c, ox, oy, inner, tap) {
+    var o = '', k;
+    o += karoJ(ox, oy - ny * c, nx, ny, c).replace(KLC, '#e4e4e4');
+    o += ln(ox - 8, oy, ox + nx * c + 22, oy, INK, 3) + '<path d="M' + (ox + nx * c + 36) + ' ' + oy + ' l-18 -9 v18z" fill="' + INK + '"/>';
+    o += ln(ox, oy + 8, ox, oy - ny * c - 22, INK, 3) + '<path d="M' + ox + ' ' + (oy - ny * c - 36) + ' l-9 18 h18z" fill="' + INK + '"/>';
+    o += tx(ox + nx * c + 40, oy + 30, 'x', 26, INK, 700, 'middle', true) + tx(ox - 26, oy - ny * c - 26, 'y', 26, INK, 700, 'middle', true);
+    for (k = 1; k <= nx; k++) o += ln(ox + k * c, oy - 7, ox + k * c, oy + 7, INK, 2.5) + tx(ox + k * c, oy + 32, String(k), 22, INK, 400);
+    for (k = 1; k <= ny; k++) o += ln(ox - 7, oy - k * c, ox + 7, oy - k * c, INK, 2.5) + tx(ox - 22, oy - k * c + 8, String(k), 22, INK, 400);
+    o += tx(ox - 18, oy + 28, '0', 22, INK, 400);
+    if (tap) for (var i = 0; i <= nx; i++) for (var j = 0; j <= ny; j++)
+      o += '<g class="tp" data-v="' + i + '|' + j + '"><circle cx="' + (ox + i * c) + '" cy="' + (oy - j * c) + '" r="' + (c * .45) + '" fill="transparent"/></g>';
+    return o + (inner || '');
+  }
+  function kPath(ox, oy, c, x, y, col) {   // erst nach rechts, dann nach oben (Pfeile)
+    var o = '';
+    if (x) o += ln(ox, oy - 3, ox + x * c - 10, oy - 3, col, 6) + '<path d="M' + (ox + x * c) + ' ' + (oy - 3) + ' l-16 -9 v18z" fill="' + col + '"/>';
+    if (y) o += ln(ox + x * c, oy, ox + x * c, oy - y * c + 22, col, 6) + '<path d="M' + (ox + x * c) + ' ' + (oy - y * c + 12) + ' l-9 16 h18z" fill="' + col + '"/>';
+    return o;
+  }
+  GEN.koord = function () {
+    var NX = 8, NY = 6, C = 58, OX = 60, OY = 410, W = 600, H = 450, set = [], seen = {};
+    function pick() { var x, y; do { x = R(1, NY); y = R(1, NY); } while (x === y || seen[x + '|' + y]); seen[x + '|' + y] = 1; return [x, y]; }   // x ≤ 6: der vertauschte Punkt existiert auch
+    var nm = shuffle(['A', 'B', 'C', 'D', 'E', 'F', 'K', 'M', 'P', 'R']);
+    for (var t = 0; t < 5; t++) (function (t) {
+      var p = pick(), x = p[0], y = p[1], n = nm[t];
+      var w = [[y, x], [x + (x < NX ? 1 : -1), y], [x, y + (y < NY ? 1 : -1)]].filter(function (q) { return q[0] <= NX && q[1] <= NY; });
+      var ch = shuffle([[x, y], w[0], one(w.slice(1))]).map(function (q) { return { v: q[0] + '|' + q[1], h: n + NB + cxy(q[0], q[1]) }; });
+      function pic(sol) { return sv(W, H, kSys(NX, NY, C, OX, OY, (sol ? kPath(OX, OY, C, x, y, OKC) : '') + cr(OX + x * C, OY - y * C, AC, 11, 5) + tx(OX + x * C + 22, OY - y * C - 14, n, 28, AC))); }
+      var it = { head: S('Wo liegt der Punkt ' + n + '?'), body: '<div class="card gsw" id="kw">' + pic(false) + '</div>', choices: ch, ans: x + '|' + y, cols: 3,
+        why: S('Erst nach rechts: ' + x + '. Dann nach oben: ' + y + '. Also ' + n + NB + cxy(x, y) + '.') };
+      it.after = function () { document.getElementById('kw').innerHTML = pic(true); };
+      set.push(it);
+    })(t);
+    for (t = 0; t < 5; t++) (function () {
+      var p = pick(), x = p[0], y = p[1];
+      function pic(res) {
+        var o = '';
+        if (res) {
+          o += kPath(OX, OY, C, x, y, OKC) + cr(OX + x * C, OY - y * C, OKC, 12, 6);
+          if (res !== 'ok') { var q = res.split('|'); o += cr(OX + q[0] * C, OY - q[1] * C, NOC, 12, 6); }
+        }
+        return sv(W, H, kSys(NX, NY, C, OX, OY, o, !res), 'tapk');
+      }
+      var it = { kind: 'tap', head: S('Tippe auf den Punkt ' + cxy(x, y) + '.'), body: '<div class="card gsw" id="kw">' + pic(null) + '</div>', ans: x + '|' + y,
+        why: S('Erst ' + x + ' nach rechts, dann ' + y + ' nach oben.') };
+      it.after = function (good, got) { document.getElementById('kw').innerHTML = pic(good ? 'ok' : got); };
+      set.push(it);
+    })();
+    return set;
+  };
+
+  // ------------------------------------------------------------ Achsensymmetrie
+  // Figuren im Feld 300 × 300; ax: Symmetrieachsen [x1, y1, x2, y2]
+  var FIG = {
+    haus: { p: [[80, 270], [220, 270], [220, 140], [150, 50], [80, 140]], ax: [[150, 20, 150, 290]] },
+    pfeil: { p: [[40, 120], [170, 120], [170, 70], [260, 150], [170, 230], [170, 180], [40, 180]], ax: [[20, 150, 280, 150]] },
+    drachen: { p: [[150, 30], [230, 120], [150, 270], [70, 120]], ax: [[150, 10, 150, 290]] },
+    trapez: { p: [[60, 220], [240, 220], [190, 90], [110, 90]], ax: [[150, 50, 150, 260]] },
+    tanne: { p: [[150, 30], [230, 160], [180, 160], [180, 260], [120, 260], [120, 160], [70, 160]], ax: [[150, 10, 150, 285]] },
+    winkel: { p: [[70, 70], [130, 70], [130, 170], [230, 170], [230, 230], [70, 230]], ax: [[40, 260, 260, 40]] },
+    rechteck: { p: [[50, 90], [250, 90], [250, 210], [50, 210]], ax: [[150, 50, 150, 250], [20, 150, 280, 150]] },
+    quadrat: { p: [[70, 70], [230, 70], [230, 230], [70, 230]], ax: [[150, 35, 150, 265], [35, 150, 265, 150], [45, 45, 255, 255], [255, 45, 45, 255]] },
+    plus: { p: [[120, 50], [180, 50], [180, 120], [250, 120], [250, 180], [180, 180], [180, 250], [120, 250], [120, 180], [50, 180], [50, 120], [120, 120]],
+      ax: [[150, 25, 150, 275], [25, 150, 275, 150], [40, 40, 260, 260], [260, 40, 40, 260]] },
+    raute: { p: [[150, 40], [250, 150], [150, 260], [50, 150]], ax: [[150, 15, 150, 285], [20, 150, 280, 150]] },
+    parallelo: { p: [[50, 210], [190, 210], [250, 90], [110, 90]], ax: [] },
+    flagge: { p: [[90, 270], [90, 40], [230, 85], [110, 130], [110, 270]], ax: [] },
+    zett: { p: [[60, 60], [240, 60], [240, 110], [130, 200], [240, 200], [240, 250], [60, 250], [60, 200], [170, 110], [60, 110]], ax: [] },
+    stufe: { p: [[50, 250], [50, 170], [130, 170], [130, 100], [210, 100], [210, 40], [260, 40], [260, 250]], ax: [] },
+    eff: { p: [[90, 40], [230, 40], [230, 90], [140, 90], [140, 140], [210, 140], [210, 185], [140, 185], [140, 270], [90, 270]], ax: [] }
+  };
+  function figSvg(f, axes, cls, extra) {
+    var o = pg(FIG[f].p, INK, 5, ACL);
+    (axes || []).forEach(function (a) { o += ax(a[0], a[1], a[2], a[3], OKC, 5); });
+    return sv(300, 300, o + (extra || ''), cls);
+  }
+  GEN.symm = function () {
+    var set = [];
+    var yes = shuffle(['haus', 'pfeil', 'drachen', 'trapez', 'tanne', 'winkel']), no = shuffle(['parallelo', 'flagge', 'zett', 'stufe', 'eff']);
+    shuffle([yes[0], yes[1], no[0], no[1]]).forEach(function (f) {
+      var s = FIG[f].ax.length > 0;
+      var it = { head: S('Ist die Figur achsensymmetrisch?'), body: '<div class="card gsw sq" id="sw">' + figSvg(f) + '</div>', cols: 2, ans: s ? 'j' : 'n',
+        choices: [{ v: 'j', h: S('ja') }, { v: 'n', h: S('nein') }],
+        why: S(s ? 'Die Figur hat eine Symmetrieachse. Beide Hälften passen genau aufeinander.' : 'Es gibt keine Faltlinie, bei der beide Hälften genau aufeinander passen.') };
+      it.after = function () { document.getElementById('sw').innerHTML = figSvg(f, FIG[f].ax); };
+      set.push(it);
+    });
+    // Achse antippen: drei Linien zur Auswahl
+    ['haus', 'pfeil', 'winkel'].forEach(function (f) {
+      var A = FIG[f].ax[0], cand = [[150, 15, 150, 285], [15, 150, 285, 150], [30, 30, 270, 270], [270, 30, 30, 270]];
+      var good = cand.filter(function (c) { return c[0] === A[0] || Math.abs((c[2] - c[0]) * (A[3] - A[1]) - (c[3] - c[1]) * (A[2] - A[0])) < 1; })[0];
+      var others = shuffle(cand.filter(function (c) { return c !== good; })).slice(0, 2), lines = shuffle([good].concat(others)), ans = String(lines.indexOf(good));
+      function pic(res) {
+        var o = pg(FIG[f].p, INK, 5, ACL);
+        lines.forEach(function (c, i) {
+          var col = res ? (String(i) === ans ? OKC : (res === String(i) ? NOC : '#b5b5b5')) : GRY;
+          o += '<g class="tp" data-v="' + i + '"><line x1="' + c[0] + '" y1="' + c[1] + '" x2="' + c[2] + '" y2="' + c[3] + '" stroke="transparent" stroke-width="34"/>' + ax(c[0], c[1], c[2], c[3], col, 5) + '</g>';
+        });
+        return sv(300, 300, o, 'tapl');
+      }
+      var it = { kind: 'tap', head: S('Tippe auf die Symmetrieachse.'), body: '<div class="card gsw sq" id="sw">' + pic(null) + '</div>', ans: ans,
+        why: S('An dieser Achse kannst du die Figur falten. Dann passen beide Hälften genau aufeinander.') };
+      it.after = function (g, got) { document.getElementById('sw').innerHTML = pic(got || 'x'); };
+      set.push(it);
+    });
+    shuffle(['rechteck', 'quadrat', 'plus', 'raute', 'drachen', 'parallelo']).slice(0, 3).forEach(function (f) {
+      var n = FIG[f].ax.length;
+      var it = { head: S('Wie viele Symmetrieachsen hat die Figur?'), body: '<div class="card gsw sq" id="sw">' + figSvg(f) + '</div>', cols: 4, ans: n,
+        choices: nums([0, 1, 2, 4]),
+        why: S(n === 0 ? 'Die Figur hat keine Symmetrieachse.' : 'Die Figur hat ' + n + (n === 1 ? ' Symmetrieachse.' : ' Symmetrieachsen.') + (n === 4 ? ' Denke auch an die schrägen Achsen.' : '')) };
+      it.after = function () { document.getElementById('sw').innerHTML = figSvg(f, FIG[f].ax); };
+      set.push(it);
+    });
+    return set;
+  };
+
+  // ------------------------------------------------------------ Spiegeln (Karo, Kästchen zählen)
+  GEN.spiegeln = function () {
+    var set = [], C = 40, NX = 12, NY = 8, X0 = 20, Y0 = 20, W = X0 * 2 + NX * C, H = Y0 * 2 + NY * C;
+    [0, 0, 0, 1, 1, 1].forEach(function (hor, t) {
+      var a = hor ? NY / 2 : NX / 2, d = R(1, hor ? 3 : 5) * (Math.random() < .5 ? 1 : -1), q = hor ? R(1, NX - 1) : R(1, NY - 1);
+      // Punkt: Abstand d von der Achse; Spiegelpunkt: -d
+      var P = hor ? [q, a - d] : [a + d, q], M = hor ? [q, a + d] : [a - d, q];
+      function g2s(p) { return [X0 + p[0] * C, Y0 + p[1] * C]; }
+      function pic(res) {
+        var o = karoJ(X0, Y0, NX, NY, C);
+        o += hor ? ax(X0 - 8, Y0 + a * C, X0 + NX * C + 8, Y0 + a * C, INK, 5) : ax(X0 + a * C, Y0 - 8, X0 + a * C, Y0 + NY * C + 8, INK, 5);
+        var p = g2s(P); o += cr(p[0], p[1], INK, 11, 5);
+        if (res) {
+          var m = g2s(M), axp = hor ? [p[0], Y0 + a * C] : [X0 + a * C, p[1]], n = Math.abs(d), sh = hor ? [16, 0] : [0, -14];
+          o += ln(p[0] + sh[0], p[1] + sh[1], axp[0] + sh[0], axp[1] + sh[1], OKC, 4) + ln(axp[0] + sh[0], axp[1] + sh[1], m[0] + sh[0], m[1] + sh[1], OKC, 4);
+          o += tx((p[0] + axp[0]) / 2 + sh[0] * 1.8, (p[1] + axp[1]) / 2 + sh[1] * 1.6 + (hor ? 8 : 0), String(n), 26, OKC, 800) +
+            tx((axp[0] + m[0]) / 2 + sh[0] * 1.8, (axp[1] + m[1]) / 2 + sh[1] * 1.6 + (hor ? 8 : 0), String(n), 26, OKC, 800);
+          o += cr(m[0], m[1], OKC, 12, 6);
+          if (res !== 'ok') { var r = res.split('|'), rp = g2s([+r[0], +r[1]]); o += cr(rp[0], rp[1], NOC, 12, 6); }
+        } else {
+          for (var i = 0; i <= NX; i++) for (var j = 0; j <= NY; j++) {
+            if ((hor && j === a) || (!hor && i === a) || (i === P[0] && j === P[1])) continue;
+            o += '<g class="tp" data-v="' + i + '|' + j + '"><circle cx="' + (X0 + i * C) + '" cy="' + (Y0 + j * C) + '" r="18" fill="transparent"/></g>';
+          }
+        }
+        return sv(W, H, o, 'tapk');
+      }
+      var it = { kind: 'tap', head: S('Spiegele den Punkt an der Achse. Tippe auf den Spiegelpunkt.'), body: '<div class="card gsw" id="pw">' + pic(null) + '</div>', ans: M[0] + '|' + M[1],
+        why: S('Der Punkt ist ' + Math.abs(d) + ' Kästchen von der Achse entfernt. Der Spiegelpunkt liegt auf der anderen Seite, auch ' + Math.abs(d) + ' Kästchen entfernt.') };
+      it.after = function (good, got) { document.getElementById('pw').innerHTML = pic(good ? 'ok' : got); };
+      set.push(it);
+    });
+    // Welches Bild ist richtig gespiegelt?
+    var SH = [[[1, 1], [3, 1], [3, 4]], [[1, 1], [3, 1], [3, 2], [2, 2], [2, 4], [1, 4]], [[2, 1], [3, 3], [1, 4]], [[1, 1], [3, 2], [1, 3]]];   // nicht in sich senkrecht symmetrisch (sonst sähe Verschieben wie Spiegeln aus)
+    shuffle(SH.slice()).forEach(function (sh) {
+      var c = 22, ax0 = 4;   // Feld 8 × 5 Kästchen, Achse bei x = 4; Figur links
+      function mini(pts, col) {
+        var o = karoJ(4, 4, 8, 5, c) + ax(4 + ax0 * c, 0, 4 + ax0 * c, 4 + 5 * c + 4, INK, 3);
+        o += pg(sh.map(function (p) { return [4 + p[0] * c, 4 + p[1] * c]; }), INK, 3, '#e6e6e6');
+        o += pg(pts.map(function (p) { return [4 + p[0] * c, 4 + p[1] * c]; }), col || AC, 3.5, ACL);
+        return sv(8 * c + 8, 5 * c + 8, o);
+      }
+      var mir = sh.map(function (p) { return [2 * ax0 - p[0], p[1]]; });
+      var trans = sh.map(function (p) { return [p[0] + 4, p[1]]; });
+      var far = mir.map(function (p) { return [p[0] + 1, p[1]]; });
+      var opts = shuffle([{ k: 'ok', p: mir }, { k: 't', p: trans }, { k: 'f', p: far }]), ans;
+      var ch = opts.map(function (o, i) { if (o.k === 'ok') ans = 'b' + i; return { v: 'b' + i, h: mini(o.p) }; });
+      set.push({ head: S('Welches Bild ist richtig gespiegelt?'), choices: ch, ans: ans, cols: 3, imgc: true,
+        why: S('Jede Ecke muss auf der anderen Seite genauso weit von der Achse entfernt sein. Die Figur wird umgeklappt, nicht nur verschoben.') });
+    });
+    return set.slice(0, 10);
+  };
+
+  // ------------------------------------------------------------ Schatzsuche in Lauterbach (Plan mit Koordinaten)
+  var ORT = [['schule', 'die Schule', 'an der Schule'], ['baecker', 'die Bäckerei', 'an der Bäckerei'], ['turm', 'der Ankerturm', 'am Ankerturm'],
+    ['kirche', 'die Stadtkirche', 'an der Stadtkirche'], ['hohhaus', 'das Hohhaus', 'am Hohhaus'], ['eis', 'das Eiscafé', 'am Eiscafé'], ['schloss', 'das Schloss Eisenbach', 'am Schloss Eisenbach']];
+  var ONAME = { schule: 'Schu|le', baecker: 'Bä|cke|rei', turm: 'An|ker|turm', kirche: 'Stadt|kir|che', hohhaus: 'Hoh|haus', eis: 'Eis|ca|fé', schloss: 'Schloss Ei|sen|bach' };
+  GEN.schatz = function () {
+    var NX = 10, NY = 6, C = 64, OX = 54, OY = 452, W = OX + NX * C + 64, H = OY + 48, places = [], set = [];
+    // Orte zufällig verteilen (jede Runde anders), nicht zu dicht beieinander
+    shuffle(ORT.slice()).forEach(function (o) {
+      for (var t = 0; t < 400; t++) {
+        var x = R(1, NX), y = R(1, NY - 1), okp = places.every(function (p) { return Math.abs(p.x - x) + Math.abs(p.y - y) >= 3 && !(p.x === x && Math.abs(p.y - y) < 2); });
+        if (okp && x !== y) { places.push({ k: o[0], art: o[1], am: o[2], x: x, y: y }); return; }
+      }
+    });
+    function icon(p, hl) {
+      return (hl ? '<circle cx="' + (OX + p.x * C) + '" cy="' + (OY - p.y * C - 36) + '" r="50" fill="' + hl + '" opacity=".22"/>' : '') +
+        '<image href="' + IMGP + 's_' + p.k + '.png" x="' + (OX + p.x * C - 38) + '" y="' + (OY - p.y * C - 86) + '" width="76" height="78" preserveAspectRatio="xMidYMax meet"/>' +
+        cr(OX + p.x * C, OY - p.y * C, INK, 8, 4);
+    }
+    function plan(inner, tapPlaces, tapGrid, hl) {
+      var o = kSys(NX, NY, C, OX, OY, '', tapGrid);
+      places.forEach(function (p) {
+        var h = hl && hl[p.k];
+        o += tapPlaces ? '<g class="tp" data-v="' + p.k + '"><rect x="' + (OX + p.x * C - 40) + '" y="' + (OY - p.y * C - 90) + '" width="80" height="104" fill="transparent"/>' + icon(p) + '</g>' : icon(p, h);
+      });
+      return sv(W, H, o + (inner || ''), tapPlaces || tapGrid ? 'tapk' : '');
+    }
+    // Legende: Bild und Name jedes Ortes
+    var LEG = '<div class="olg">' + places.map(function (p) { return '<span class="oli"><img src="' + IMGP + 's_' + p.k + '.png" alt=""><span class="olt">' + S(ONAME[p.k]) + '</span></span>'; }).join('') + '</div>';
+    var ps = shuffle(places.slice());
+    ps.slice(0, 3).forEach(function (p) {
+      var w = [[p.y, p.x], [p.x + (p.x < NX ? 1 : -1), p.y], [p.x, p.y + (p.y < NY ? 1 : -1)]].filter(function (q) { return q[0] <= NX && q[1] <= NY && q[0] >= 0 && q[1] >= 0; });
+      var hlo = {}; hlo[p.k] = OKC;
+      var it = { head: S('Wo liegt ' + p.art + '?'), body: '<div class="card gsw" id="sp">' + plan() + '</div>' + LEG, cols: 3, ans: p.x + '|' + p.y,
+        choices: shuffle([[p.x, p.y], w[0], one(w.slice(1))]).map(function (q) { return { v: q[0] + '|' + q[1], h: cxy(q[0], q[1]) }; }),
+        why: S('Das Kreuz unter dem Bild zeigt den Ort. Erst nach rechts: ' + p.x + '. Dann nach oben: ' + p.y + '.') };
+      it.after = function () { document.getElementById('sp').innerHTML = plan(kPath(OX, OY, C, p.x, p.y, OKC), false, false, hlo); };
+      set.push(it);
+    });
+    ps.slice(3, 6).forEach(function (p) {
+      var it = { kind: 'tap', head: S('Was liegt bei ' + cxy(p.x, p.y) + '? Tippe auf den Ort.'), body: '<div class="card gsw" id="sp">' + plan('', true) + '</div>' + LEG, ans: p.k,
+        why: S('Erst ' + p.x + ' nach rechts, dann ' + p.y + ' nach oben. Dort ist ' + p.art + '.') };
+      it.after = function (good, got) { var h = {}; h[p.k] = OKC; if (!good) h[got] = NOC; document.getElementById('sp').innerHTML = plan(kPath(OX, OY, C, p.x, p.y, OKC), false, false, h); };
+      set.push(it);
+    });
+    // Wege: Start an einem Ort, dann Schritte nach rechts/links und oben/unten
+    for (var t = 0; t < 3; t++) (function () {
+      var s, e, n = 0;
+      do { s = one(places); e = one(places); n++; } while ((s === e || s.x === e.x || s.y === e.y || Math.abs(s.x - e.x) > 6) && n < 500);
+      var dx = e.x - s.x, dy = e.y - s.y;
+      var wx = Math.abs(dx) + ' nach ' + (dx > 0 ? 'rechts' : 'links'), wy = Math.abs(dy) + ' nach ' + (dy > 0 ? 'oben' : 'unten');
+      function route(col) {
+        var x1 = OX + s.x * C, y1 = OY - s.y * C, x2 = OX + e.x * C, y2 = OY - e.y * C, sx = dx > 0 ? 1 : -1, sy = dy > 0 ? -1 : 1;
+        return ln(x1, y1, x2 - sx * 12, y1, col, 6) + '<path d="M' + x2 + ' ' + y1 + ' l' + (-sx * 16) + ' -9 v18z" fill="' + col + '"/>' +
+          ln(x2, y1, x2, y2 - sy * 14, col, 6) + '<path d="M' + x2 + ' ' + (y2 - sy * 2) + ' l-9 ' + (-sy * 16) + ' h18z" fill="' + col + '"/>';
+      }
+      var it = { kind: 'tap', head: S('Du startest ' + s.am + '. Gehe ' + wx + ' und ' + wy + '. Wo kommst du an? Tippe auf den Ort.'),
+        body: '<div class="card gsw" id="sp">' + plan('', true) + '</div>' + LEG, ans: e.k, why: S('Erst ' + wx + ', dann ' + wy + '. Du kommst ' + e.am + ' an.') };
+      it.after = function (good, got) { var h = {}; h[e.k] = OKC; if (!good) h[got] = NOC; document.getElementById('sp').innerHTML = plan(route(OKC), false, false, h); };
+      set.push(it);
+    })();
+    var free, k2 = 0; do { free = [R(1, NX), R(1, NY)]; k2++; } while (places.some(function (p) { return Math.abs(p.x - free[0]) + Math.abs(p.y - free[1]) < 2; }) && k2 < 300);
+    var it = { kind: 'tap', head: S('Der Schatz liegt bei ' + cxy(free[0], free[1]) + '. Tippe auf die Stelle.'), body: '<div class="card gsw" id="sp">' + plan('', false, true) + '</div>' + LEG,
+      ans: free[0] + '|' + free[1], why: S('Erst ' + free[0] + ' nach rechts, dann ' + free[1] + ' nach oben. Dort liegt der Schatz!') };
+    it.after = function (good, got) {
+      var o = kPath(OX, OY, C, free[0], free[1], OKC) + '<image href="' + IMGP + 's_schatz.png" x="' + (OX + free[0] * C - 36) + '" y="' + (OY - free[1] * C - 66) + '" width="72" height="58"/>' + cr(OX + free[0] * C, OY - free[1] * C, OKC, 12, 6);
+      if (!good) { var r = got.split('|'); o += cr(OX + r[0] * C, OY - r[1] * C, NOC, 12, 6); }
+      document.getElementById('sp').innerHTML = plan(o);
+    };
+    set.push(it);
+    return set;
+  };
+
+  // ------------------------------------------------------------ Zuordnen (ziehen oder antippen) und Verbinden
+  function sortTask(it) {
+    var pos = it.items.map(function () { return null; }), sel = null, fin = false;
+    function draw() {
+      var pool = it.items.map(function (x, k) { return pos[k] === null ? '<button class="scd' + (sel === k ? ' sel' : '') + '" type="button" data-k="' + k + '">' + x.h + '</button>' : ''; }).join('');
+      app.innerHTML = head(it) + '<div class="srt"><div class="spool">' + (pool || '<span class="sdone"></span>') + '</div><div class="sbins c' + it.cats.length + '">' +
+        it.cats.map(function (c) {
+          return '<div class="sbin" data-c="' + c.v + '"><div class="sbt">' + c.h + '</div><div class="sbc">' +
+            it.items.map(function (x, k) { return pos[k] === c.v ? '<button class="scd in' + (fin ? (x.c === c.v ? ' ok' : ' no') : '') + '" type="button" data-k="' + k + '"' + (fin ? ' disabled' : '') + '>' + x.h + '</button>' : ''; }).join('') +
+            '</div></div>';
+        }).join('') + '</div></div><div id="fb"></div>';
+      if (fin) return;
+      [].slice.call(app.querySelectorAll('.scd')).forEach(function (b) {
+        var k = +b.getAttribute('data-k');
+        dragOrTap(b, function () {   // antippen
+          if (pos[k] !== null) { pos[k] = null; sel = k; } else sel = sel === k ? null : k;
+          draw();
+        }, function (el) {           // losgelassen über …
+          var bin = el && el.closest ? el.closest('.sbin') : null;
+          if (bin) place(k, bin.getAttribute('data-c')); else { pos[k] = null; draw(); }
+        });
+      });
+      [].slice.call(app.querySelectorAll('.sbin')).forEach(function (bn) {
+        bn.addEventListener('click', function (e) { if (sel !== null && !e.target.closest('.scd')) place(sel, bn.getAttribute('data-c')); });
+      });
+    }
+    function place(k, c) {
+      pos[k] = c; sel = null;
+      if (pos.every(function (p) { return p !== null; })) {
+        fin = true; var good = it.items.every(function (x, j) { return x.c === pos[j]; });
+        if (good) ok++;
+        draw(); feedback(good, it.why);
+      } else draw();
+    }
+    it.auto = function (good) {   // nur für Tests: alles einsortieren (good = false: erste Karte falsch)
+      var n = it.items.length;
+      for (var j = 0; j < n - 1; j++) pos[j] = it.items[j].c;
+      if (!good) pos[0] = it.cats.filter(function (c) { return c.v !== it.items[0].c; })[0].v;
+      place(n - 1, it.items[n - 1].c);
+    };
+    draw(); top();
+  }
+  // Ziehen mit Finger oder Maus; ohne Bewegung zählt es als Antippen
+  function dragOrTap(el, onTap, onDrop) {
+    var st = null, ghost = null;
+    el.addEventListener('pointerdown', function (e) {
+      if (e.button) return;
+      st = { x: e.clientX, y: e.clientY, id: e.pointerId, moved: false };
+      el.setPointerCapture(e.pointerId);
+    });
+    el.addEventListener('pointermove', function (e) {
+      if (!st) return;
+      var dx = e.clientX - st.x, dy = e.clientY - st.y;
+      if (!st.moved && Math.hypot(dx, dy) > 10) {
+        st.moved = true; var r = el.getBoundingClientRect();
+        ghost = el.cloneNode(true); ghost.classList.add('ghost'); ghost.style.width = r.width + 'px'; ghost.style.left = r.left + 'px'; ghost.style.top = r.top + 'px';
+        st.ox = e.clientX - r.left; st.oy = e.clientY - r.top; document.body.appendChild(ghost); el.classList.add('lift');
+      }
+      if (st.moved) { ghost.style.left = (e.clientX - st.ox) + 'px'; ghost.style.top = (e.clientY - st.oy) + 'px'; e.preventDefault(); }
+    });
+    function end(e, cancel) {
+      if (!st) return;
+      var moved = st.moved; st = null;
+      if (ghost) { ghost.remove(); ghost = null; }
+      el.classList.remove('lift');
+      if (!moved) { if (!cancel) onTap(); return; }
+      onDrop(cancel ? null : document.elementFromPoint(e.clientX, e.clientY));
+    }
+    el.addEventListener('pointerup', function (e) { end(e, false); });
+    el.addEventListener('pointercancel', function (e) { end(e, true); });
+  }
+  function matchTask(it) {
+    var pairs = {}, sel = null, fin = false;   // pairs: Index links -> Index rechts
+    app.innerHTML = head(it) + '<div class="mtc' + (it.mcls ? ' ' + it.mcls : '') + '" id="mtc"><svg class="mtl" id="mtl"></svg><div class="mcol ml">' +
+      it.left.map(function (x, k) { return '<button class="mi" type="button" data-s="l" data-k="' + k + '"><span class="mic">' + x.h + '</span><span class="mdot"></span></button>'; }).join('') +
+      '</div><div class="mcol mr">' +
+      it.right.map(function (x, k) { return '<button class="mi" type="button" data-s="r" data-k="' + k + '"><span class="mdot"></span><span class="mic">' + x.h + '</span></button>'; }).join('') +
+      '</div></div><div id="fb"></div>';
+    var box = document.getElementById('mtc'), svg = document.getElementById('mtl');
+    function el(s, k) { return box.querySelector('.mi[data-s="' + s + '"][data-k="' + k + '"]'); }
+    function pt(s, k) {
+      var b = box.getBoundingClientRect(), d = el(s, k).querySelector('.mdot').getBoundingClientRect();
+      return [d.left + d.width / 2 - b.left, d.top + d.height / 2 - b.top];
+    }
+    function lines(extra) {
+      var b = box.getBoundingClientRect(), o = '';
+      svg.setAttribute('viewBox', '0 0 ' + b.width + ' ' + b.height); svg.setAttribute('width', b.width); svg.setAttribute('height', b.height);
+      Object.keys(pairs).forEach(function (l) {
+        var a = pt('l', l), c = pt('r', pairs[l]), col = fin ? (it.left[l].k === it.right[pairs[l]].k ? OKC : NOC) : AC;
+        o += '<line x1="' + a[0] + '" y1="' + a[1] + '" x2="' + c[0] + '" y2="' + c[1] + '" stroke="' + col + '" stroke-width="5" stroke-linecap="round"/>';
+      });
+      svg.innerHTML = o + (extra || '');
+      [].slice.call(box.querySelectorAll('.mi')).forEach(function (m) {
+        var s = m.getAttribute('data-s'), k = m.getAttribute('data-k');
+        var used = s === 'l' ? pairs[k] !== undefined : Object.keys(pairs).some(function (l) { return String(pairs[l]) === k; });
+        m.classList.toggle('pr', used); m.classList.toggle('sel', !!sel && sel.s === s && String(sel.k) === k);
+      });
+    }
+    function link(a, b) {   // a, b: {s, k}
+      if (a.s === b.s) { sel = b; lines(); return; }
+      var l = a.s === 'l' ? a.k : b.k, r = a.s === 'l' ? b.k : a.k;
+      Object.keys(pairs).forEach(function (x) { if (String(pairs[x]) === String(r)) delete pairs[x]; });
+      pairs[l] = +r; sel = null;
+      if (Object.keys(pairs).length === it.left.length) {
+        fin = true; var good = Object.keys(pairs).every(function (x) { return it.left[x].k === it.right[pairs[x]].k; });
+        if (good) ok++;
+        [].slice.call(box.querySelectorAll('.mi')).forEach(function (m) { m.disabled = true; });
+        lines(); feedback(good, it.why);
+      } else lines();
+    }
+    [].slice.call(box.querySelectorAll('.mi')).forEach(function (m) {
+      var me = { s: m.getAttribute('data-s'), k: +m.getAttribute('data-k') }, st = null;
+      m.addEventListener('pointerdown', function (e) { if (fin || e.button) return; st = { x: e.clientX, y: e.clientY, moved: false }; m.setPointerCapture(e.pointerId); });
+      m.addEventListener('pointermove', function (e) {
+        if (!st) return;
+        if (Math.hypot(e.clientX - st.x, e.clientY - st.y) > 10) st.moved = true;
+        if (st.moved) { var b = box.getBoundingClientRect(), a = pt(me.s, me.k); lines('<line x1="' + a[0] + '" y1="' + a[1] + '" x2="' + (e.clientX - b.left) + '" y2="' + (e.clientY - b.top) + '" stroke="' + AC + '" stroke-width="5" stroke-dasharray="10 8" stroke-linecap="round"/>'); e.preventDefault(); }
+      });
+      m.addEventListener('pointerup', function (e) {
+        if (!st) return; var moved = st.moved; st = null;
+        if (!moved) {
+          if (me.s === 'l' && pairs[me.k] !== undefined) delete pairs[me.k];
+          if (me.s === 'r') Object.keys(pairs).forEach(function (x) { if (pairs[x] === me.k) delete pairs[x]; });
+          if (sel && sel.s !== me.s) link(sel, me); else { sel = me; lines(); }
+          return;
+        }
+        var t = document.elementFromPoint(e.clientX, e.clientY), o = t && t.closest ? t.closest('.mi') : null;
+        if (o && o.getAttribute('data-s') !== me.s) link(me, { s: o.getAttribute('data-s'), k: +o.getAttribute('data-k') }); else lines();
+      });
+      m.addEventListener('pointercancel', function () { st = null; lines(); });
+    });
+    var rt = null; window.addEventListener('resize', function () { clearTimeout(rt); rt = setTimeout(function () { if (document.getElementById('mtl') === svg) lines(); }, 100); });
+    it.auto = function (good) {
+      it.left.forEach(function (x, l) { var r = it.right.map(function (y) { return y.k; }).indexOf(x.k); pairs[l] = r; });
+      if (!good) { var a = pairs[0]; pairs[0] = pairs[1]; pairs[1] = a; }
+      var last = it.left.length - 1, rr = pairs[last]; delete pairs[last]; link({ s: 'l', k: last }, { s: 'r', k: rr });
+    };
+    lines(); top();
+  }
+
   // ------------------------------------------------------------ Ablauf
   var set, i, ok;
   function head(it) {
@@ -786,8 +1428,10 @@
   function show() {
     var it = set[i];
     if (it.kind === 'order') return order(it);
+    if (it.kind === 'sort') return sortTask(it);
+    if (it.kind === 'match') return matchTask(it);
     app.innerHTML = head(it) + (it.body || '') +
-      (it.kind === 'tap' ? '' : '<div class="rch c' + (it.cols || it.choices.length) + '">' + it.choices.map(function (c) {
+      (it.kind === 'tap' ? '' : '<div class="rch c' + (it.cols || it.choices.length) + (it.imgc ? ' imgc' : '') + '">' + it.choices.map(function (c) {
         return '<button class="ch rc" type="button" data-v="' + c.v + '">' + c.h + '</button>';
       }).join('') + '</div>') + '<div id="fb"></div>';
     var bs = [].slice.call(app.querySelectorAll('.rc, .tp')), fin = false;
@@ -802,6 +1446,7 @@
         feedback(good, it.why);
       });
     });
+    if (it.init) it.init();
     top();
   }
   function order(it) {
@@ -855,5 +1500,5 @@
   }
   function start() { set = GEN[D.type](); i = 0; ok = 0; show(); }
   start();
-  window.__mt = { set: function () { return set; }, i: function () { return i; } };
+  window.__mt = { set: function () { return set; }, i: function () { return i; }, auto: function (g) { var it = set[i]; if (it.auto) it.auto(g); } };
 })();

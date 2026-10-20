@@ -297,10 +297,9 @@ a.item:active { background: var(--ac-bg); }
 .kgr td.rb { border: 3px solid #555; background: #fff; }
 .kgr td.ac { color: var(--ac); }
 .kgr td.x { border: 0; background: none; }
-.kgr tr.mzr td { height: .62em; font-size: 22px; }
-.kgr td.mz { background: #e6e6e6; border: 2px solid #c3c3c3; }
-.kgr tr.uer td { height: .62em; font-size: 22px; }
-.kgr td.uc { background: #e6e6e6; }
+.kgr tr.obr td { height: .62em; font-size: 22px; color: var(--ac); vertical-align: bottom; }   /* Zahl im Sinn klein über dem Kästchen */
+.kgr td.uw { background: #fff; vertical-align: bottom; }                                       /* freie Zeile über dem Strich */
+.kgr td small { font-size: .6em; font-weight: 700; }
 .kgr td.ln { border-top: 4px solid var(--ink); }
 .kgr td.dl { border-bottom: 6px double var(--ink); }
 .kgr td.ul { border-bottom: 4px solid var(--ink); }
@@ -310,3 +309,74 @@ a.item:active { background: var(--ac-bg); }
 .hll .qb { font-size: 30px; }
 .hll.hid { color: #bbb; }
 @media (max-width: 520px) { .kgr td { font-size: 26px; } .hlw { font-size: 22px; } .hlq { font-size: 28px; } }
+/* Farben: was zuerst gerechnet wird (Rechenregeln), Stellen beim Zerlegen (halbschriftlich) */
+.pv { color: var(--ac); font-weight: 800; }
+.zz { color: var(--ac); } .ze { color: #b35c12; } .zh { color: #7d5ba6; }
+.hlq .zz, .hlq .ze, .hlq .zh { display: inline; }
+/* Grundlagen der Geometrie: Zeichnungen, Ziehen, Zuordnen, Verbinden */
+.gsw { padding: 10px; line-height: 0; }
+.gsw.sq { display: flex; justify-content: center; }
+.gsw.sq .gsv { width: min(100%, 360px); }
+.gsv { width: 100%; height: auto; display: block; overflow: hidden; }
+.gsv image { pointer-events: none; }
+.gsv.drag { touch-action: none; }
+.gsv .rul { cursor: grab; }
+.gsv .rul.grab { cursor: grabbing; }
+.gsv.tapl .tp, .gsv.tapk .tp { cursor: pointer; }
+.gsv.tapk .tp:hover circle, .gsv.tapk .tp:active circle { fill: rgba(90, 127, 168, .22); }
+.gsv.tapk .tp:hover rect, .gsv.tapk .tp:active rect { fill: rgba(90, 127, 168, .14); }
+.rch.c4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.rch.imgc .ch { padding: 8px; min-height: 0; line-height: 0; }
+.rch.imgc .ch svg { width: 100%; height: auto; display: block; }
+.rch .ch.rc.ok { outline: 0; }
+/* Zuordnen: Karten ziehen oder antippen, dann das Feld antippen */
+.srt { margin: 0 0 6px; }
+.spool { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; min-height: 40px; margin: 0 0 16px; }
+.sbins { display: grid; gap: 12px; }
+.sbins.c3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.sbins.c2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.sbin { border: 2px dashed var(--ac); background: var(--ac-bg); min-height: 150px; padding: 8px; cursor: pointer; }
+.sbt { font-size: 24px; font-weight: 800; text-align: center; margin: 2px 0 8px; }
+.sbc { display: flex; flex-direction: column; gap: 8px; }
+.scd { font: inherit; display: block; width: 100%; padding: 6px; border: 2px solid var(--line); background: #fff; line-height: 0; cursor: grab; touch-action: none; }
+.scd.sel { border: 3px solid var(--ac); box-shadow: 0 0 0 3px var(--ac-bg); }
+.scd.lift { opacity: .35; }
+.scd.ok { border: 3px solid var(--ok); background: var(--ok-bg); }
+.scd.no { border: 3px solid var(--no); background: var(--no-bg); }
+.scd svg { width: 100%; height: auto; display: block; }
+.scd.ghost { position: fixed; z-index: 50; pointer-events: none; opacity: .92; box-shadow: 0 8px 24px rgba(0, 0, 0, .25); }
+/* Verbinden: links und rechts antippen oder eine Linie ziehen */
+.mtc { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr); column-gap: 72px; margin: 0 0 6px; }
+.mtl { position: absolute; left: 0; top: 0; pointer-events: none; overflow: visible; z-index: 2; }
+.mcol { display: flex; flex-direction: column; gap: 12px; justify-content: space-around; }
+.mi { font: inherit; display: flex; align-items: center; gap: 10px; width: 100%; min-height: 96px; padding: 8px 10px; border: 2px solid var(--line); background: #fff; color: var(--ink); cursor: pointer; touch-action: none; position: relative; }
+.ml .mi { font-size: 28px; font-weight: 700; justify-content: space-between; }
+.mr .mi { justify-content: flex-start; }
+.mic { flex: 1; line-height: 1.2; }
+.mr .mic { line-height: 0; }
+.mic svg { width: 100%; height: auto; display: block; }
+.mdot { flex: none; width: 18px; height: 18px; border-radius: 50%; border: 3px solid var(--ac); background: #fff; }
+.ml .mdot { margin-right: -22px; }
+.mr .mdot { margin-left: -22px; }
+.mi.pr .mdot { background: var(--ac); }
+.mi.sel { border: 3px solid var(--ac); box-shadow: 0 0 0 3px var(--ac-bg); }
+.mi[disabled] { opacity: 1; cursor: default; }
+@media (max-width: 520px) {
+  .sbins.c3 { grid-template-columns: 1fr; }
+  .sbin { min-height: 90px; }
+  .mtc { column-gap: 44px; }
+  .ml .mi { font-size: 21px; }
+  .rch.c4 .ch { font-size: 30px; }
+}
+/* Schatzsuche: Legende unter dem Plan */
+.olg { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px 10px; margin: -4px 0 14px; font-size: 19px; line-height: 1.2; }
+.oli { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.olt { min-width: 0; }
+.oli img { width: 42px; height: 42px; object-fit: contain; flex: none; }
+@media (max-width: 520px) { .olg { grid-template-columns: repeat(2, minmax(0, 1fr)); font-size: 17px; } }
+/* Verbinden mit Rechnungen (Klammern) */
+.mtc.eq { grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); }
+.mtc.eq .mi { font-size: 30px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.mtc.eq .mr .mic { line-height: 1.2; text-align: center; }
+.rch.c1 .ch .pv { color: var(--ac); }
+@media (max-width: 520px) { .mtc.eq .mi { font-size: 21px; } }
