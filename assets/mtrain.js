@@ -874,6 +874,34 @@
     return [px + dx * t0, py + dy * t0, px + dx * t1, py + dy * t1];
   }
   function deg(a) { return a * Math.PI / 180; }
+  // Abstand Punkt – Strecke
+  function dSeg(px, py, l) {
+    var dx = l[2] - l[0], dy = l[3] - l[1], q = dx * dx + dy * dy, t = q ? Math.max(0, Math.min(1, ((px - l[0]) * dx + (py - l[1]) * dy) / q)) : 0;
+    return Math.hypot(px - l[0] - t * dx, py - l[1] - t * dy);
+  }
+  // Platz für den Namen einer Geraden: neben der eigenen Linie, möglichst weit weg von allen anderen Linien und Namen
+  function labelSpot(l, all, spots, W, H) {
+    var best = null, bs = -1, dx = l[2] - l[0], dy = l[3] - l[1], n = Math.hypot(dx, dy), nx = -dy / n, ny = dx / n;
+    // nur nahe den Enden der eigenen Linie (wie im Schulbuch), dicht an der Linie
+    var ts = []; for (var t = .05; t <= .25; t += .02) { ts.push(t); ts.push(1 - t); }
+    ts.forEach(function (t) {
+      for (var sd = -1; sd <= 1; sd += 2) {
+        var x = l[0] + dx * t + nx * 20 * sd, y = l[1] + dy * t + ny * 20 * sd;
+        if (x < 20 || x > W - 20 || y < 24 || y > H - 12) continue;
+        var sc = 70;
+        all.forEach(function (o) { if (o !== l) sc = Math.min(sc, dSeg(x, y, o)); });
+        spots.forEach(function (p) { sc = Math.min(sc, Math.hypot(x - p[0], y - p[1]) * .7); });
+        sc -= Math.min(t, 1 - t) * 40;          // lieber ganz am Ende
+        if (sc > bs) { bs = sc; best = [x, y]; }
+      }
+    });
+    return best || [l[0] + dx * .1 + 20, l[1] + dy * .1];
+  }
+  // Schrift mit weißem Rand (bleibt lesbar, auch nah an einer Linie)
+  function htx(x, y, t, size) {
+    return '<text x="' + f1(x) + '" y="' + f1(y) + '" font-size="' + size + '" font-weight="700" font-style="italic" text-anchor="middle" fill="' + INK +
+      '" stroke="#fff" stroke-width="7" stroke-linejoin="round" paint-order="stroke">' + t + '</text>';
+  }
   function cxy(x, y) { return '(' + x + NB + '|' + NB + y + ')'; }
 
   // ------------------------------------------------------------ Gerade, Strecke, Strahl
@@ -886,10 +914,10 @@
     var a = deg(R(-22, 22)), dx = Math.cos(a), dy = -Math.sin(a), cx = W / 2 + R(-40, 40), cy = H / 2 + R(-15, 15), o = '';
     if (kind === 'strecke') {
       var hl = R(Math.round(W * .2), Math.round(W * .32));
-      o = ln(cx - dx * hl, cy - dy * hl, cx + dx * hl, cy + dy * hl) + dt(cx - dx * hl, cy - dy * hl) + dt(cx + dx * hl, cy + dy * hl);
+      o = ln(cx - dx * hl, cy - dy * hl, cx + dx * hl, cy + dy * hl) + cr(cx - dx * hl, cy - dy * hl, INK, 11, 4.5) + cr(cx + dx * hl, cy + dy * hl, INK, 11, 4.5);
     } else if (kind === 'strahl') {
       var s = Math.random() < .5 ? 1 : -1, sx = cx - s * dx * W * .3, sy = cy - s * dy * W * .3, e = clip(sx, sy, s * dx, s * dy, W, H);
-      o = ln(sx, sy, e[2], e[3]) + dt(sx, sy);
+      o = ln(sx, sy, e[2], e[3]) + cr(sx, sy, INK, 11, 4.5);
     } else {
       var g = clip(cx, cy, dx, dy, W, H);
       o = ln(g[0], g[1], g[2], g[3]);
@@ -937,7 +965,7 @@
     return names.map(function (nm, i) {
       var n; do { n = R(2, 9); } while (used[n] && Object.keys(used).length < 8); used[n] = 1;
       var y = 60, xb = xa + n * U, start = i < 5 ? R(5, 25) * U / 10 : -R(1, 2) * U;   // Lineal liegt verschoben
-      var seg = ln(xa, y, xb, y) + dt(xa, y) + dt(xb, y) + tx(xa, y - 22, nm[0], 26) + tx(xb, y - 22, nm[1], 26);
+      var seg = ln(xa, y, xb, y) + cr(xa, y, INK, 9, 4) + cr(xb, y, INK, 9, 4) + tx(xa, y - 22, nm[0], 26) + tx(xb, y - 22, nm[1], 26);
       function pic(off, hi, fin) {
         return sv(760, 160, seg + (fin ? ln(xb, y + 6, xb, y + 22, AC, 4) : '') +
           '<g id="rul" class="rul" transform="translate(' + (xa + off) + ' ' + (y + 12) + ')">' + rulerSvg(11, U, hi) + '</g>', 'drag', 'rsv');
@@ -1018,9 +1046,12 @@
       cands = [{ l: perp, k: 'senk', at: pp, dir: nrm }, { l: par, k: 'par' }, { l: obl, k: 'nix' }];
       cands.forEach(function (c, i) { c.n = labs[i]; });
       var ans = cands.filter(function (c) { return c.k === k; })[0].n;
-      function lab(c) { var x = c.l[0] + (c.l[2] - c.l[0]) * .08, y = c.l[1] + (c.l[3] - c.l[1]) * .08; return tx(x + 18, y + 8, c.n, 30, INK, 700, 'middle', true); }
+      var allL = [gg].concat(cands.map(function (c) { return c.l; })), spots = [];
+      var gPos = labelSpot(gg, allL, spots, W, H); spots.push(gPos);
+      cands.forEach(function (c) { c.p = labelSpot(c.l, allL, spots, W, H); spots.push(c.p); });
+      function lab(c) { return htx(c.p[0], c.p[1] + 10, c.n, 30); }
       function pic(res) {
-        var o = ln(gg[0], gg[1], gg[2], gg[3], INK, 6) + tx(gg[2] - 18, gg[3] - 14, 'g', 32, INK, 700, 'middle', true);
+        var o = ln(gg[0], gg[1], gg[2], gg[3], INK, 6) + htx(gPos[0], gPos[1] + 10, 'g', 32);
         cands.forEach(function (c) {
           var col = res ? (c.n === ans ? OKC : (res === c.n ? NOC : '#9a9a9a')) : '#555';
           o += '<g class="tp" data-v="' + c.n + '"><line x1="' + f1(c.l[0]) + '" y1="' + f1(c.l[1]) + '" x2="' + f1(c.l[2]) + '" y2="' + f1(c.l[3]) + '" stroke="transparent" stroke-width="40"/>' +
@@ -1284,15 +1315,19 @@
   function sortTask(it) {
     var pos = it.items.map(function () { return null; }), sel = null, fin = false;
     function draw() {
-      var pool = it.items.map(function (x, k) { return pos[k] === null ? '<button class="scd' + (sel === k ? ' sel' : '') + '" type="button" data-k="' + k + '">' + x.h + '</button>' : ''; }).join('');
-      app.innerHTML = head(it) + '<div class="srt"><div class="spool">' + (pool || '<span class="sdone"></span>') + '</div><div class="sbins c' + it.cats.length + '">' +
+      // Gezogene Karten lassen ihren Platz frei (unsichtbarer Platzhalter): So ändert sich die Höhe der Seite nicht.
+      var pool = it.items.map(function (x, k) {
+        return pos[k] === null ? '<button class="scd' + (sel === k ? ' sel' : '') + '" type="button" data-k="' + k + '">' + x.h + '</button>'
+          : '<span class="scd ph" aria-hidden="true">' + x.h + '</span>';
+      }).join('');
+      app.innerHTML = head(it) + '<div class="srt"><div class="spool">' + pool + '</div><div class="sbins c' + it.cats.length + '">' +
         it.cats.map(function (c) {
           return '<div class="sbin" data-c="' + c.v + '"><div class="sbt">' + c.h + '</div><div class="sbc">' +
             it.items.map(function (x, k) { return pos[k] === c.v ? '<button class="scd in' + (fin ? (x.c === c.v ? ' ok' : ' no') : '') + '" type="button" data-k="' + k + '"' + (fin ? ' disabled' : '') + '>' + x.h + '</button>' : ''; }).join('') +
             '</div></div>';
         }).join('') + '</div></div><div id="fb"></div>';
       if (fin) return;
-      [].slice.call(app.querySelectorAll('.scd')).forEach(function (b) {
+      [].slice.call(app.querySelectorAll('button.scd')).forEach(function (b) {
         var k = +b.getAttribute('data-k');
         dragOrTap(b, function () {   // antippen
           if (pos[k] !== null) { pos[k] = null; sel = k; } else sel = sel === k ? null : k;
