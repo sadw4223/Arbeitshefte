@@ -243,6 +243,7 @@ a.item:active { background: var(--ac-bg); }
 .rch.c1 .ch { font-size: 30px; min-height: 80px; }
 .zwd { font-size: 30px; line-height: 1.3; text-align: center; padding: 22px 16px; overflow-wrap: anywhere; }
 .cmpq { display: flex; align-items: center; justify-content: center; gap: .5em; font-size: 54px; font-weight: 700; padding: 18px 12px; font-variant-numeric: tabular-nums; }
+.cmpq.sm { font-size: 36px; }
 .cmq { display: inline-block; min-width: 1.2em; text-align: center; color: #9a9a9a; }
 .cmq.set { color: var(--ac); }
 .rch .ch.rc[data-v="<"], .rch .ch.rc[data-v=">"], .rch .ch.rc[data-v="="] { font-size: 56px; }
@@ -266,6 +267,7 @@ a.item:active { background: var(--ac-bg); }
   .rnum { font-size: 48px; }
   .zwd { font-size: 24px; }
   .cmpq { font-size: 40px; }
+  .cmpq.sm { font-size: 27px; }
   .os { font-size: 22px; min-width: 3.6em; }
 }
 /* Zahlwörter in der Übung: Silbenschrift, Trennstrich nach „tausend“ als Lesehilfe, Umbruch nur an sinnvollen Stellen */

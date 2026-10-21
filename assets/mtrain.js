@@ -1839,22 +1839,19 @@
   var GNOTE = { 500: '#c9ccd0', 1000: '#e9b0a8', 2000: '#a9c0e0', 5000: '#f2c08a' };
   function gEuro(ct) { var e = Math.floor(ct / 100), c = ct % 100; return e && c ? e + NB + '€ ' + c + NB + 'ct' : (e ? e + NB + '€' : c + NB + 'ct'); }
   function gKomma(ct) { var c = ct % 100; return Math.floor(ct / 100) + ',' + (c < 10 ? '0' : '') + c + NB + '€'; }
-  function gCoin(v, cx, cy, k) {
-    var d = GCOIN[v][0], t = GCOIN[v][1], r = d * k / 2, o;
-    function c(rr, f, s, w) { return '<circle cx="' + f1(cx) + '" cy="' + f1(cy) + '" r="' + f1(rr) + '" fill="' + f + '" stroke="' + s + '" stroke-width="' + w + '"/>'; }
-    if (t === 'e1') o = c(r, GAU, INK, 2.5) + c(r * .72, GAG, '#777', 1.5);
-    else if (t === 'e2') o = c(r, GAG, INK, 2.5) + c(r * .72, GAU, '#777', 1.5);
-    else o = c(r, t === 'cu' ? GCU : GAU, INK, 2.5);
-    return o + tx(cx, cy + r * .26, v >= 100 ? v / 100 + NB + '€' : v + NB + 'ct', Math.round(r * (v >= 10 ? .62 : .56)), INK, 800);
+  function gCoin(v, cx, cy, k) {   // echtes Bild der Münze, Durchmesser im richtigen Verhältnis
+    var r = GCOIN[v][0] * k / 2;
+    return '<image href="' + IMGP + 'eur_c' + v + '.png" x="' + f1(cx - r) + '" y="' + f1(cy - r) + '" width="' + f1(2 * r) + '" height="' + f1(2 * r) + '"/>';
   }
-  function gNote(v, x, y) {
-    return '<rect x="' + x + '" y="' + y + '" width="118" height="64" rx="5" fill="' + GNOTE[v] + '" stroke="' + INK + '" stroke-width="2.5"/>' +
-      '<rect x="' + (x + 8) + '" y="' + (y + 8) + '" width="102" height="48" fill="none" stroke="#fff" stroke-width="2.5" opacity=".7"/>' + tx(x + 59, y + 44, v / 100 + NB + '€', 32, INK, 800);
+  var GNWH = { 500: [120, 62], 1000: [127, 67], 2000: [133, 72], 5000: [140, 77] };
+  function gNote(v, x, y) {   // echtes Bild des Scheins (Breite 118 · Größe wie beim 5-€-Schein, Seitenverhältnis echt)
+    var w = 118 * GNWH[v][0] / 120, h = w * GNWH[v][1] / GNWH[v][0];
+    return '<image href="' + IMGP + 'eur_n' + v + '.jpg" x="' + f1(x) + '" y="' + f1(y + 32 - h / 2) + '" width="' + f1(w) + '" height="' + f1(h) + '" preserveAspectRatio="none"/>';
   }
   function gMoney(vals) {   // Scheine und Münzen in einer Reihe (umbrechen nach Breite)
     var o = '', x = 10, y = 10, rowH = 70, k = 2.4, W = 720, mx = 0;
     vals.forEach(function (v) {
-      var w = v >= 500 ? 118 : GCOIN[v][0] * k;
+      var w = v >= 500 ? 118 * GNWH[v][0] / 120 : GCOIN[v][0] * k;
       if (x + w > W) { x = 10; y += rowH + 10; }
       o += v >= 500 ? gNote(v, x, y + 3) : gCoin(v, x + w / 2, y + 35, k);
       x += w + 12; mx = Math.max(mx, x);
@@ -1866,7 +1863,7 @@
   }
   function gTxt(list) { return shuffle(uniq(list).slice(0, 3)).map(function (t) { return { v: t, h: S(t) }; }); }
   function story(t) { return '<div class="card story">' + S(t) + '</div>'; }
-  function big(t) { return '<div class="card cmpq"><span>' + t + '</span></div>'; }
+  function big(t, cls) { return '<div class="card cmpq' + (cls ? ' ' + cls : '') + '"><span>' + t + '</span></div>'; }
 
   // ------------------------------------------------------------ Geld
   GEN.grgeld = function () {
@@ -2097,7 +2094,7 @@
     var SP = shuffle([[8, 40, 9, 15], [10, 20, 11, 5], [13, 45, 14, 30], [7, 50, 8, 25], [15, 35, 16, 10], [11, 15, 12, 5]]).slice(0, 3);
     SP.forEach(function (p) {
       var a = 60 - p[1], b = p[3], d = a + b;
-      set.push({ head: S('Wie lange dauert es?'), body: big(S('von') + ' ' + hm(p[0], p[1]) + ' ' + S('bis') + ' ' + hm(p[2], p[3])), cols: 3, ans: String(d),
+      set.push({ head: S('Wie lange dauert es?'), body: big(S('von') + ' ' + hm(p[0], p[1]) + ' ' + S('bis') + ' ' + hm(p[2], p[3]), 'sm'), cols: 3, ans: String(d),
         choices: three(d, [d + 10, Math.abs(p[3] - p[1]), d + 60]).map(function (v) { return { v: String(v), h: dur(v) }; }),
         why: S('Bis ' + p[2] + ':00 Uhr sind es ' + a + ' min. Dann noch ' + b + ' min. ' + a + ' min + ' + b + ' min = ' + dur(d) + '.') });
     });
@@ -2116,7 +2113,7 @@
       ['einen Satz sagen: 3', 's'], ['eine Schulstunde: 45', 'min'], ['eine Klassenfahrt: 5', 'Tage']];
     shuffle(EZ).slice(0, 2).forEach(function (e) {
       set.push({ head: S('Welche Einheit passt?'), body: '<div class="card story">' + S(e[0]) + ' …</div>', cols: 4, ans: e[1],
-        choices: ['s', 'min', 'h', 'Tage'].map(function (u) { return { v: u, h: S(u) }; }), why: S('Ganz kurz: s. Kurz: min. Lang: h. Ganz lang: Tage. Hier passt ' + e[1] + '.') });
+        choices: ['s', 'min', 'h', 'Tage'].map(function (u) { return { v: u, h: u }; }), why: S('Ganz kurz: s. Kurz: min. Lang: h. Ganz lang: Tage. Hier passt ' + e[1] + '.') });
     });
     var T = [
       function () { var n = R(2, 5); return [n + ' h', 'min', n * 60, [n * 100, n * 10], '1 h = 60 min. ' + n + ' h sind ' + n + ' · 60 min.']; },
@@ -2125,7 +2122,7 @@
       function () { var n = R(2, 4); return [n * 60 + ' min', 'h', n, [n * 10, n * 6], '60 min sind 1 h. ' + n * 60 + ' min sind ' + n + ' h.']; }];
     shuffle(T).slice(0, 3).forEach(function (f) {
       var t = f();
-      set.push({ head: S('Wandle um.'), body: big(S(t[0]) + ' = ? ' + t[1]), cols: 3, ans: String(t[2]), choices: gStr(t[2], t[3], t[1]), why: S(t[4] + ' ' + t[0] + ' = ' + t[2] + ' ' + t[1] + '.') });
+      set.push({ head: S('Wandle um.'), body: big(t[0] + ' = ? ' + t[1]), cols: 3, ans: String(t[2]), choices: gStr(t[2], t[3], t[1]), why: S(t[4]) + ' ' + t[0] + ' = ' + t[2] + ' ' + t[1] + '.' });
     });
     shuffle([70, 85, 95, 110, 125, 140]).slice(0, 2).forEach(function (n) {
       set.push({ head: S('Wandle um. Wie viele h und min sind das?'), body: big(n + ' min'), cols: 3, ans: String(n),
@@ -2158,8 +2155,8 @@
       wr: [a - b === 0 ? a + b + 250 : Math.abs(a - b), a + b + 100], rw: [a + ' g – ' + b + ' g', a + ' g · ' + b], u: 'g', why: 'Zusammen heißt plus: ' + a + ' g + ' + b + ' g = ' + (a + b) + ' g.' }; },
     function () { var h = one([7, 8]), e = one([12, 13]); return { t: 'Der Markt ist von ' + h + ':00 Uhr bis ' + e + ':00 Uhr geöffnet. Wie viele Stunden ist er geöffnet?', ans: e - h, op: e + ' h – ' + h + ' h',
       wr: [e + h, e - h + 1], rw: [e + ' h + ' + h + ' h', '24 h – ' + e + ' h'], u: 'h', why: 'Von ' + h + ' Uhr bis ' + e + ' Uhr sind es ' + e + ' – ' + h + ' = ' + (e - h) + ' Stunden.' }; },
-    function () { var w = one([400, 600, 700, 900]); return { t: 'Jonas geht von der Schule zum Markt. Der Weg ist ' + w + ' m lang. Danach geht er denselben Weg zurück. Wie viele Meter geht er insgesamt?', ans: 2 * w, op: w + ' m + ' + w + ' m',
-      wr: [w, 2 * w + 100], rw: [w + ' m – ' + w + ' m', w + ' m : 2'], u: 'm', why: 'Hin und zurück: Du rechnest den Weg zweimal. ' + w + ' m + ' + w + ' m = ' + fmt(2 * w) + ' m.' }; },
+    function () { var w = 1600; return { t: 'Jonas geht von der Schule an der Wascherde zum Markt. Der Weg ist ' + fmt(w) + ' m lang. Danach geht er denselben Weg zurück. Wie viele Meter geht er insgesamt?', ans: 2 * w, op: fmt(w) + ' m + ' + fmt(w) + ' m',
+      wr: [w, 2 * w + 100], rw: [fmt(w) + ' m – ' + fmt(w) + ' m', fmt(w) + ' m : 2'], u: 'm', why: 'Hin und zurück: Du rechnest den Weg zweimal. ' + fmt(w) + ' m + ' + fmt(w) + ' m = ' + fmt(2 * w) + ' m. Das sind 3 km 200 m.' }; },
     function () { var n = one([4, 5, 6]), p = one([30, 40, 50]); return { t: 'Ein Bund Radieschen kostet ' + gKomma(p) + '. Die Klasse 5a kauft ' + n + ' Bund für das Schulfrühstück. Wie viel kostet das?', ans: n * p, op: p + ' ct · ' + n,
       wr: [n + p, n * p + p], rw: [p + ' ct + ' + n, p + ' ct : ' + n], why: 'Jedes Bund kostet gleich viel: Du rechnest mal. ' + p + ' ct · ' + n + ' = ' + n * p + ' ct = ' + gEuro(n * p) + '.', geld: true }; },
     function () { var g = one([2, 3]), w = one([400, 600, 750]); return { t: 'Ein Sack Kartoffeln wiegt ' + g + ' kg. Lea nimmt ' + w + ' g heraus. Wie viel Gramm sind noch im Sack?', ans: g * 1000 - w, op: fmt(g * 1000) + ' g – ' + w + ' g',
