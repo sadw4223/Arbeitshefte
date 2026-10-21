@@ -1492,6 +1492,18 @@
     o = o || {}; var b = uBox(p), nx = b[2] - b[0] + 2, ny = b[3] - b[1] + 2, q = uMove(p, 1 - b[0], 1 - b[1]), c = o.c || UC, m = 6;
     var P = q.map(function (v) { return [m + v[0] * c, m + v[1] * c]; });
     var s = karoJ(m, m, nx, ny, c) + pg(P, o.tr || INK, o.tr ? 7 : 4, o.fill || UFL);
+    if (o.cols) {   // Streifen: abwechselnd heller und dunkler, Zahlen Streifen für Streifen (passt zu a · b: a Streifen mit je b Kästchen)
+      var kk = 1, fz = Math.min(24, Math.round(c * .44));
+      for (var ii = 0; ii < nx; ii++) {
+        var any = false;
+        for (var jj = 0; jj < ny; jj++) if (uIn(q, ii + .5, jj + .5)) {
+          any = true;
+          s += '<rect x="' + (m + ii * c) + '" y="' + (m + jj * c) + '" width="' + c + '" height="' + c + '" fill="' + AC + '" fill-opacity="' + ((ii % 2) ? .14 : .34) + '"/>';
+          s += tx(m + (ii + .5) * c, m + (jj + .5) * c + fz * .36, String(kk++), kk > 10 ? Math.round(fz * .85) : fz, o.cols, 700);
+        }
+      }
+      s += pg(P, INK, 4, 'none');
+    }
     if (o.cells) {
       var k = 1, fs = Math.min(24, Math.round(c * .44));
       for (var j = 0; j < ny; j++) for (var i = 0; i < nx; i++) if (uIn(q, i + .5, j + .5)) s += tx(m + (i + .5) * c, m + (j + .5) * c + fs * .36, String(k++), k > 10 ? Math.round(fs * .85) : fs, o.cells, 700);
@@ -1712,7 +1724,7 @@
         items: its.map(function (x) { return { h: '<span>' + S(x[0]) + '</span>', c: x[1] }; }), why: S('Kleine Flächen misst du in cm², große Flächen in m².') });
     }
     var EU = [['Länge von einem Bleistift: 17', 'cm'], ['Fläche von einer Tischplatte: 1', 'm²'], ['Länge vom Klassenraum: 9', 'm'], ['Fläche von einem Notizzettel: 49', 'cm²'],
-      ['Breite von einem Heft: 21', 'cm'], ['Fläche vom Spielplatz: 300', 'm²'], ['Fläche von einer Spielkarte: 50', 'cm²'], ['Länge vom Schulbus: 12', 'm']];
+      ['Breite von einem Heft: 21', 'cm'], ['Fläche von der Turnhalle: 400', 'm²'], ['Fläche von einer Spielkarte: 50', 'cm²'], ['Länge vom Schulbus: 12', 'm']];
     shuffle(EU).slice(0, 5).forEach(function (e) {
       set.push({ head: S('Welche Einheit passt?'), body: '<div class="card story">' + S(e[0]) + ' …</div>', cols: 4, ans: e[1],
         choices: ['cm', 'm', 'cm²', 'm²'].map(function (u) { return { v: u, h: u }; }),
@@ -1732,8 +1744,8 @@
     for (var t = 0; t < 3; t++) (function () {
       var a = R(3, 6), b = R(2, 4), p = uRect(0, 0, a, b), g = uGrid(p, { c: 44 }), A = a * b;
       var it = { head: S('Rechne Länge mal Breite. Wie groß ist der Flächeninhalt?'), body: uCard(g.svg, 'ar'), choices: uOpts(uThree(A, [a + b, 2 * (a + b), A + a]), 'cm²'), ans: String(A), cols: 3,
-        why: S(b + ' Reihen mit je ' + a + ' Kästchen: ' + a + ' · ' + b + ' = ' + A + '. Also A = ' + A + ' cm².') };
-      it.after = function () { document.getElementById('ar').innerHTML = uGrid(p, { c: 44, cells: OKC }).svg; };
+        why: S(a + ' Streifen mit je ' + b + ' Kästchen: ' + a + ' · ' + b + ' = ' + A + '. Also A = ' + A + ' cm².') };
+      it.after = function () { document.getElementById('ar').innerHTML = uGrid(p, { c: 44, cols: OKC }).svg; };
       set.push(it);
     })();
     shuffle(uPairs(3, false).concat(uPairs(1, true))).forEach(function (ab) {
@@ -1790,7 +1802,7 @@
   var UST = [
     ['u', 'Das Hochbeet ist {a} m lang und {b} m breit. Rund um das Hochbeet kommt ein Zaun. Wie viele Meter Zaun braucht man?', 'Man braucht {r} m Zaun.'],
     ['u', 'Das Basketballfeld ist {a} m lang und {b} m breit. Rund um das Feld wird eine Linie gemalt. Wie lang ist die Linie?', 'Die Linie ist {r} m lang.'],
-    ['q', 'Der Sandkasten ist ein Quadrat. Jede Seite ist {a} m lang. Rund um den Sandkasten kommen Randsteine. Wie viele Meter Randsteine braucht man?', 'Man braucht {r} m Randsteine.'],
+    ['q', 'Auf dem Schulhof gibt es ein Schachfeld. Es ist ein Quadrat. Jede Seite ist {a} m lang. Rund um das Schachfeld kommen Randsteine. Wie viele Meter Randsteine braucht man?', 'Man braucht {r} m Randsteine.'],
     ['u', 'Der Schulgarten ist {a} m lang und {b} m breit. Ben läuft einmal rund um den Garten. Wie weit läuft Ben?', 'Ben läuft {r} m.'],
     ['A', 'Unter dem Klettergerüst sollen Matten liegen. Die Fläche ist {a} m lang und {b} m breit. Eine Matte ist 1 m². Wie viele Matten braucht man?', 'Man braucht {r} Matten.'],
     ['A', 'Der Fahrradplatz ist {a} m lang und {b} m breit. Er bekommt ein neues Pflaster. Wie viele Quadratmeter Pflaster braucht man?', 'Man braucht {r} m² Pflaster.'],
@@ -1799,7 +1811,7 @@
   GEN.ufsach = function () {
     var set = [];
     shuffle(UST.slice()).slice(0, 8).concat(shuffle(UST.slice()).slice(0, 2)).forEach(function (s, k) {
-      var a = s[0] === 'A' ? R(3, 9) : R(4, 12), b = s[0] === 'q' ? a : (s[0] === 'A' ? R(2, Math.min(a - 1, 6)) : R(2, a - 1));
+      var a = s[0] === 'A' ? R(3, 9) : (s[0] === 'q' ? R(3, 6) : R(4, 12)), b = s[0] === 'q' ? a : (s[0] === 'A' ? R(2, Math.min(a - 1, 6)) : R(2, a - 1));
       var u = 2 * (a + b), A = a * b, isA = s[0] === 'A', res = isA ? A : u;
       var txt = s[1].replace('{a}', a).replace('{b}', b);
       var unit = isA ? (/Matten/.test(s[2]) ? '' : 'm²') : 'm';
