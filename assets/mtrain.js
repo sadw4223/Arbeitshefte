@@ -2,7 +2,8 @@
    Der Typ steht in den Seitendaten: runden, zahlwort, wert, nachbar, zstrahl, vergl (Natürliche Zahlen);
    begriffe, kopf, luecke, add, sub, ueb, sach, klammern (Addition und Subtraktion);
    mdbegriffe, einmaleins, mdluecke, regeln, mdueb, halb, mul1, mul2, div, mdsach (Multiplikation und Division);
-   linien, messen, senkpar, koord, symm, spiegeln, schatz (Grundlagen der Geometrie: auch Ziehen, Zuordnen, Verbinden und Antippen in der Zeichnung).
+   linien, messen, senkpar, koord, symm, spiegeln, schatz (Grundlagen der Geometrie: auch Ziehen, Zuordnen, Verbinden und Antippen in der Zeichnung);
+   ufrechteck, ufumfang, ufurechnen, ufflaeche, ufeinheiten, ufarechnen, ufunterschied, ufsach (Umfang und Flächeninhalt).
    Schreibweise wie im Heft. */
 (function () {
   var D = JSON.parse(document.getElementById('data').textContent), L = D.labels;
@@ -1320,7 +1321,7 @@
         return pos[k] === null ? '<button class="scd' + (sel === k ? ' sel' : '') + '" type="button" data-k="' + k + '">' + x.h + '</button>'
           : '<span class="scd ph" aria-hidden="true">' + x.h + '</span>';
       }).join('');
-      app.innerHTML = head(it) + '<div class="srt"><div class="spool">' + pool + '</div><div class="sbins c' + it.cats.length + '">' +
+      app.innerHTML = head(it) + '<div class="srt' + (it.scls ? ' ' + it.scls : '') + '"><div class="spool">' + pool + '</div><div class="sbins c' + it.cats.length + '">' +
         it.cats.map(function (c) {
           return '<div class="sbin" data-c="' + c.v + '"><div class="sbt">' + c.h + '</div><div class="sbc">' +
             it.items.map(function (x, k) { return pos[k] === c.v ? '<button class="scd in' + (fin ? (x.c === c.v ? ' ok' : ' no') : '') + '" type="button" data-k="' + k + '"' + (fin ? ' disabled' : '') + '>' + x.h + '</button>' : ''; }).join('') +
@@ -1454,6 +1455,369 @@
     };
     lines(); top();
   }
+
+  // ============================================================ Umfang und Flächeninhalt
+  // Raster: 1 Kästchen = 1 cm (Kästchenseite = 1 cm, Kästchen = 1 cm²), Ecken auf den Kästchenkreuzen, Schreibweise wie im Heft (u, A, a, b).
+  var UC = 50, UFL = 'rgba(90,127,168,.22)', UTR = '#d0453a', UOR = '#d08a2e';
+  function uRect(x, y, w, h) { return [[x, y], [x + w, y], [x + w, y + h], [x, y + h]]; }
+  function uPer(p) { var s = 0; for (var k = 0; k < p.length; k++) { var a = p[k], b = p[(k + 1) % p.length]; s += Math.abs(b[0] - a[0]) + Math.abs(b[1] - a[1]); } return s; }
+  function uAre(p) { var s = 0; for (var k = 0; k < p.length; k++) { var a = p[k], b = p[(k + 1) % p.length]; s += a[0] * b[1] - b[0] * a[1]; } return Math.abs(s) / 2; }
+  function uIn(p, x, y) {
+    var c = false;
+    for (var k = 0, j = p.length - 1; k < p.length; j = k++) {
+      if ((p[k][1] > y) !== (p[j][1] > y) && x < (p[j][0] - p[k][0]) * (y - p[k][1]) / (p[j][1] - p[k][1]) + p[k][0]) c = !c;
+    }
+    return c;
+  }
+  function uBox(p) { var xs = p.map(function (q) { return q[0]; }), ys = p.map(function (q) { return q[1]; }); return [Math.min.apply(0, xs), Math.min.apply(0, ys), Math.max.apply(0, xs), Math.max.apply(0, ys)]; }
+  function uMove(p, dx, dy) { return p.map(function (q) { return [q[0] + dx, q[1] + dy]; }); }
+  // feste Formen (Ecken auf Kästchenkreuzen)
+  var USH = [
+    [[0, 0], [1, 0], [1, 2], [3, 2], [3, 3], [0, 3]],                                  // L
+    [[0, 0], [3, 0], [3, 1], [2, 1], [2, 3], [1, 3], [1, 1], [0, 1]],                  // T
+    [[0, 0], [1, 0], [1, 1], [2, 1], [2, 0], [3, 0], [3, 2], [0, 2]],                  // U
+    [[0, 0], [1, 0], [1, 1], [2, 1], [2, 2], [3, 2], [3, 3], [0, 3]],                  // Treppe
+    [[0, 0], [4, 0], [4, 1], [1, 1], [1, 2], [0, 2]],                                  // flaches L
+    [[1, 0], [2, 0], [2, 1], [3, 1], [3, 2], [2, 2], [2, 3], [1, 3], [1, 2], [0, 2], [0, 1], [1, 1]]   // Plus
+  ];
+  function uShape(kind) {
+    if (kind === 'rect') { var w, h; do { w = R(2, 6); h = R(1, 4); } while (w === h); return uRect(0, 0, w, h); }
+    if (kind === 'quad') { var s = R(2, 4); return uRect(0, 0, s, s); }
+    var p = one(USH);
+    if (Math.random() < .5) { var bx = uBox(p)[2]; p = p.map(function (q) { return [bx - q[0], q[1]]; }).reverse(); }   // gespiegelt
+    return p;
+  }
+  // Figur auf dem Raster (Feld = Figur + 1 Kästchen Rand); o.tr: Rand nachfahren, o.ring: Zahlen an den Kästchenseiten, o.cells: Zahlen in den Kästchen
+  function uGrid(p, o) {
+    o = o || {}; var b = uBox(p), nx = b[2] - b[0] + 2, ny = b[3] - b[1] + 2, q = uMove(p, 1 - b[0], 1 - b[1]), c = o.c || UC, m = 6;
+    var P = q.map(function (v) { return [m + v[0] * c, m + v[1] * c]; });
+    var s = karoJ(m, m, nx, ny, c) + pg(P, o.tr || INK, o.tr ? 7 : 4, o.fill || UFL);
+    if (o.cells) {
+      var k = 1, fs = Math.min(24, Math.round(c * .44));
+      for (var j = 0; j < ny; j++) for (var i = 0; i < nx; i++) if (uIn(q, i + .5, j + .5)) s += tx(m + (i + .5) * c, m + (j + .5) * c + fs * .36, String(k++), k > 10 ? Math.round(fs * .85) : fs, o.cells, 700);
+    }
+    if (o.ring) {
+      var n = 1;
+      for (var t = 0; t < q.length; t++) {
+        var a = q[t], e = q[(t + 1) % q.length], L2 = Math.abs(e[0] - a[0]) + Math.abs(e[1] - a[1]), dx = (e[0] - a[0]) / L2, dy = (e[1] - a[1]) / L2;
+        for (var u = 0; u < L2; u++) {
+          var mx = a[0] + dx * (u + .5), my = a[1] + dy * (u + .5), nx2 = dy, ny2 = -dx;
+          if (uIn(q, mx + nx2 * .1, my + ny2 * .1)) { nx2 = -nx2; ny2 = -ny2; }
+          s += tx(m + (mx + nx2 * .34) * c, m + (my + ny2 * .34) * c + 6, String(n++), Math.min(18, Math.round(c * .36)), o.ring, 800);
+        }
+      }
+    }
+    var W = nx * c + 2 * m, H = ny * c + 2 * m;
+    return { svg: '<svg class="gsv" viewBox="0 0 ' + W + ' ' + H + '" style="max-width:' + Math.round(W * .95) + 'px;margin:0 auto">' + s + '</svg>', u: uPer(p), A: uAre(p),
+      at: function (x, y, w, h) { return '<svg x="' + x + '" y="' + y + '" width="' + w + '" height="' + h + '" viewBox="0 0 ' + W + ' ' + H + '">' + s + '</svg>'; } };
+  }
+  // Rechteck mit Maßen (nicht in Originalgröße): Länge unten, Breite rechts
+  function uLab(a, b, unit, cls) {
+    var k = Math.min(56, 380 / a, 200 / b), w = a * k, h = b * k, m = 14;
+    var s = '<rect x="' + m + '" y="' + m + '" width="' + f1(w) + '" height="' + f1(h) + '" fill="' + ACL + '" stroke="' + INK + '" stroke-width="4"/>' +
+      tx(m + w / 2, m + h + 38, a + NB + unit, 28) + tx(m + w + 14, m + h / 2 + 10, b + NB + unit, 28, INK, 700, 'start');
+    return '<svg class="gsv ' + (cls || '') + '" viewBox="0 0 ' + f1(w + m + 110) + ' ' + f1(h + m + 56) + '" style="max-width:' + Math.round(w + m + 110) + 'px;margin:0 auto">' + s + '</svg>';
+  }
+  function uCard(svg, id) { return '<div class="card gsw"' + (id ? ' id="' + id + '"' : '') + '>' + svg + '</div>'; }
+  function uOpts(list, unit) { return uniq(list).map(function (v) { return { v: String(v), h: fmt(v) + (unit ? NB + unit : '') }; }); }
+  function uThree(ans, wrong) {
+    var w = uniq(wrong.filter(function (x) { return x !== ans && x > 0; })), c = [ans].concat(w.slice(0, 2)), k = 1;
+    while (c.length < 3) { var z = ans + 2 * k; if (c.indexOf(z) < 0) c.push(z); k++; }
+    return c.sort(function (x, y) { return x - y; });
+  }
+  function rfItem(q, a, why) {
+    return { head: S('Richtig oder falsch?'), body: '<div class="card story">' + S(q) + '</div>', cols: 2, ans: a,
+      choices: [{ v: 'r', h: S('rich|tig') }, { v: 'f', h: S('falsch') }], why: S((a === 'r' ? 'Das stimmt. ' : 'Das stimmt nicht. ') + why) };
+  }
+
+  // ------------------------------------------------------------ Rechteck und Quadrat
+  var RQN = { q: 'Qua|drat', r: 'Recht|eck', n: 'nichts da|von' };
+  var RQC = [{ v: 'q', h: S(RQN.q) }, { v: 'r', h: S(RQN.r) }, { v: 'n', h: S(RQN.n) }];
+  function rqPic(kind, W, H) {
+    W = W || 420; H = H || 220;
+    var cx = W / 2 + R(-30, 30), cy = H / 2, p, a;
+    if (kind === 'r') { var w = R(150, 230), h = R(60, 110); if (Math.random() < .3) { var t = w; w = h + 40; h = Math.min(t, H - 50); } p = [[-w / 2, -h / 2], [w / 2, -h / 2], [w / 2, h / 2], [-w / 2, h / 2]]; }
+    else if (kind === 'q') { var s = R(90, 150); p = [[-s / 2, -s / 2], [s / 2, -s / 2], [s / 2, s / 2], [-s / 2, s / 2]]; }
+    else {
+      var f = one(['para', 'trapez', 'drei', 'raute', 'fuenf']);
+      if (f === 'para') p = [[-120, 55], [70, 55], [120, -55], [-70, -55]];
+      else if (f === 'trapez') p = [[-120, 60], [120, 60], [70, -60], [-70, -60]];
+      else if (f === 'drei') p = [[-110, 65], [110, 65], [0, -75]];
+      else if (f === 'raute') p = [[0, -85], [95, 0], [0, 85], [-95, 0]];
+      else p = [[-90, 70], [90, 70], [100, -20], [0, -85], [-100, -20]];
+    }
+    a = (kind !== 'n' && Math.random() < .35) ? deg(R(-25, 25)) : 0;
+    var P = p.map(function (v) { return [cx + v[0] * Math.cos(a) - v[1] * Math.sin(a), cy + v[0] * Math.sin(a) + v[1] * Math.cos(a)]; });
+    return sv(W, H, pg(P, INK, 4, ACL));
+  }
+  var RQW = { q: 'Vier rechte Winkel und alle vier Seiten sind gleich lang: Das ist ein Quadrat.',
+    r: 'Vier rechte Winkel, gegenüberliegende Seiten sind gleich lang: Das ist ein Rechteck.',
+    n: 'Die Ecken sind keine rechten Winkel. Die Figur ist kein Rechteck und kein Quadrat.' };
+  GEN.ufrechteck = function () {
+    var set = [];
+    shuffle(['q', 'r', 'n', one(['q', 'r', 'n'])]).forEach(function (k) {
+      set.push({ head: S('Was ist das?'), body: '<div class="card gsw">' + rqPic(k) + '</div>', choices: RQC, ans: k, cols: 3, why: S(RQW[k]) });
+    });
+    for (var r = 0; r < 2; r++) {
+      var ks = shuffle(['q', 'r', 'n', one(['q', 'r', 'n'])]);
+      set.push({ kind: 'sort', head: S('Ziehe jede Figur in das richtige Feld.'), cats: RQC,
+        items: ks.map(function (k) { return { h: rqPic(k, 360, 200), c: k }; }),
+        why: S('Prüfe zuerst die Ecken: 4 rechte Winkel? Dann die Seiten: Sind alle 4 Seiten gleich lang, ist es ein Quadrat.') });
+    }
+    // Tippe auf das Quadrat
+    (function () {
+      var kinds = shuffle(['q', 'r', 'r', 'n']), ans = String(kinds.indexOf('q'));
+      function pic(res) {
+        var o = '';
+        kinds.forEach(function (k, i) {
+          var x = 10 + (i % 2) * 300, y = 10 + Math.floor(i / 2) * 200, inner = rqPic(k, 280, 180).replace(/^<svg[^>]*>|<\/svg>$/g, '');
+          var col = res ? (String(i) === ans ? OKC : (res === String(i) ? NOC : '#d0d0d0')) : '#d0d0d0';
+          o += '<g class="tp" data-v="' + i + '"><rect x="' + x + '" y="' + y + '" width="280" height="180" fill="#fff" stroke="' + col + '" stroke-width="' + (res && col !== '#d0d0d0' ? 6 : 2) + '"/>' +
+            '<g transform="translate(' + x + ' ' + y + ')">' + inner + '</g></g>';
+        });
+        return sv(600, 400, o, 'tapl');
+      }
+      var it = { kind: 'tap', head: S('Tippe auf das Quadrat.'), body: '<div class="card gsw" id="rq">' + pic(null) + '</div>', ans: ans,
+        why: S('Das Quadrat hat vier rechte Winkel und vier gleich lange Seiten.') };
+      it.after = function (g, got) { document.getElementById('rq').innerHTML = pic(got || 'x'); };
+      set.push(it);
+    })();
+    var RF = [['Ein Rechteck hat 4 rechte Winkel.', 'r'], ['Beim Quadrat sind alle 4 Seiten gleich lang.', 'r'], ['Beim Rechteck sind immer alle Seiten gleich lang.', 'f'],
+      ['Gegenüberliegende Seiten im Rechteck sind gleich lang.', 'r'], ['Ein Dreieck ist ein Rechteck.', 'f'], ['Ein Quadrat hat 5 Ecken.', 'f']];
+    shuffle(RF).slice(0, 2).forEach(function (q) { set.push(rfItem(q[0], q[1], 'Rechteck: 4 rechte Winkel, gegenüberliegende Seiten gleich lang. Quadrat: alle 4 Seiten gleich lang.')); });
+    set.push({ kind: 'match', mcls: 'eq wd', head: S('Verbinde, was zusammengehört.'),
+      left: [{ h: S(RQN.r), k: 'r' }, { h: S(RQN.q), k: 'q' }, { h: S('Drei|eck'), k: 'd' }],
+      right: shuffle([{ h: S('Gegenüberliegende Seiten sind gleich lang.'), k: 'r' }, { h: S('Alle 4 Seiten sind gleich lang.'), k: 'q' }, { h: S('Es hat 3 Ecken.'), k: 'd' }]),
+      why: S('Rechteck: gegenüberliegende Seiten gleich lang. Quadrat: alle Seiten gleich lang. Dreieck: 3 Ecken.') });
+    return set;
+  };
+
+  // ------------------------------------------------------------ Umfang zeigen und zählen
+  GEN.ufumfang = function () {
+    var set = [], kinds = shuffle(['rect', 'rect', 'quad', 'form', 'form', 'form']);
+    kinds.forEach(function (k) {
+      var p = uShape(k === 'form' ? 'x' : k), g = uGrid(p), u = g.u, A = g.A;
+      var it = { head: S('Wie groß ist der Umfang? Zähle die Kästchenseiten am Rand.'), body: uCard(g.svg, 'ug'), choices: uOpts(uThree(u, [A, u - 2, u + 2]), 'cm'), ans: String(u), cols: 3,
+        why: S('Am Rand sind ' + u + ' Kästchenseiten. Jede ist 1 cm lang. Also u = ' + u + ' cm.') };
+      it.after = function () { document.getElementById('ug').innerHTML = uGrid(p, { tr: UTR, ring: UTR }).svg; };
+      set.push(it);
+    });
+    for (var t = 0; t < 2; t++) (function () {
+      var p1, p2, g1, g2;
+      do { p1 = uShape(one(['rect', 'x'])); p2 = uShape(one(['rect', 'quad', 'x'])); g1 = uGrid(p1, { c: 36 }); g2 = uGrid(p2, { c: 36 }); } while (g1.u === g2.u);
+      var ans = g1.u > g2.u ? '0' : '1';
+      function pic(res) {
+        var o = '';
+        [[p1, g1], [p2, g2]].forEach(function (pg2, i) {
+          var gr = uGrid(pg2[0], res ? { c: 36, tr: String(i) === ans ? OKC : '#999', ring: String(i) === ans ? OKC : '#999' } : { c: 36 });
+          var col = res ? (String(i) === ans ? OKC : (res === String(i) ? NOC : '#d0d0d0')) : '#d0d0d0';
+          o += '<g class="tp" data-v="' + i + '"><rect x="' + (8 + i * 300) + '" y="8" width="284" height="284" fill="#fff" stroke="' + col + '" stroke-width="' + (res && col !== '#d0d0d0' ? 6 : 2) + '"/>' +
+            gr.at(16 + i * 300, 16, 268, 268) + '</g>';
+        });
+        return sv(600, 300, o, 'tapl');
+      }
+      var it = { kind: 'tap', head: S('Welche Figur hat den größeren Umfang? Zähle und tippe sie an.'), body: '<div class="card gsw" id="uv">' + pic(null) + '</div>', ans: ans,
+        why: S('Links: u = ' + g1.u + ' cm. Rechts: u = ' + g2.u + ' cm.') };
+      it.after = function (g, got) { document.getElementById('uv').innerHTML = pic(got || 'x'); };
+      set.push(it);
+    })();
+    var RF = [['Linien innen gehören zum Umfang.', 'f'], ['Der Umfang ist die Länge vom Rand rund um eine Fläche.', 'r'], ['Eine Kästchenseite ist 1 cm lang.', 'r'],
+      ['Für den Umfang zählst du die Kästchen innen.', 'f'], ['u ist die Abkürzung für Umfang.', 'r']];
+    shuffle(RF).slice(0, 2).forEach(function (q) { set.push(rfItem(q[0], q[1], 'Der Umfang ist der Rand rundherum. Du zählst die Kästchenseiten am Rand.')); });
+    return set;
+  };
+
+  // ------------------------------------------------------------ Umfang berechnen
+  function uPairs(n, sq) {
+    var out = [], seen = {};
+    while (out.length < n) {
+      var a = R(3, 10), b = sq ? a : R(1, a - 1);
+      if (seen[a + 'x' + b]) continue; seen[a + 'x' + b] = 1; out.push([a, b]);
+    }
+    return out;
+  }
+  GEN.ufurechnen = function () {
+    var set = [], pr = shuffle(uPairs(4, false).concat(uPairs(2, true)));
+    pr.forEach(function (ab) {
+      var a = ab[0], b = ab[1], u = 2 * (a + b), q = a === b;
+      set.push({ head: S(q ? 'Das Quadrat hat 4 gleich lange Seiten. Wie groß ist der Umfang?' : 'Wie groß ist der Umfang?'), body: uCard(uLab(a, b, 'cm')),
+        choices: uOpts(uThree(u, [a + b, a * b, u + 2]), 'cm'), ans: String(u), cols: 3,
+        why: S('u = ' + a + ' cm + ' + b + ' cm + ' + a + ' cm + ' + b + ' cm = ' + u + ' cm') });
+    });
+    uPairs(2, false).forEach(function (ab) {
+      var a = ab[0], b = ab[1], c1 = a + ' cm + ' + b + ' cm + ' + a + ' cm + ' + b + ' cm', c2 = a + ' cm + ' + b + ' cm', c3 = a + ' cm · ' + b + ' cm';
+      set.push({ head: S('Welche Rechnung passt zum Umfang?'), body: uCard(uLab(a, b, 'cm')), cols: 1, ans: 'a',
+        choices: shuffle([{ v: 'a', h: 'u = ' + c1 }, { v: 'b', h: 'u = ' + c2 }, { v: 'c', h: 'u = ' + c3 }]),
+        why: S('Für den Umfang addierst du alle vier Seiten: Länge, Breite, Länge, Breite.') });
+    });
+    var SA = [['Ein Beet ist ', ' m lang und ', ' m breit. Rund um das Beet kommt ein Zaun. Wie lang ist der Zaun?'],
+      ['Ein Spielfeld ist ', ' m lang und ', ' m breit. Rund um das Spielfeld wird eine Linie gemalt. Wie lang ist die Linie?']];
+    SA.forEach(function (s) {
+      var a = R(5, 12), b = R(2, a - 1), u = 2 * (a + b);
+      set.push({ head: S('Lies genau. Rechne.'), body: '<div class="card story">' + S(s[0] + a + s[1] + b + s[2]) + '</div>', cols: 3, ans: String(u),
+        choices: uOpts(uThree(u, [a + b, a * b, u - 2]), 'm'), why: S('Rund um: Das ist der Umfang. u = ' + a + ' m + ' + b + ' m + ' + a + ' m + ' + b + ' m = ' + u + ' m') });
+    });
+    return set;
+  };
+
+  // ------------------------------------------------------------ Flächen vergleichen und Kästchen zählen
+  GEN.ufflaeche = function () {
+    var set = [];
+    shuffle(['rect', 'rect', 'quad', 'x', 'x']).forEach(function (k) {
+      var p = uShape(k), g = uGrid(p), A = g.A, u = g.u;
+      var it = { head: S('Wie groß ist der Flächeninhalt? Zähle die Kästchen.'), body: uCard(g.svg, 'ag'), choices: uOpts(uThree(A, [u, A + 1, A - 1]), 'cm²'), ans: String(A), cols: 3,
+        why: S('In der Figur sind ' + A + ' Kästchen. Jedes Kästchen ist 1 cm². Also A = ' + A + ' cm².') };
+      it.after = function () { document.getElementById('ag').innerHTML = uGrid(p, { cells: OKC }).svg; };
+      set.push(it);
+    });
+    for (var t = 0; t < 5; t++) (function (t) {
+      var n = t < 3 ? 2 : 3, ps, gs;
+      do {
+        ps = []; gs = [];
+        for (var j = 0; j < n; j++) {
+          var p = j === 0 ? uRect(0, 0, R(4, 6), 1) : uShape(one(['rect', 'quad', 'x']));
+          ps.push(p); gs.push(uGrid(p, { c: n === 2 ? 36 : 26 }));
+        }
+        var As = gs.map(function (g) { return g.A; }), mx = Math.max.apply(0, As);
+      } while (As.filter(function (a) { return a === mx; }).length > 1 || As[0] === mx);
+      var order = shuffle(ps.map(function (_, j) { return j; })), ans = String(order.indexOf(As.indexOf(mx))), bw = n === 2 ? 300 : 200;
+      function pic(res) {
+        var o = '';
+        order.forEach(function (j, i) {
+          var good = String(i) === ans, gr = uGrid(ps[j], res ? { c: n === 2 ? 36 : 26, cells: good ? OKC : '#999' } : { c: n === 2 ? 36 : 26 });
+          var col = res ? (good ? OKC : (res === String(i) ? NOC : '#d0d0d0')) : '#d0d0d0';
+          o += '<g class="tp" data-v="' + i + '"><rect x="' + (8 + i * bw) + '" y="8" width="' + (bw - 16) + '" height="' + (bw - 16) + '" fill="#fff" stroke="' + col + '" stroke-width="' + (res && col !== '#d0d0d0' ? 6 : 2) + '"/>' +
+            gr.at(16 + i * bw, 16, bw - 32, bw - 32) + '</g>';
+        });
+        return sv(n * bw, bw, o, 'tapl');
+      }
+      var it = { kind: 'tap', head: S(n === 2 ? 'Welche Fläche ist größer? Zähle die Kästchen und tippe an.' : 'Welche Fläche ist am größten? Zähle die Kästchen und tippe an.'),
+        body: '<div class="card gsw" id="av">' + pic(null) + '</div>', ans: ans,
+        why: S('Die größte Fläche hat ' + mx + ' Kästchen. Die lange Fläche ist nicht immer die größte.') };
+      it.after = function (g, got) { document.getElementById('av').innerHTML = pic(got || 'x'); };
+      set.push(it);
+    })(t);
+    return set;
+  };
+
+  // ------------------------------------------------------------ cm² und m²
+  var UK = [['eine Postkarte', 'cm²'], ['ein Fußballfeld', 'm²'], ['ein Radiergummi', 'cm²'], ['der Schulhof', 'm²'], ['eine Heftseite', 'cm²'], ['ein Zimmer', 'm²'],
+    ['eine Briefmarke', 'cm²'], ['ein Garten', 'm²'], ['ein Handy', 'cm²'], ['der Sportplatz', 'm²'], ['ein Foto', 'cm²'], ['der Boden in der Turnhalle', 'm²']];
+  GEN.ufeinheiten = function () {
+    var set = [], CT = [{ v: 'cm²', h: 'cm²' }, { v: 'm²', h: 'm²' }];
+    var pa = shuffle(UK.filter(function (x) { return x[1] === 'cm²'; })), pb = shuffle(UK.filter(function (x) { return x[1] === 'm²'; }));
+    for (var r = 0; r < 3; r++) {
+      var its = shuffle(pa.slice(r * 2, r * 2 + 2).concat(pb.slice(r * 2, r * 2 + 2)));
+      set.push({ kind: 'sort', scls: 'txt', head: S('Misst du die Fläche in cm² oder in m²? Ziehe jede Karte in das richtige Feld.'), cats: CT,
+        items: its.map(function (x) { return { h: '<span>' + S(x[0]) + '</span>', c: x[1] }; }), why: S('Kleine Flächen misst du in cm², große Flächen in m².') });
+    }
+    var EU = [['Länge von einem Bleistift: 17', 'cm'], ['Fläche von einer Tischplatte: 1', 'm²'], ['Länge vom Klassenraum: 9', 'm'], ['Fläche von einem Notizzettel: 49', 'cm²'],
+      ['Breite von einem Heft: 21', 'cm'], ['Fläche vom Spielplatz: 300', 'm²'], ['Fläche von einer Spielkarte: 50', 'cm²'], ['Länge vom Schulbus: 12', 'm']];
+    shuffle(EU).slice(0, 5).forEach(function (e) {
+      set.push({ head: S('Welche Einheit passt?'), body: '<div class="card story">' + S(e[0]) + ' …</div>', cols: 4, ans: e[1],
+        choices: ['cm', 'm', 'cm²', 'm²'].map(function (u) { return { v: u, h: u }; }),
+        why: S(/^Fläche/.test(e[0]) ? 'Es geht um eine Fläche. Dann steht die kleine 2 an der Einheit: ' + e[1] + '.' : 'Es geht um eine Länge. Dann nimmst du cm oder m: ' + e[1] + '.') });
+    });
+    set.push({ kind: 'match', mcls: 'eq', head: S('Verbinde das Wort mit der Abkürzung.'),
+      left: [{ h: S('Qua|drat|zen|ti|me|ter'), k: 'a' }, { h: S('Qua|drat|me|ter'), k: 'b' }, { h: S('Zen|ti|me|ter'), k: 'c' }, { h: S('Me|ter'), k: 'd' }],
+      right: shuffle([{ h: 'cm²', k: 'a' }, { h: 'm²', k: 'b' }, { h: 'cm', k: 'c' }, { h: 'm', k: 'd' }]),
+      why: S('Quadrat im Wort heißt: Es geht um eine Fläche. Dann steht die kleine 2 an der Einheit.') });
+    set.push(rfItem('1 cm² ist ungefähr so groß wie ein Fingernagel.', 'r', 'Ein Quadrat mit 1 cm langen Seiten ist ungefähr so groß wie ein Fingernagel.'));
+    return set;
+  };
+
+  // ------------------------------------------------------------ Flächeninhalt berechnen
+  GEN.ufarechnen = function () {
+    var set = [];
+    for (var t = 0; t < 3; t++) (function () {
+      var a = R(3, 6), b = R(2, 4), p = uRect(0, 0, a, b), g = uGrid(p, { c: 44 }), A = a * b;
+      var it = { head: S('Rechne Länge mal Breite. Wie groß ist der Flächeninhalt?'), body: uCard(g.svg, 'ar'), choices: uOpts(uThree(A, [a + b, 2 * (a + b), A + a]), 'cm²'), ans: String(A), cols: 3,
+        why: S(b + ' Reihen mit je ' + a + ' Kästchen: ' + a + ' · ' + b + ' = ' + A + '. Also A = ' + A + ' cm².') };
+      it.after = function () { document.getElementById('ar').innerHTML = uGrid(p, { c: 44, cells: OKC }).svg; };
+      set.push(it);
+    })();
+    shuffle(uPairs(3, false).concat(uPairs(1, true))).forEach(function (ab) {
+      var a = ab[0], b = ab[1], A = a * b, q = a === b;
+      set.push({ head: S(q ? 'Das Quadrat hat 4 gleich lange Seiten. Wie groß ist der Flächeninhalt?' : 'Wie groß ist der Flächeninhalt?'), body: uCard(uLab(a, b, 'cm')),
+        choices: uOpts(uThree(A, [2 * (a + b), a + b, A + b]), 'cm²'), ans: String(A), cols: 3, why: S('A = ' + a + ' cm · ' + b + ' cm = ' + A + ' cm²') });
+    });
+    uPairs(2, false).forEach(function (ab) {
+      var a = ab[0], b = ab[1];
+      set.push({ head: S('Welche Rechnung passt zum Flächeninhalt?'), body: uCard(uLab(a, b, 'cm')), cols: 1, ans: 'a',
+        choices: shuffle([{ v: 'a', h: 'A = ' + a + ' cm · ' + b + ' cm' }, { v: 'b', h: 'A = ' + a + ' cm + ' + b + ' cm' }, { v: 'c', h: 'A = ' + a + ' cm + ' + b + ' cm + ' + a + ' cm + ' + b + ' cm' }]),
+        why: S('Flächeninhalt: Länge mal Breite. A = a · b') });
+    });
+    (function () {
+      var a = R(4, 8), b = R(2, 5), A = a * b;
+      set.push({ head: S('Lies genau. Rechne.'), body: '<div class="card story">' + S('Ein Teppich ist ' + a + ' m lang und ' + b + ' m breit. Wie groß ist der Teppich?') + '</div>', cols: 3,
+        ans: String(A), choices: uOpts(uThree(A, [2 * (a + b), a + b, A + 2]), 'm²'), why: S('Es geht um die ganze Fläche. A = ' + a + ' m · ' + b + ' m = ' + A + ' m²') });
+    })();
+    return set;
+  };
+
+  // ------------------------------------------------------------ Umfang oder Flächeninhalt?
+  var UQ = [['ein Zaun rund um den Garten', 'u'], ['Rasen für den Garten', 'A'], ['eine Linie rund um das Spielfeld', 'u'], ['ein Teppich für das Zimmer', 'A'],
+    ['ein Rahmen rund um das Bild', 'u'], ['Matten unter dem Klettergerüst', 'A'], ['eine Lichterkette rund um das Fenster', 'u'], ['Farbe für die ganze Wand', 'A'],
+    ['Klebeband rund um das Plakat', 'u'], ['Fliesen für den Boden', 'A'], ['einmal rund um den Schulhof laufen', 'u'], ['Stoff für eine Tischdecke', 'A']];
+  GEN.ufunterschied = function () {
+    var set = [], CT = [{ v: 'u', h: S('Um|fang') }, { v: 'A', h: S('Flä|chen|in|halt') }];
+    var pa = shuffle(UQ.filter(function (x) { return x[1] === 'u'; })), pb = shuffle(UQ.filter(function (x) { return x[1] === 'A'; }));
+    for (var r = 0; r < 3; r++) {
+      var its = shuffle(pa.slice(r * 2, r * 2 + 2).concat(pb.slice(r * 2, r * 2 + 2)));
+      set.push({ kind: 'sort', scls: 'txt', head: S('Geht es um den Umfang oder um den Flächeninhalt? Ziehe jede Karte in das richtige Feld.'), cats: CT,
+        items: its.map(function (x) { return { h: '<span>' + S(x[0]) + '</span>', c: x[1] }; }), why: S('Rund um, Rand, Linie, Zaun: Umfang. Die ganze Fläche: Flächeninhalt.') });
+    }
+    shuffle(['u', 'A', 'u', 'A']).forEach(function (w) {
+      var p = uShape(one(['rect', 'x'])), g = uGrid(p), u = g.u, A = g.A, ans = w === 'u' ? u + ' cm' : A + ' cm²';
+      var ch = shuffle([ans].concat(uniq([u + ' cm', A + ' cm²', A + ' cm', u + ' cm²', (u + 2) + ' cm', (A + 2) + ' cm²']).filter(function (x) { return x !== ans; }).slice(0, 2)))
+        .map(function (x) { return { v: x, h: x.replace(' ', NB) }; });
+      var it = { head: S(w === 'u' ? 'Wie groß ist der Umfang?' : 'Wie groß ist der Flächeninhalt?'), body: uCard(g.svg, 'ua'), choices: ch, ans: ans, cols: 3,
+        why: S(w === 'u' ? 'Umfang: Kästchenseiten am Rand zählen. u = ' + u + ' cm' : 'Flächeninhalt: Kästchen innen zählen. A = ' + A + ' cm²') };
+      it.after = function () { document.getElementById('ua').innerHTML = uGrid(p, w === 'u' ? { tr: UTR, ring: UTR } : { cells: OKC }).svg; };
+      set.push(it);
+    });
+    uPairs(3, false).forEach(function (ab, k) {
+      var a = ab[0], b = ab[1], u = 2 * (a + b), A = a * b, w = k % 2 ? 'A' : 'u', ans = w === 'u' ? u + ' cm' : A + ' cm²';
+      var ch = shuffle([ans].concat(uniq([u + ' cm', A + ' cm²', (a + b) + (w === 'u' ? ' cm' : ' cm²'), A + ' cm', u + ' cm²']).filter(function (x) { return x !== ans; }).slice(0, 2)))
+        .map(function (x) { return { v: x, h: x.replace(' ', NB) }; });
+      set.push({ head: S(w === 'u' ? 'Berechne den Umfang.' : 'Berechne den Flächeninhalt.'), body: uCard(uLab(a, b, 'cm')), choices: ch, ans: ans, cols: 3,
+        why: S(w === 'u' ? 'u = ' + a + ' cm + ' + b + ' cm + ' + a + ' cm + ' + b + ' cm = ' + u + ' cm' : 'A = ' + a + ' cm · ' + b + ' cm = ' + A + ' cm²') });
+    });
+    return set;
+  };
+
+  // ------------------------------------------------------------ Sachaufgaben: Der Schulhof wird neu gestaltet
+  var UST = [
+    ['u', 'Das Hochbeet ist {a} m lang und {b} m breit. Rund um das Hochbeet kommt ein Zaun. Wie viele Meter Zaun braucht man?', 'Man braucht {r} m Zaun.'],
+    ['u', 'Das Basketballfeld ist {a} m lang und {b} m breit. Rund um das Feld wird eine Linie gemalt. Wie lang ist die Linie?', 'Die Linie ist {r} m lang.'],
+    ['q', 'Der Sandkasten ist ein Quadrat. Jede Seite ist {a} m lang. Rund um den Sandkasten kommen Randsteine. Wie viele Meter Randsteine braucht man?', 'Man braucht {r} m Randsteine.'],
+    ['u', 'Der Schulgarten ist {a} m lang und {b} m breit. Ben läuft einmal rund um den Garten. Wie weit läuft Ben?', 'Ben läuft {r} m.'],
+    ['A', 'Unter dem Klettergerüst sollen Matten liegen. Die Fläche ist {a} m lang und {b} m breit. Eine Matte ist 1 m². Wie viele Matten braucht man?', 'Man braucht {r} Matten.'],
+    ['A', 'Der Fahrradplatz ist {a} m lang und {b} m breit. Er bekommt ein neues Pflaster. Wie viele Quadratmeter Pflaster braucht man?', 'Man braucht {r} m² Pflaster.'],
+    ['A', 'Die Wiese hinter der Schule ist {a} m lang und {b} m breit. Sie bekommt neuen Rasen. Wie viel Rasen braucht man?', 'Man braucht {r} m² Rasen.'],
+    ['A', 'Die Leseecke ist {a} m lang und {b} m breit. Sie bekommt einen Teppich. Wie groß ist der Teppich?', 'Der Teppich ist {r} m² groß.']];
+  GEN.ufsach = function () {
+    var set = [];
+    shuffle(UST.slice()).slice(0, 8).concat(shuffle(UST.slice()).slice(0, 2)).forEach(function (s, k) {
+      var a = s[0] === 'A' ? R(3, 9) : R(4, 12), b = s[0] === 'q' ? a : (s[0] === 'A' ? R(2, Math.min(a - 1, 6)) : R(2, a - 1));
+      var u = 2 * (a + b), A = a * b, isA = s[0] === 'A', res = isA ? A : u;
+      var txt = s[1].replace('{a}', a).replace('{b}', b);
+      var unit = isA ? (/Matten/.test(s[2]) ? '' : 'm²') : 'm';
+      var cU = s[0] === 'q' ? a + ' m + ' + a + ' m + ' + a + ' m + ' + a + ' m' : a + ' m + ' + b + ' m + ' + a + ' m + ' + b + ' m';
+      var cA = s[0] === 'q' ? a + ' m · ' + a + ' m' : a + ' m · ' + b + ' m';
+      if (k % 2 === 0) {
+        set.push({ head: S('Lies genau. Welche Rechnung passt?'), body: '<div class="card story">' + S(txt) + '</div>', cols: 1, ans: 'a',
+          choices: shuffle([{ v: 'a', h: isA ? cA : cU }, { v: 'b', h: isA ? cU : cA }, { v: 'c', h: a + ' m + ' + b + ' m' }]),
+          why: S(isA ? 'Es geht um die ganze Fläche. Das ist der Flächeninhalt: Länge mal Breite.' : 'Es geht um den Rand rundherum. Das ist der Umfang: alle vier Seiten addieren.') });
+      } else {
+        var wr = isA ? [u, a + b, A + a] : [A, a + b, u + 2];
+        set.push({ head: S('Lies genau. Rechne. Was ist die Antwort?'), body: '<div class="card story">' + S(txt) + '</div>', cols: 3, ans: String(res),
+          choices: uOpts(uThree(res, wr), unit),
+          why: S((isA ? 'Flächeninhalt: ' + cA + ' = ' + A + (unit ? ' m². ' : '. ') : 'Umfang: ' + cU + ' = ' + u + ' m. ') + s[2].replace('{r}', res)) });
+      }
+    });
+    return set;
+  };
 
   // ------------------------------------------------------------ Ablauf
   var set, i, ok;

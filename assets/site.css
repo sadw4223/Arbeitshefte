@@ -385,3 +385,11 @@ a.item:active { background: var(--ac-bg); }
 .mtc.eq .mr .mic { line-height: 1.2; text-align: center; }
 .rch.c1 .ch .pv { color: var(--ac); }
 @media (max-width: 520px) { .mtc.eq .mi { font-size: 21px; } }
+/* Umfang und Flächeninhalt: Karten mit Text zum Zuordnen, Verbinden mit Sätzen */
+.srt.txt .scd { line-height: 1.25; font-size: 20px; font-weight: 700; padding: 8px; color: var(--ink); text-align: center; }
+.srt.txt .sbc .scd { flex: none; max-height: none; }
+.srt.txt .sbc { flex-direction: column; height: 300px; }   /* feste Höhe: die Seite springt nicht */
+.mtc.wd { grid-template-columns: minmax(0, 1fr) minmax(0, 1.7fr); }
+.mtc.wd .mr .mi { font-size: 22px; font-weight: 600; }
+.mtc.wd .mr .mic { line-height: 1.3; text-align: left; }
+@media (max-width: 520px) { .srt.txt .scd { font-size: 17px; } .srt.txt .sbc { flex-direction: column; height: 280px; } .mtc.wd .mr .mi { font-size: 18px; } }
