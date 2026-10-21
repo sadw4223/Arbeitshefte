@@ -3,7 +3,8 @@
    begriffe, kopf, luecke, add, sub, ueb, sach, klammern (Addition und Subtraktion);
    mdbegriffe, einmaleins, mdluecke, regeln, mdueb, halb, mul1, mul2, div, mdsach (Multiplikation und Division);
    linien, messen, senkpar, koord, symm, spiegeln, schatz (Grundlagen der Geometrie: auch Ziehen, Zuordnen, Verbinden und Antippen in der Zeichnung);
-   ufrechteck, ufumfang, ufurechnen, ufflaeche, ufeinheiten, ufarechnen, ufunterschied, ufsach (Umfang und Flächeninhalt).
+   ufrechteck, ufumfang, ufurechnen, ufflaeche, ufeinheiten, ufarechnen, ufunterschied, ufsach (Umfang und Flächeninhalt);
+   grgeld, grlaengen, grlumrechnen, grlrechnen, grmassen, gruhr, grzeit, grsach (Größen).
    Schreibweise wie im Heft. */
 (function () {
   var D = JSON.parse(document.getElementById('data').textContent), L = D.labels;
@@ -1826,6 +1827,359 @@
         set.push({ head: S('Lies genau. Rechne. Was ist die Antwort?'), body: '<div class="card story">' + S(txt) + '</div>', cols: 3, ans: String(res),
           choices: uOpts(uThree(res, wr), unit),
           why: S((isA ? 'Flächeninhalt: ' + cA + ' = ' + A + (unit ? ' m². ' : '. ') : 'Umfang: ' + cU + ' = ' + u + ' m. ') + s[2].replace('{r}', res)) });
+      }
+    });
+    return set;
+  };
+
+  // ============================================================ Größen
+  // Schreibweise wie im Heft: 3 € 50 ct (Kommaschreibweise 3,50 € nur lesen), mm, cm, m, km; g, kg, t; s, min, h, Tage.
+  var GCU = '#c98a5a', GAU = '#dcb95e', GAG = '#c9c9c9', GRC = '#d0453a', GOR = '#d08a2e';
+  var GCOIN = { 1: [16.25, 'cu'], 2: [18.75, 'cu'], 5: [21.25, 'cu'], 10: [19.75, 'au'], 20: [22.25, 'au'], 50: [24.25, 'au'], 100: [23.25, 'e1'], 200: [25.75, 'e2'] };
+  var GNOTE = { 500: '#c9ccd0', 1000: '#e9b0a8', 2000: '#a9c0e0', 5000: '#f2c08a' };
+  function gEuro(ct) { var e = Math.floor(ct / 100), c = ct % 100; return e && c ? e + NB + '€ ' + c + NB + 'ct' : (e ? e + NB + '€' : c + NB + 'ct'); }
+  function gKomma(ct) { var c = ct % 100; return Math.floor(ct / 100) + ',' + (c < 10 ? '0' : '') + c + NB + '€'; }
+  function gCoin(v, cx, cy, k) {
+    var d = GCOIN[v][0], t = GCOIN[v][1], r = d * k / 2, o;
+    function c(rr, f, s, w) { return '<circle cx="' + f1(cx) + '" cy="' + f1(cy) + '" r="' + f1(rr) + '" fill="' + f + '" stroke="' + s + '" stroke-width="' + w + '"/>'; }
+    if (t === 'e1') o = c(r, GAU, INK, 2.5) + c(r * .72, GAG, '#777', 1.5);
+    else if (t === 'e2') o = c(r, GAG, INK, 2.5) + c(r * .72, GAU, '#777', 1.5);
+    else o = c(r, t === 'cu' ? GCU : GAU, INK, 2.5);
+    return o + tx(cx, cy + r * .26, v >= 100 ? v / 100 + NB + '€' : v + NB + 'ct', Math.round(r * (v >= 10 ? .62 : .56)), INK, 800);
+  }
+  function gNote(v, x, y) {
+    return '<rect x="' + x + '" y="' + y + '" width="118" height="64" rx="5" fill="' + GNOTE[v] + '" stroke="' + INK + '" stroke-width="2.5"/>' +
+      '<rect x="' + (x + 8) + '" y="' + (y + 8) + '" width="102" height="48" fill="none" stroke="#fff" stroke-width="2.5" opacity=".7"/>' + tx(x + 59, y + 44, v / 100 + NB + '€', 32, INK, 800);
+  }
+  function gMoney(vals) {   // Scheine und Münzen in einer Reihe (umbrechen nach Breite)
+    var o = '', x = 10, y = 10, rowH = 70, k = 2.4, W = 720, mx = 0;
+    vals.forEach(function (v) {
+      var w = v >= 500 ? 118 : GCOIN[v][0] * k;
+      if (x + w > W) { x = 10; y += rowH + 10; }
+      o += v >= 500 ? gNote(v, x, y + 3) : gCoin(v, x + w / 2, y + 35, k);
+      x += w + 12; mx = Math.max(mx, x);
+    });
+    return '<svg class="gsv" viewBox="0 0 ' + f1(mx) + ' ' + (y + rowH + 10) + '" style="max-width:' + Math.round(mx * 1.35) + 'px;margin:0 auto">' + o + '</svg>';
+  }
+  function gStr(ans, wr, unit) {   // drei verschiedene Zahlen als Antworten (mit Einheit)
+    return three(ans, wr).map(function (v) { return { v: String(v), h: fmt(v) + (unit ? NB + unit : '') }; });
+  }
+  function gTxt(list) { return shuffle(uniq(list).slice(0, 3)).map(function (t) { return { v: t, h: S(t) }; }); }
+  function story(t) { return '<div class="card story">' + S(t) + '</div>'; }
+  function big(t) { return '<div class="card cmpq"><span>' + t + '</span></div>'; }
+
+  // ------------------------------------------------------------ Geld
+  GEN.grgeld = function () {
+    var set = [], used = {};
+    var SETS = [[1000, 200, 50, 20, 5], [500, 100, 100, 50, 10, 2], [2000, 500, 200, 20, 20, 1], [1000, 500, 100, 50, 50, 5, 2], [500, 200, 200, 10, 10, 10], [2000, 1000, 100, 20, 5, 5]];
+    shuffle(SETS).slice(0, 3).forEach(function (vals) {
+      var s = sum(vals), e = Math.floor(s / 100), c = s % 100;
+      set.push({ head: S('Wie viel Geld ist das?'), body: '<div class="card gsw">' + gMoney(vals) + '</div>', cols: 3, ans: gEuro(s),
+        choices: shuffle(uniq([gEuro(s), gEuro(s + 100), gEuro(s - 10), gEuro(e * 100 + (c + 5) % 100)]).slice(0, 3)).map(function (t) { return { v: t, h: t }; }),
+        why: S('Zähle zuerst die Scheine und die Euro-Münzen: ' + e + ' €. Dann die Cent-Münzen: ' + c + ' ct. Zusammen: ' + gEuro(s) + '.') });
+    });
+    for (var k = 0; k < 2; k++) {
+      var e = R(2, 9), c = one([5, 8, 15, 30, 45, 60, 75, 90]), ct = e * 100 + c;
+      set.push({ head: S('Wandle um.'), body: big(gEuro(ct) + ' = ? ct'), cols: 3, ans: String(ct),
+        choices: gStr(ct, [e * 10 + c, e * 1000 + c, c < 10 ? e * 10 + c : e * 100 + c + 10], 'ct'),
+        why: S(e + ' € sind ' + e * 100 + ' ct. Dazu kommen ' + c + ' ct. Das sind ' + ct + ' ct.') });
+    }
+    var ct2 = R(3, 9) * 100 + one([6, 35, 47, 62, 85]);
+    set.push({ head: S('Wandle um. Wie viel € und ct sind das?'), body: big(ct2 + ' ct'), cols: 3, ans: gEuro(ct2),
+      choices: shuffle(uniq([gEuro(ct2), Math.floor(ct2 / 10) + NB + '€ ' + ct2 % 10 + NB + 'ct', gEuro((ct2 % 100) * 100 + Math.floor(ct2 / 100))])).map(function (t) { return { v: t, h: t }; }),
+      why: S('100 ct sind 1 €. ' + ct2 + ' ct sind ' + gEuro(ct2) + '.') });
+    var p = R(1, 8) * 100 + one([5, 49, 95, 65, 25]);
+    set.push({ head: S('Auf dem Preisschild steht:'), body: big(gKomma(p)), cols: 3, ans: gEuro(p),
+      choices: shuffle(uniq([gEuro(p), Math.floor(p / 100) * 10 + Math.floor((p % 100) / 10) + NB + '€ ' + p % 10 + NB + 'ct', p + NB + '€'])).map(function (t) { return { v: t, h: t }; }),
+      why: S('Vor dem Komma stehen die Euro, nach dem Komma die Cent: ' + gKomma(p) + ' heißt ' + gEuro(p) + '.') });
+    var M = shuffle([[120, 'a'], [305, 'b'], [850, 'c'], [200, 'd'], [99, 'e'], [410, 'f']]).slice(0, 4);
+    set.push({ kind: 'match', mcls: 'eq', head: S('Was ist gleich viel? Verbinde.'),
+      left: M.map(function (m, j) { return { h: j % 2 ? gKomma(m[0]) : gEuro(m[0]), k: m[1] }; }),
+      right: shuffle(M.map(function (m) { return { h: m[0] + NB + 'ct', k: m[1] }; })),
+      why: S('1 € = 100 ct. Schreibe alles in ct, dann siehst du, was gleich viel ist.') });
+    var pr = R(1, 4) * 100 + one([20, 40, 50, 70, 80]), back = 500 - pr;
+    set.push({ head: S('Lies genau. Rechne.'), body: story('Du kaufst ein Heft und Stifte für ' + gEuro(pr) + '. Du bezahlst mit einem 5-€-Schein. Wie viel Geld bekommst du zurück?'),
+      cols: 3, ans: String(back), choices: three(back, [back + 100, 1000 - pr, back - 10]).map(function (v) { return { v: String(v), h: gEuro(v) }; }),
+      why: S('5 € sind 500 ct. 500 ct – ' + pr + ' ct = ' + back + ' ct. Das sind ' + gEuro(back) + '.') });
+    var a = R(1, 3) * 100 + one([30, 50, 80]), b = R(1, 2) * 100 + one([40, 60, 90]), z = a + b;
+    set.push({ head: S('Lies genau. Rechne.'), body: story('Ein Kakao kostet ' + gEuro(a) + '. Ein Brötchen mit Käse kostet ' + gEuro(b) + '. Wie viel kostet beides zusammen?'),
+      cols: 3, ans: String(z), choices: three(z, [z - 100, z + 10, Math.abs(a - b)]).map(function (v) { return { v: String(v), h: gEuro(v) }; }),
+      why: S('Rechne in ct: ' + a + ' ct + ' + b + ' ct = ' + z + ' ct. Das sind ' + gEuro(z) + '.') });
+    return set;
+  };
+
+  // ------------------------------------------------------------ Längen schätzen und messen
+  GEN.grlaengen = function () {
+    var set = [], U = 60, xa = 70;
+    var lens = shuffle([23, 37, 45, 52, 68, 74, 81, 96]).slice(0, 2).concat(shuffle([3, 4, 6, 7, 8, 9]).slice(0, 2).map(function (n) { return n * 10; }));
+    lens = [lens[2], lens[0], lens[3], lens[1]];
+    lens.forEach(function (mm, j) {
+      var inMM = mm % 10 !== 0, y = 60, xb = xa + mm * U / 10, start = R(8, 30) * U / 10;
+      var nm = [['A', 'B'], ['C', 'D'], ['E', 'F'], ['G', 'H']][j];
+      var seg = ln(xa, y, xb, y) + cr(xa, y, INK, 9, 4) + cr(xb, y, INK, 9, 4) + tx(xa, y - 22, nm[0], 26) + tx(xb, y - 22, nm[1], 26);
+      function pic(off, hi) {
+        return sv(760, 160, seg + '<g id="rul" class="rul" transform="translate(' + (xa + off) + ' ' + (y + 12) + ')">' + rulerSvg(11, U, hi) + '</g>', 'drag', 'rsv');
+      }
+      var it = inMM ? { head: S('Ziehe das Lineal an die Strecke. Wie lang ist sie in mm?'), cols: 3, ans: String(mm),
+          choices: gStr(mm, [mm + 10, mm - 1, (mm % 10) * 10 + Math.floor(mm / 10)], 'mm'),
+          why: S('Die Strecke endet nach der ' + Math.floor(mm / 10) + ', ' + mm % 10 + ' kleine Striche weiter. ' + Math.floor(mm / 10) * 10 + ' mm + ' + mm % 10 + ' mm = ' + mm + ' mm.') }
+        : { head: S('Ziehe das Lineal an die Strecke. Wie lang ist sie in cm?'), cols: 3, ans: String(mm / 10),
+          choices: gStr(mm / 10, [mm / 10 + 1, mm / 10 - 1, mm / 10 + 2], 'cm'),
+          why: S('Lege die 0 genau an den Punkt ' + nm[0] + '. Am Punkt ' + nm[1] + ' steht die ' + mm / 10 + '. Die Strecke ist ' + mm / 10 + ' cm lang.') };
+      it.body = '<div class="card gsw">' + pic(start) + '</div>';
+      it.init = function () { dragRuler(document.getElementById('rsv'), U, xa); };
+      it.after = function () {
+        var g = document.getElementById('rul'); if (!g) return;
+        g.style.transition = 'transform .6s ease'; g.setAttribute('transform', 'translate(' + xa + ' ' + (y + 12) + ')');
+        g.innerHTML = rulerSvg(11, U, inMM ? null : mm / 10);
+      };
+      set.push(it);
+    });
+    var EU = [['Länge von einem Bleistift: 16', 'cm'], ['Dicke von einem Heft: 3', 'mm'], ['Höhe von einem Baum: 12', 'm'], ['Weg von Lauterbach nach Gießen: 70', 'km'],
+      ['Länge von einem Marienkäfer: 6', 'mm'], ['Breite von einem Fenster: 1', 'm'], ['Länge von einer Wanderung: 8', 'km'], ['Länge von einem Smartphone: 15', 'cm'],
+      ['Länge von einem Fußballfeld: 100', 'm'], ['Dicke von einem Fingernagel: 1', 'mm']];
+    shuffle(EU).slice(0, 4).forEach(function (e) {
+      set.push({ head: S('Welche Einheit passt?'), body: '<div class="card story">' + S(e[0]) + ' …</div>', cols: 4, ans: e[1],
+        choices: ['mm', 'cm', 'm', 'km'].map(function (u) { return { v: u, h: u }; }),
+        why: S('Ganz kleine Dinge misst du in mm, kleine in cm, große in m und weite Wege in km. Hier passt ' + e[1] + '.') });
+    });
+    var SM = shuffle([['Höhe vom Schulhaus', 'm'], ['Länge vom Schulflur', 'm'], ['Weg nach Fulda', 'km'], ['Strecke vom Stadtlauf', 'km'], ['Länge von einem Bus', 'm'], ['Weg zur Nordsee', 'km']]).slice(0, 4);
+    set.push({ kind: 'sort', scls: 'txt', head: S('Misst du in m oder in km? Ziehe jede Karte in das richtige Feld.'), cats: [{ v: 'm', h: 'm' }, { v: 'km', h: 'km' }],
+      items: SM.map(function (x) { return { h: '<span>' + S(x[0]) + '</span>', c: x[1] }; }), why: S('Weite Wege misst du in km. Für Häuser, Flure und Busse nimmst du m.') });
+    set.push(one([rfItem('Eine Tür ist ungefähr 2 m hoch.', 'r', 'Eine Tür ist ein bisschen höher als ein Erwachsener, ungefähr 2 m.'),
+      rfItem('Ein Radiergummi ist ungefähr 4 m lang.', 'f', 'Ein Radiergummi ist ungefähr 4 cm lang.'),
+      rfItem('1 cm ist ungefähr so breit wie ein Finger.', 'r', 'Ein Finger ist ungefähr 1 cm breit.')]));
+    return set;
+  };
+
+  // ------------------------------------------------------------ Längen umwandeln
+  GEN.grlumrechnen = function () {
+    var set = [];
+    var T = [
+      function () { var n = R(2, 9); return [n + ' m', 'cm', n * 100, [n * 10, n * 1000], 'Von m in cm: mal 100. Hänge zwei Nullen an.']; },
+      function () { var n = R(2, 15); return [n + ' cm', 'mm', n * 10, [n * 100, n + 10], 'Von cm in mm: mal 10. Hänge eine Null an.']; },
+      function () { var n = R(2, 9); return [n + ' km', 'm', n * 1000, [n * 100, n * 10], 'Von km in m: mal 1 000. Hänge drei Nullen an.']; },
+      function () { var n = R(2, 9); return [fmt(n * 100) + ' cm', 'm', n, [n * 10, n * 100], 'Von cm in m: geteilt durch 100. Nimm zwei Nullen weg.']; },
+      function () { var n = R(2, 30); return [n * 10 + ' mm', 'cm', n, [n * 100, n * 10 + 10], 'Von mm in cm: geteilt durch 10. Nimm eine Null weg.']; },
+      function () { var n = R(2, 9); return [fmt(n * 1000) + ' m', 'km', n, [n * 10, n * 100], 'Von m in km: geteilt durch 1 000. Nimm drei Nullen weg.']; }];
+    shuffle(T).forEach(function (f) {
+      var t = f();
+      set.push({ head: S('Wandle um.'), body: big(t[0] + ' = ? ' + t[1]), cols: 3, ans: String(t[2]), choices: gStr(t[2], t[3], t[1]), why: S(t[4] + ' ' + t[0] + ' = ' + fmt(t[2]) + ' ' + t[1] + '.') });
+    });
+    var a = R(2, 6), b = R(2, 9);
+    set.push({ head: S('Achtung! Wandle um.'), body: big(a + ' m ' + b + ' cm = ? cm'), cols: 3, ans: String(a * 100 + b),
+      choices: gStr(a * 100 + b, [a * 10 + b, a * 100 + b * 10], 'cm'), why: S(a + ' m sind ' + a * 100 + ' cm. Dazu kommen ' + b + ' cm. Das sind ' + (a * 100 + b) + ' cm, nicht ' + (a * 10 + b) + ' cm.') });
+    var c = R(1, 4), d = one([150, 250, 400, 650, 800]);
+    set.push({ head: S('Wandle um.'), body: big(c + ' km ' + d + ' m = ? m'), cols: 3, ans: String(c * 1000 + d),
+      choices: gStr(c * 1000 + d, [c * 100 + d, c + d, c * 1000 + d + 100], 'm'), why: S(c + ' km sind ' + fmt(c * 1000) + ' m. Dazu kommen ' + d + ' m. Das sind ' + fmt(c * 1000 + d) + ' m.') });
+    var e = R(1, 5) * 100 + R(11, 89);
+    set.push({ head: S('Schreibe in m und cm.'), body: big(e + ' cm'), cols: 3, ans: Math.floor(e / 100) + ' m ' + e % 100 + ' cm',
+      choices: shuffle([Math.floor(e / 100) + ' m ' + e % 100 + ' cm', Math.floor(e / 10) + ' m ' + e % 10 + ' cm', e % 100 + ' m ' + Math.floor(e / 100) + ' cm']).map(function (t) { return { v: t, h: t.replace(/ (?=[a-z])/g, NB) }; }),
+      why: S('100 cm sind 1 m. ' + e + ' cm sind ' + Math.floor(e / 100) + ' m und ' + e % 100 + ' cm.') });
+    var P = shuffle([['1 m', '100 cm', 'a'], ['1 km', '1 000 m', 'b'], ['1 cm', '10 mm', 'c'], ['30 cm', '300 mm', 'd'], ['2 m', '200 cm', 'e'], ['5 km', '5 000 m', 'f']]).slice(0, 4);
+    set.push({ kind: 'match', mcls: 'eq', head: S('Was ist gleich lang? Verbinde.'),
+      left: P.map(function (p) { return { h: p[0].replace(' ', NB), k: p[2] }; }), right: shuffle(P.map(function (p) { return { h: p[1].replace(/ (?=[a-z])/, NB), k: p[2] }; })),
+      why: S('1 m = 100 cm, 1 km = 1 000 m und 1 cm = 10 mm.') });
+    return set;
+  };
+
+  // ------------------------------------------------------------ Mit Längen rechnen
+  GEN.grlrechnen = function () {
+    var set = [];
+    for (var k = 0; k < 2; k++) {
+      var a = R(2, 7), b = one([15, 25, 40, 55, 60, 75, 80]), r = a * 100 + b;
+      set.push({ head: S('Rechne.'), body: big(a + ' m + ' + b + ' cm = ? cm'), cols: 3, ans: String(r), choices: gStr(r, [a + b, a * 10 + b, r + 100], 'cm'),
+        why: S('Wandle zuerst um: ' + a + ' m = ' + a * 100 + ' cm. Dann: ' + a * 100 + ' cm + ' + b + ' cm = ' + r + ' cm.') });
+    }
+    var c = one([5, 7, 9]), d = R(2, 9);
+    set.push({ head: S('Rechne.'), body: big(c + ' cm + ' + d + ' mm = ? mm'), cols: 3, ans: String(c * 10 + d), choices: gStr(c * 10 + d, [c + d, c * 100 + d], 'mm'),
+      why: S(c + ' cm sind ' + c * 10 + ' mm. ' + c * 10 + ' mm + ' + d + ' mm = ' + (c * 10 + d) + ' mm.') });
+    var m = R(1, 3), s = one([20, 35, 40, 65, 70]), q = m * 100 - s;
+    set.push({ head: S('Rechne.'), body: big(m + ' m – ' + s + ' cm = ? cm'), cols: 3, ans: String(q), choices: gStr(q, [m * 100 + s, s - m, q + 10], 'cm'),
+      why: S(m + ' m sind ' + m * 100 + ' cm. ' + m * 100 + ' cm – ' + s + ' cm = ' + q + ' cm.') });
+    var f = R(3, 9), g = R(3, 8);
+    set.push({ head: S('Rechne.'), body: big(f + ' cm · ' + g + ' = ?'), cols: 3, ans: String(f * g), choices: gStr(f * g, [f * g + f, f + g, f * g - g], 'cm'),
+      why: S('Bei mal bleibt die Einheit gleich: ' + f + ' · ' + g + ' = ' + f * g + '. Also ' + f * g + ' cm.') });
+    var h = one([2, 3, 4, 5]), t = h * R(3, 9) * 5;
+    set.push({ head: S('Rechne.'), body: big(t + ' m : ' + h + ' = ?'), cols: 3, ans: String(t / h), choices: gStr(t / h, [t - h, t / h + 5, t * h], 'm'),
+      why: S('Bei geteilt bleibt die Einheit gleich: ' + t + ' : ' + h + ' = ' + t / h + '. Also ' + t / h + ' m.') });
+    var CM = one([[2, 'm', 150, 'cm', '>'], [3, 'km', 3000, 'm', '='], [60, 'mm', 8, 'cm', '<'], [1, 'm', 120, 'cm', '<'], [4, 'cm', 40, 'mm', '=']]);
+    var L1 = CM[0] + ' ' + CM[1], L2 = fmt(CM[2]) + ' ' + CM[3];
+    set.push({ head: S('Vergleiche. Welches Zeichen passt?'), body: big(L1.replace(' ', NB) + ' &nbsp; ? &nbsp; ' + L2.replace(/ (?=[a-z])/, NB)), cols: 3, ans: CM[4],
+      choices: [{ v: '<', h: '&lt;' }, { v: '>', h: '&gt;' }, { v: '=', h: '=' }],
+      why: S('Wandle zuerst in die gleiche Einheit um. Dann kannst du vergleichen: ' + L1 + ' ' + CM[4] + ' ' + L2 + '.') });
+    var se = R(2, 5), ab = one([30, 40, 60, 80]), rr = se * 100 - ab;
+    set.push({ head: S('Lies genau. Rechne.'), body: story('Ayla hat ein Seil. Es ist ' + se + ' m lang. Sie schneidet ' + ab + ' cm ab. Wie lang ist das Seil jetzt?'), cols: 3, ans: String(rr),
+      choices: gStr(rr, [se * 100 + ab, ab - se, rr - 100], 'cm'), why: S(se + ' m sind ' + se * 100 + ' cm. Abschneiden heißt minus: ' + se * 100 + ' cm – ' + ab + ' cm = ' + rr + ' cm.') });
+    var st = R(3, 6), lg = one([20, 25, 30, 40]), ges = st * lg;
+    set.push({ head: S('Lies genau. Rechne.'), body: story('Für eine Girlande braucht Ben ' + st + ' Bänder. Jedes Band ist ' + lg + ' cm lang. Wie viel Band braucht Ben zusammen?'), cols: 3, ans: String(ges),
+      choices: gStr(ges, [st + lg, ges + lg, ges - lg], 'cm'), why: S(st + ' gleich lange Bänder: Du rechnest mal. ' + lg + ' cm · ' + st + ' = ' + ges + ' cm.') });
+    var gw = one([300, 400, 650, 800]);
+    set.push({ head: S('Lies genau. Rechne.'), body: story('Der Weg zum Sportplatz ist 1 km lang. Ben ist schon ' + gw + ' m gegangen. Wie viele Meter muss er noch gehen?'), cols: 3, ans: String(1000 - gw),
+      choices: gStr(1000 - gw, [gw - 1, 1000 + gw, 100 - gw / 10], 'm'), why: S('1 km sind 1 000 m. 1 000 m – ' + gw + ' m = ' + (1000 - gw) + ' m.') });
+    return set;
+  };
+
+  // ------------------------------------------------------------ Massen
+  function gDial(v) {
+    var cx = 150, cy = 150, r = 130, o = '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="#fff" stroke="' + INK + '" stroke-width="4"/>';
+    for (var g = 0; g < 1000; g += 50) {
+      var a = g * .36 * Math.PI / 180, bg = g % 100 === 0, r1 = r - (bg ? 18 : 10);
+      o += ln(cx + r1 * Math.sin(a), cy - r1 * Math.cos(a), cx + r * Math.sin(a), cy - r * Math.cos(a), INK, bg ? 3 : 2);
+      if (bg) o += tx(cx + (r - 38) * Math.sin(a), cy - (r - 38) * Math.cos(a) + 7, String(g), 19, INK, 700);
+    }
+    var b = v * .36 * Math.PI / 180;
+    o += ln(cx, cy, cx + (r - 12) * Math.sin(b), cy - (r - 12) * Math.cos(b), GRC, 6) + dt(cx, cy, 7) + tx(cx, cy + 40, 'g', 26, INK, 800);
+    return '<svg class="gsv" viewBox="0 0 300 300" style="max-width:300px;margin:0 auto">' + o + '</svg>';
+  }
+  GEN.grmassen = function () {
+    var set = [];
+    shuffle([150, 250, 350, 400, 550, 600, 750, 800, 900]).slice(0, 3).forEach(function (v) {
+      var hund = v % 100 === 0;
+      set.push({ head: S('Wie viel Gramm zeigt die Waage?'), body: '<div class="card gsw">' + gDial(v) + '</div>', cols: 3, ans: String(v),
+        choices: gStr(v, hund ? [v + 50, v - 100, v + 100] : [v - 50, v + 50, v + 100], 'g'),
+        why: S(hund ? 'Der Zeiger steht genau auf der ' + v + '. Es sind ' + v + ' g.' : 'Der Zeiger steht auf dem kleinen Strich nach der ' + (v - 50) + '. Das sind 50 g mehr: ' + v + ' g.') });
+    });
+    var EM = [['eine Tafel Schokolade: 100', 'g'], ['ein Fahrrad: 12', 'kg'], ['ein Lastwagen: 20', 't'], ['ein Ei: 60', 'g'], ['ein Hund: 25', 'kg'], ['ein Wal: 30', 't'], ['ein Radiergummi: 15', 'g'], ['ein Koffer: 18', 'kg']];
+    shuffle(EM).slice(0, 2).forEach(function (e) {
+      set.push({ head: S('Welche Einheit passt?'), body: '<div class="card story">' + S(e[0]) + ' …</div>', cols: 3, ans: e[1],
+        choices: ['g', 'kg', 't'].map(function (u) { return { v: u, h: u }; }), why: S('Leichte Dinge wiegst du in g, schwere in kg, ganz schwere in t. Hier passt ' + e[1] + '.') });
+    });
+    var T = [
+      function () { var n = R(2, 9); return [n + ' kg', 'g', n * 1000, [n * 100, n * 10], 'Von kg in g: mal 1 000. Hänge drei Nullen an.']; },
+      function () { var n = R(2, 9); return [fmt(n * 1000) + ' g', 'kg', n, [n * 100, n * 10], 'Von g in kg: geteilt durch 1 000. Nimm drei Nullen weg.']; },
+      function () { var n = R(2, 6); return [n + ' t', 'kg', n * 1000, [n * 100, n * 10], 'Von t in kg: mal 1 000. Hänge drei Nullen an.']; },
+      function () { var n = R(1, 4), m = one([200, 250, 500, 750]); return [n + ' kg ' + m + ' g', 'g', n * 1000 + m, [n * 100 + m, n + m], n + ' kg sind ' + fmt(n * 1000) + ' g. Dazu kommen ' + m + ' g.']; }];
+    shuffle(T).slice(0, 2).forEach(function (f) {
+      var t = f();
+      set.push({ head: S('Wandle um.'), body: big(t[0] + ' = ? ' + t[1]), cols: 3, ans: String(t[2]), choices: gStr(t[2], t[3], t[1]), why: S(t[4] + ' ' + t[0] + ' = ' + fmt(t[2]) + ' ' + t[1] + '.') });
+    });
+    var CM = one([[2, 'kg', 1500, 'g', '>'], [3000, 'g', 3, 'kg', '='], [1, 't', 1200, 'kg', '<'], [700, 'g', 1, 'kg', '<'], [5, 'kg', 5000, 'g', '=']]);
+    var L1 = fmt(CM[0]) + ' ' + CM[1], L2 = fmt(CM[2]) + ' ' + CM[3];
+    set.push({ head: S('Vergleiche. Welches Zeichen passt?'), body: big(L1 + ' &nbsp; ? &nbsp; ' + L2), cols: 3, ans: CM[4],
+      choices: [{ v: '<', h: '&lt;' }, { v: '>', h: '&gt;' }, { v: '=', h: '=' }],
+      why: S('Wandle zuerst in die gleiche Einheit um: 1 kg = 1 000 g, 1 t = 1 000 kg. Dann gilt: ' + L1 + ' ' + CM[4] + ' ' + L2 + '.') });
+    var a = one([250, 300, 400]), b = one([450, 500, 550]), z = a + b, rest = 1000 - z;
+    set.push({ head: S('Lies genau. Rechne.'), body: story('In eine Tüte passen 1 kg. Mia legt ' + a + ' g Kirschen und ' + b + ' g Pflaumen hinein. Wie viel Gramm passen noch hinein?'), cols: 3, ans: String(rest),
+      choices: gStr(rest, [z, rest + 100, rest + 50], 'g'), why: S('Zusammen: ' + a + ' g + ' + b + ' g = ' + z + ' g. 1 kg sind 1 000 g. 1 000 g – ' + z + ' g = ' + rest + ' g.') });
+    set.push(rfItem('Im Alltag sagt man für Masse oft Gewicht.', 'r', 'Man fragt zum Beispiel: Wie viel wiegt das? Wie schwer ist das?'));
+    return set;
+  };
+
+  // ------------------------------------------------------------ Uhr
+  function gClock(h, m) {
+    var c = 140, r = 128, o = '<circle cx="' + c + '" cy="' + c + '" r="' + r + '" fill="#fff" stroke="' + INK + '" stroke-width="4"/>';
+    for (var i = 0; i < 60; i++) {
+      var a = i * 6 * Math.PI / 180, bg = i % 5 === 0, r1 = r - (bg ? 13 : 6);
+      o += ln(c + r1 * Math.sin(a), c - r1 * Math.cos(a), c + r * Math.sin(a), c - r * Math.cos(a), INK, bg ? 3 : 1.5);
+    }
+    for (i = 1; i <= 12; i++) { var b = i * 30 * Math.PI / 180; o += tx(c + (r - 30) * Math.sin(b), c - (r - 30) * Math.cos(b) + 9, String(i), 25, INK, 700); }
+    var ah = ((h % 12) * 30 + m * .5) * Math.PI / 180, am = m * 6 * Math.PI / 180;
+    o += ln(c, c, c + r * .5 * Math.sin(ah), c - r * .5 * Math.cos(ah), INK, 11) + ln(c, c, c + r * .8 * Math.sin(am), c - r * .8 * Math.cos(am), INK, 6) + dt(c, c, 8);
+    return '<svg class="gsv" viewBox="0 0 280 280" style="max-width:280px;margin:0 auto">' + o + '</svg>';
+  }
+  function hm(h, m) { return h + ':' + (m < 10 ? '0' : '') + m + NB + 'Uhr'; }
+  function msd(v) { var m = Math.floor(v / 60), s = v % 60; return (m ? m + NB + 'min' : '') + (m && s ? ' ' : '') + (s || !m ? s + NB + 's' : ''); }
+  function dur(n) { var h = Math.floor(n / 60), m = n % 60; return (h ? h + NB + 'h' : '') + (h && m ? ' ' : '') + (m || !h ? m + NB + 'min' : ''); }
+  GEN.gruhr = function () {
+    var set = [], seen = {};
+    for (var k = 0; k < 4; k++) {
+      var h, m; do { h = R(1, 11); m = one([0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55]); } while (seen[h + ':' + m] || m / 5 === h); seen[h + ':' + m] = 1;
+      var swap = m % 5 === 0 && m > 0 ? [m / 5 === 0 ? 12 : m / 5, h * 5 % 60] : [h + 1, m];
+      var ch = uniq([hm(h, m), hm(swap[0], swap[1]), hm(h === 1 ? 12 : h - 1, m), hm(h + 1, m)]).slice(0, 3);
+      set.push({ head: S('Wie spät ist es?'), body: '<div class="card gsw">' + gClock(h, m) + '</div>', cols: 3, ans: hm(h, m), choices: shuffle(ch).map(function (t) { return { v: t, h: t }; }),
+        why: S('Der kleine Zeiger zeigt die Stunde: ' + h + '. Der große Zeiger zeigt die Minuten: ' + m + '. Es ist ' + hm(h, m) + '.') });
+    }
+    var h2 = R(1, 9), m2 = one([10, 15, 30, 45]);
+    set.push({ head: S('Es ist Nachmittag. Wie sagst du?'), body: big(hm(h2, m2)), cols: 3, ans: hm(h2 + 12, m2),
+      choices: shuffle([hm(h2 + 12, m2), hm(h2 + 10, m2), hm(h2 + 2, m2)]).map(function (t) { return { v: t, h: t }; }),
+      why: S('Am Nachmittag zählst du 12 dazu: ' + h2 + ' + 12 = ' + (h2 + 12) + '. Es ist ' + hm(h2 + 12, m2) + '.') });
+    var SP = shuffle([[8, 40, 9, 15], [10, 20, 11, 5], [13, 45, 14, 30], [7, 50, 8, 25], [15, 35, 16, 10], [11, 15, 12, 5]]).slice(0, 3);
+    SP.forEach(function (p) {
+      var a = 60 - p[1], b = p[3], d = a + b;
+      set.push({ head: S('Wie lange dauert es?'), body: big(S('von') + ' ' + hm(p[0], p[1]) + ' ' + S('bis') + ' ' + hm(p[2], p[3])), cols: 3, ans: String(d),
+        choices: three(d, [d + 10, Math.abs(p[3] - p[1]), d + 60]).map(function (v) { return { v: String(v), h: dur(v) }; }),
+        why: S('Bis ' + p[2] + ':00 Uhr sind es ' + a + ' min. Dann noch ' + b + ' min. ' + a + ' min + ' + b + ' min = ' + dur(d) + '.') });
+    });
+    var bh = R(8, 15), bm = one([20, 30, 40, 45]), dd = one([30, 45, 50]), e = bh * 60 + bm + dd;
+    set.push({ head: S('Wann ist es zu Ende?'), body: story('Das Training beginnt um ' + hm(bh, bm) + '. Es dauert ' + dd + ' min.'), cols: 3, ans: hm(Math.floor(e / 60), e % 60),
+      choices: shuffle(uniq([hm(Math.floor(e / 60), e % 60), hm(bh, (bm + dd) % 60), hm(Math.floor(e / 60) + 1, e % 60), hm(Math.floor(e / 60), (e + 15) % 60)]).slice(0, 3)).map(function (t) { return { v: t, h: t }; }),
+      why: S('Rechne bis zur vollen Stunde und dann weiter: ' + hm(bh, bm) + ' + ' + dd + ' min = ' + hm(Math.floor(e / 60), e % 60) + '.') });
+    set.push(rfItem('Bei halb steht der große Zeiger auf der 6.', 'r', 'Eine halbe Stunde sind 30 Minuten. Dann steht der große Zeiger unten auf der 6.'));
+    return set;
+  };
+
+  // ------------------------------------------------------------ Zeit umwandeln und rechnen
+  GEN.grzeit = function () {
+    var set = [];
+    var EZ = [['einen Apfel essen: 5', 'min'], ['einmal in die Hände klatschen: 1', 's'], ['ein Schultag: 6', 'h'], ['die Sommerferien: 42', 'Tage'], ['ein Kinofilm: 2', 'h'],
+      ['einen Satz sagen: 3', 's'], ['eine Schulstunde: 45', 'min'], ['eine Klassenfahrt: 5', 'Tage']];
+    shuffle(EZ).slice(0, 2).forEach(function (e) {
+      set.push({ head: S('Welche Einheit passt?'), body: '<div class="card story">' + S(e[0]) + ' …</div>', cols: 4, ans: e[1],
+        choices: ['s', 'min', 'h', 'Tage'].map(function (u) { return { v: u, h: S(u) }; }), why: S('Ganz kurz: s. Kurz: min. Lang: h. Ganz lang: Tage. Hier passt ' + e[1] + '.') });
+    });
+    var T = [
+      function () { var n = R(2, 5); return [n + ' h', 'min', n * 60, [n * 100, n * 10], '1 h = 60 min. ' + n + ' h sind ' + n + ' · 60 min.']; },
+      function () { var n = R(2, 5); return [n + ' min', 's', n * 60, [n * 100, n * 10], '1 min = 60 s. ' + n + ' min sind ' + n + ' · 60 s.']; },
+      function () { var n = R(2, 3); return [n + ' Tage', 'h', n * 24, [n * 60, n * 12], '1 Tag = 24 h. ' + n + ' Tage sind ' + n + ' · 24 h.']; },
+      function () { var n = R(2, 4); return [n * 60 + ' min', 'h', n, [n * 10, n * 6], '60 min sind 1 h. ' + n * 60 + ' min sind ' + n + ' h.']; }];
+    shuffle(T).slice(0, 3).forEach(function (f) {
+      var t = f();
+      set.push({ head: S('Wandle um.'), body: big(S(t[0]) + ' = ? ' + t[1]), cols: 3, ans: String(t[2]), choices: gStr(t[2], t[3], t[1]), why: S(t[4] + ' ' + t[0] + ' = ' + t[2] + ' ' + t[1] + '.') });
+    });
+    shuffle([70, 85, 95, 110, 125, 140]).slice(0, 2).forEach(function (n) {
+      set.push({ head: S('Wandle um. Wie viele h und min sind das?'), body: big(n + ' min'), cols: 3, ans: String(n),
+        choices: three(n, [n - 10, n + 10, n + 60]).map(function (v) { return { v: String(v), h: dur(v) }; }),
+        why: S('Nimm 60 min weg, so oft es geht: ' + n + ' min = 60 min + ' + (n - 60) + ' min = ' + dur(n) + '.') });
+    });
+    var V = one([['eine halbe Stunde', 30], ['eine Viertelstunde', 15], ['eine Dreiviertelstunde', 45]]);
+    set.push({ head: S('Wie viele Minuten sind das?'), body: big(S(V[0])), cols: 3, ans: String(V[1]), choices: [15, 30, 45].map(function (v) { return { v: String(v), h: v + NB + 'min' }; }),
+      why: S('1 h = 60 min. Die Hälfte sind 30 min, ein Viertel sind 15 min, drei Viertel sind 45 min.') });
+    var a = one([35, 40, 45, 50]), b = one([30, 35, 40]), z = a + b;
+    set.push({ head: S('Rechne.'), body: big(a + ' min + ' + b + ' min = ?'), cols: 3, ans: String(z),
+      choices: three(z, [z + 10, z - 10, z + 60]).map(function (v) { return { v: String(v), h: dur(v) }; }),
+      why: S(a + ' min + ' + b + ' min = ' + z + ' min. Das sind ' + dur(z) + '.') });
+    var s = one([35, 50, 55]), n2 = R(3, 4), ss = s * n2;
+    set.push({ head: S('Lies genau. Rechne.'), body: story('Leon braucht für eine Bahn im Schwimmbad ' + s + ' s. Er schwimmt ' + n2 + ' Bahnen. Wie lange schwimmt er?'), cols: 3, ans: String(ss),
+      choices: three(ss, [ss + 60, ss - 10, ss + 10]).map(function (v) { return { v: String(v), h: msd(v) }; }),
+      why: S(s + ' s · ' + n2 + ' = ' + ss + ' s. 60 s sind 1 min: ' + ss + ' s = ' + msd(ss).replace(/ /g, ' ') + '.') });
+    return set;
+  };
+
+  // ------------------------------------------------------------ Sachaufgaben Wochenmarkt
+  var GST = [
+    function () { var p = one([120, 150, 180, 240]), n = R(2, 3); return { t: 'Auf dem Wochenmarkt am Löwendenkmal kostet 1 kg Äpfel ' + gKomma(p) + '. Ayla kauft ' + n + ' kg. Wie viel muss sie bezahlen?', ans: p * n, op: p + ' ct · ' + n,
+      wr: [p + n, p * n + 100], rw: [p + ' ct + ' + n, p + ' ct – ' + n], u: 'ct', why: 'Jedes kg kostet gleich viel: Du rechnest mal. ' + p + ' ct · ' + n + ' = ' + p * n + ' ct = ' + gEuro(p * n) + '.', geld: true }; },
+    function () { var p = one([230, 270, 340, 380, 460]); return { t: 'Ben kauft ein Brot für ' + gKomma(p) + '. Er bezahlt mit einem 5-€-Schein. Wie viel Geld bekommt er zurück?', ans: 500 - p, op: '500 ct – ' + p + ' ct',
+      wr: [500 + p, 1000 - p], rw: ['500 ct + ' + p + ' ct', p + ' ct – 5 ct'], why: '5 € sind 500 ct. Zurück bekommt er: 500 ct – ' + p + ' ct = ' + (500 - p) + ' ct = ' + gEuro(500 - p) + '.', geld: true }; },
+    function () { var a = one([180, 220, 260]), b = one([140, 190, 350]); return { t: 'Mia kauft Tomaten für ' + gKomma(a) + ' und Käse für ' + gKomma(b) + '. Wie viel bezahlt sie zusammen?', ans: a + b, op: a + ' ct + ' + b + ' ct',
+      wr: [Math.abs(a - b), a + b + 100], rw: [Math.max(a, b) + ' ct – ' + Math.min(a, b) + ' ct', a + ' ct · ' + b], why: 'Zusammen heißt plus: ' + a + ' ct + ' + b + ' ct = ' + (a + b) + ' ct = ' + gEuro(a + b) + '.', geld: true }; },
+    function () { var a = one([500, 750]), b = one([250, 500]); return { t: 'Der Händler legt ' + a + ' g Kirschen und dann noch ' + b + ' g Kirschen auf die Waage. Wie viel Gramm sind es zusammen?', ans: a + b, op: a + ' g + ' + b + ' g',
+      wr: [a - b === 0 ? a + b + 250 : Math.abs(a - b), a + b + 100], rw: [a + ' g – ' + b + ' g', a + ' g · ' + b], u: 'g', why: 'Zusammen heißt plus: ' + a + ' g + ' + b + ' g = ' + (a + b) + ' g.' }; },
+    function () { var h = one([7, 8]), e = one([12, 13]); return { t: 'Der Markt ist von ' + h + ':00 Uhr bis ' + e + ':00 Uhr geöffnet. Wie viele Stunden ist er geöffnet?', ans: e - h, op: e + ' h – ' + h + ' h',
+      wr: [e + h, e - h + 1], rw: [e + ' h + ' + h + ' h', '24 h – ' + e + ' h'], u: 'h', why: 'Von ' + h + ' Uhr bis ' + e + ' Uhr sind es ' + e + ' – ' + h + ' = ' + (e - h) + ' Stunden.' }; },
+    function () { var w = one([400, 600, 700, 900]); return { t: 'Jonas geht von der Schule zum Markt. Der Weg ist ' + w + ' m lang. Danach geht er denselben Weg zurück. Wie viele Meter geht er insgesamt?', ans: 2 * w, op: w + ' m + ' + w + ' m',
+      wr: [w, 2 * w + 100], rw: [w + ' m – ' + w + ' m', w + ' m : 2'], u: 'm', why: 'Hin und zurück: Du rechnest den Weg zweimal. ' + w + ' m + ' + w + ' m = ' + fmt(2 * w) + ' m.' }; },
+    function () { var n = one([4, 5, 6]), p = one([30, 40, 50]); return { t: 'Ein Bund Radieschen kostet ' + gKomma(p) + '. Die Klasse 5a kauft ' + n + ' Bund für das Schulfrühstück. Wie viel kostet das?', ans: n * p, op: p + ' ct · ' + n,
+      wr: [n + p, n * p + p], rw: [p + ' ct + ' + n, p + ' ct : ' + n], why: 'Jedes Bund kostet gleich viel: Du rechnest mal. ' + p + ' ct · ' + n + ' = ' + n * p + ' ct = ' + gEuro(n * p) + '.', geld: true }; },
+    function () { var g = one([2, 3]), w = one([400, 600, 750]); return { t: 'Ein Sack Kartoffeln wiegt ' + g + ' kg. Lea nimmt ' + w + ' g heraus. Wie viel Gramm sind noch im Sack?', ans: g * 1000 - w, op: fmt(g * 1000) + ' g – ' + w + ' g',
+      wr: [g * 1000 + w, Math.abs(w - g)], rw: [fmt(g * 1000) + ' g + ' + w + ' g', w + ' g – ' + g + ' g'], u: 'g', why: g + ' kg sind ' + fmt(g * 1000) + ' g. Herausnehmen heißt minus: ' + fmt(g * 1000) + ' g – ' + w + ' g = ' + fmt(g * 1000 - w) + ' g.' }; },
+    function () { var a = one([15, 20, 25]), b = one([35, 40]); return { t: 'Malik braucht ' + a + ' min zum Markt. Er kauft ' + b + ' min lang ein. Wie lange braucht er zusammen?', ans: a + b, op: a + ' min + ' + b + ' min',
+      wr: [b - a, a + b + 10], rw: [b + ' min – ' + a + ' min', a + ' min · ' + b], u: 'min', why: 'Zusammen heißt plus: ' + a + ' min + ' + b + ' min = ' + (a + b) + ' min.' }; },
+    function () { var p = one([80, 120, 160]), n = 2; return { t: 'Ein Glas Marmelade kostet ' + gKomma(p) + '. Emma kauft 2 Gläser. Sie bezahlt mit einem 5-€-Schein. Wie viel Geld bekommt sie zurück?', ans: 500 - 2 * p, op: '500 ct – ' + p + ' ct · 2',
+      wr: [500 - p, 2 * p], rw: ['500 ct – ' + p + ' ct', p + ' ct · 2 + 500 ct'], why: 'Zwei Gläser: ' + p + ' ct · 2 = ' + 2 * p + ' ct. Zurück: 500 ct – ' + 2 * p + ' ct = ' + (500 - 2 * p) + ' ct = ' + gEuro(500 - 2 * p) + '.', geld: true }; }];
+  GEN.grsach = function () {
+    var set = [];
+    shuffle(GST.slice()).forEach(function (f, k) {
+      var s = f(), unit = s.u || 'ct';
+      s.why = s.why.replace(/(\d+) ct = \1 ct\./, '$1 ct.');
+      if (k % 2 === 0) {
+        set.push({ head: S('Lies genau. Welche Rechnung passt?'), body: story(s.t), cols: 1, ans: 'a',
+          choices: shuffle([{ v: 'a', h: s.op }, { v: 'b', h: s.rw[0] }, { v: 'c', h: s.rw[1] }]), why: S(s.why) });
+      } else {
+        set.push({ head: S('Lies genau. Rechne. Was ist die Antwort?'), body: story(s.t), cols: 3, ans: String(s.ans),
+          choices: three(s.ans, s.wr.filter(function (x) { return x > 0; }).concat([s.ans + 10, s.ans + 20])).map(function (v) { return { v: String(v), h: s.geld ? gEuro(v) : fmt(v) + NB + unit }; }),
+          why: S(s.why) });
       }
     });
     return set;
