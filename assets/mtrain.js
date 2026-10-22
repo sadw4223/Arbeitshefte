@@ -433,7 +433,7 @@
       var sum = ns.reduce(function (a, b) { return a + b; }, 0), nc = Math.max(3, String(sum).length);
       var nc0 = noCarry(ns), w = [nc0 !== sum ? nc0 : sum + 100, sum + (sum % 100 >= 10 ? -10 : 10), sum + 100];
       var it = { head: S('Rechne schriftlich. Was kommt heraus?'), body: '<div class="card sgw" id="sg">' + gridHtml(ns, '+', nc, false) + '</div>',
-        choices: nums(three(sum, w)), ans: sum, cols: 3, why: S(addWhy(ns)) };
+        choices: nums(three(sum, w)), ans: sum, cols: 3, why: S(addWhy(ns)), q: { ns: ns, nc: nc } };
       it.after = function () { document.getElementById('sg').innerHTML = gridHtml(ns, '+', nc, true); };
       return it;
     });
@@ -457,7 +457,7 @@
         if (a - b < 20) ok = false;
       } while (!ok && tries < 800);
       var r = a - b, w = [noCar(a, b), absd(a, b), r + 10, r - 10];
-      var it = { head: S('Rechne schriftlich. Was kommt heraus?'), body: '<div class="card sgw" id="sg">' + gridHtml([a, b], '–', 3, false) + '</div>',
+      var it = { q: { ns: [a, b] }, head: S('Rechne schriftlich. Was kommt heraus?'), body: '<div class="card sgw" id="sg">' + gridHtml([a, b], '–', 3, false) + '</div>',
         choices: nums(three(r, w.filter(function (x) { return x !== r; }))), ans: r, cols: 3, why: S(subWhy(a, b) + ' Probe: ' + r + ' + ' + b + ' = ' + a + '.') };
       it.after = function () { document.getElementById('sg').innerHTML = gridHtml([a, b], '–', 3, true); };
       return it;
@@ -723,7 +723,7 @@
         steps.push(NAME[p] + ': ' + b + ' · ' + d + ' = ' + s + (cr ? '. Dazu die ' + cr + ' im Sinn: ' + s + ' + ' + cr + ' = ' + s2 : '') + '. ' + (last ? 'Schreibe ' + s2 + '.' : Math.floor(s2 / 10) ? (s2 % 10) + ' hin, ' + Math.floor(s2 / 10) + ' im Sinn.' : 'Schreibe ' + s2 + '.'));
         cr = Math.floor(s2 / 10);
       }
-      var it = { head: S('Rechne schriftlich. Was kommt heraus?'), body: '<div class="card kgw" id="kg">' + kgMul(a, b, false) + '</div>',
+      var it = { q: { a: a, b: b }, head: S('Rechne schriftlich. Was kommt heraus?'), body: '<div class="card kgw" id="kg">' + kgMul(a, b, false) + '</div>',
         choices: nums(three(ans, [forgot !== ans ? forgot : ans + 10 * b, ans + 100, ans - 10])), ans: ans, cols: 3, why: S('Beginne hinten bei den Einern. ' + steps.join(' ')) };
       it.after = function () { document.getElementById('kg').innerHTML = kgMul(a, b, true); };
       return it;
@@ -743,7 +743,7 @@
       var z = Math.floor(b / 10), e = b % 10, ans = a * b, noShift = a * z + a * e;
       var why = 'Zehner zuerst: ' + a + ' · ' + z + ' = ' + fmt(a * z) + '. Die letzte Ziffer steht unter der ' + z + '. Dann die Einer: ' + a + ' · ' + e + ' = ' + fmt(a * e) +
         '. Diese Zeile rückt eine Stelle nach rechts. Behalte die Zahl im Sinn bei jedem Schritt. Addiere die beiden Zeilen: ' + fmt(ans) + '.';
-      var it = { head: S('Rechne schriftlich. Was kommt heraus?'), body: '<div class="card kgw" id="kg">' + kgMul(a, b, false) + '</div>',
+      var it = { q: { a: a, b: b }, head: S('Rechne schriftlich. Was kommt heraus?'), body: '<div class="card kgw" id="kg">' + kgMul(a, b, false) + '</div>',
         choices: nums(three(ans, [noShift, ans + 100, ans - 10])), ans: ans, cols: 3, why: S(why) };
       it.after = function () { document.getElementById('kg').innerHTML = kgMul(a, b, true); };
       return it;
@@ -764,7 +764,7 @@
         ok = String(dd).length === len && f % dv === 0 && (t[1] === 'o' ? !cl.rem && !cl.zero : t[1] === 'r' ? cl.rem && !cl.zero : cl.zero);
       } while (!ok && tries < 2000);
       var ans = dd / dv, A = String(ans), dropZero = +A.replace(/0/g, '') || ans + 1;
-      var it = { head: S('Rechne schriftlich. Was kommt heraus?'), body: '<div class="card kgw" id="kg">' + kgDiv(dd, dv, false) + '</div>',
+      var it = { q: { dd: dd, dv: dv }, head: S('Rechne schriftlich. Was kommt heraus?'), body: '<div class="card kgw" id="kg">' + kgDiv(dd, dv, false) + '</div>',
         choices: nums(three(ans, [dropZero !== ans ? dropZero : ans + 10, ans + 1, ans - 1])), ans: ans, cols: 3,
         why: S(divRows(dd, dv).txt.join(' ') + ' Probe: ' + fmt(ans) + ' · ' + dv + ' = ' + fmt(dd) + '.') };
       it.after = function () { document.getElementById('kg').innerHTML = kgDiv(dd, dv, true); };
@@ -1347,7 +1347,6 @@
       pos[k] = c; sel = null;
       if (pos.every(function (p) { return p !== null; })) {
         fin = true; var good = it.items.every(function (x, j) { return x.c === pos[j]; });
-        if (good) ok++;
         draw(); feedback(good, it.why);
       } else draw();
     }
@@ -1422,7 +1421,6 @@
       pairs[l] = +r; sel = null;
       if (Object.keys(pairs).length === it.left.length) {
         fin = true; var good = Object.keys(pairs).every(function (x) { return it.left[x].k === it.right[pairs[x]].k; });
-        if (good) ok++;
         [].slice.call(box.querySelectorAll('.mi')).forEach(function (m) { m.disabled = true; });
         lines(); feedback(good, it.why);
       } else lines();
@@ -1459,7 +1457,7 @@
 
   // ============================================================ Umfang und Flächeninhalt
   // Raster: 1 Kästchen = 1 cm (Kästchenseite = 1 cm, Kästchen = 1 cm²), Ecken auf den Kästchenkreuzen, Schreibweise wie im Heft (u, A, a, b).
-  var UC = 50, UFL = 'rgba(90,127,168,.22)', UTR = '#d0453a', UOR = '#d08a2e';
+  var UCZ = 50, UFL = 'rgba(90,127,168,.22)', UTR = '#d0453a', UOR = '#d08a2e';
   function uRect(x, y, w, h) { return [[x, y], [x + w, y], [x + w, y + h], [x, y + h]]; }
   function uPer(p) { var s = 0; for (var k = 0; k < p.length; k++) { var a = p[k], b = p[(k + 1) % p.length]; s += Math.abs(b[0] - a[0]) + Math.abs(b[1] - a[1]); } return s; }
   function uAre(p) { var s = 0; for (var k = 0; k < p.length; k++) { var a = p[k], b = p[(k + 1) % p.length]; s += a[0] * b[1] - b[0] * a[1]; } return Math.abs(s) / 2; }
@@ -1490,7 +1488,7 @@
   }
   // Figur auf dem Raster (Feld = Figur + 1 Kästchen Rand); o.tr: Rand nachfahren, o.ring: Zahlen an den Kästchenseiten, o.cells: Zahlen in den Kästchen
   function uGrid(p, o) {
-    o = o || {}; var b = uBox(p), nx = b[2] - b[0] + 2, ny = b[3] - b[1] + 2, q = uMove(p, 1 - b[0], 1 - b[1]), c = o.c || UC, m = 6;
+    o = o || {}; var b = uBox(p), nx = b[2] - b[0] + 2, ny = b[3] - b[1] + 2, q = uMove(p, 1 - b[0], 1 - b[1]), c = o.c || UCZ, m = 6;
     var P = q.map(function (v) { return [m + v[0] * c, m + v[1] * c]; });
     var s = karoJ(m, m, nx, ny, c) + pg(P, o.tr || INK, o.tr ? 7 : 4, o.fill || UFL);
     if (o.cols) {   // Streifen: abwechselnd heller und dunkler, Zahlen Streifen für Streifen (passt zu a · b: a Streifen mit je b Kästchen)
@@ -2071,6 +2069,7 @@
       o += ln(c + r1 * Math.sin(a), c - r1 * Math.cos(a), c + r * Math.sin(a), c - r * Math.cos(a), INK, bg ? 3 : 1.5);
     }
     for (i = 1; i <= 12; i++) { var b = i * 30 * Math.PI / 180; o += tx(c + (r - 30) * Math.sin(b), c - (r - 30) * Math.cos(b) + 9, String(i), 25, INK, 700); }
+    if (h === null) return o;
     var ah = ((h % 12) * 30 + m * .5) * Math.PI / 180, am = m * 6 * Math.PI / 180;
     o += ln(c, c, c + r * .5 * Math.sin(ah), c - r * .5 * Math.cos(ah), INK, 11) + ln(c, c, c + r * .8 * Math.sin(am), c - r * .8 * Math.cos(am), INK, 6) + dt(c, c, 8);
     return '<svg class="gsv" viewBox="0 0 280 280" style="max-width:280px;margin:0 auto">' + o + '</svg>';
@@ -2182,13 +2181,561 @@
     return set;
   };
 
-  // ------------------------------------------------------------ Ablauf
-  var set, i, ok;
-  function head(it) {
-    return '<p class="cnt">' + L.task + ' ' + (i + 1) + ' ' + L.of + ' ' + set.length + '</p><p class="rq">' + it.head + '</p>';
+  // ============================================================ Eintippen mit dem Ziffernblock (Zahl ins Feld, Ziffern ins Karo-Feld)
+  // Felder im body: nin(Zahl) = Zahlenfeld; Karo: <td class="in" data-a="7" data-o="0"> (wird bewertet, data-o = Reihenfolge beim Schreiben),
+  // <td class="fr"> = freies Kästchen zum Mitrechnen (wird nicht bewertet). Nur Ziffernblock, damit keine Tablet-Tastatur die Aufgabe verdeckt.
+  function nin(a, cls) { return '<span class="nin' + (cls ? ' ' + cls : '') + '" data-a="' + a + '" role="button" tabindex="0"></span>'; }
+  function tdIn(a, o, cls) { return '<td class="in' + (cls ? ' ' + cls : '') + '" data-a="' + a + '" data-o="' + o + '"></td>'; }
+  function tdFr(cls) { return '<td class="fr' + (cls ? ' ' + cls : '') + '"></td>'; }
+  function pad() {
+    var k = ['1', '2', '3', '4', '5', '6', '7', '8', '9'].map(function (d) { return '<button class="kp" type="button" data-d="' + d + '">' + d + '</button>'; }).join('');
+    return '<div class="kpw"><div class="kpad">' + k + '<button class="kp kdel" type="button" data-d="del" aria-label="Löschen">' + L.icDel + '</button>' +
+      '<button class="kp" type="button" data-d="0">0</button><button class="kp kok" type="button" data-d="ok" disabled>' + L.icOk + '<span>' + L.check + '</span></button></div></div>';
   }
+  var keyFn = null;
+  document.addEventListener('keydown', function (e) {
+    if (!keyFn) return;
+    if (/^[0-9]$/.test(e.key)) { keyFn(e.key); e.preventDefault(); }
+    else if (e.key === 'Backspace') { keyFn('del'); e.preventDefault(); }
+    else if (e.key === 'Enter') { keyFn('ok'); e.preventDefault(); }
+  });
+  function inpTask(it) {
+    app.innerHTML = head(it) + '<div class="inpg"><div class="inpl">' + it.body + '</div><div class="inpr">' + pad() + '</div></div><div id="sol"></div><div id="fb"></div>';
+    var F = [].slice.call(app.querySelectorAll('.nin, td.in, td.fr')), cur = null, fin = false;
+    var chk = F.filter(function (f) { return !f.classList.contains('fr'); });
+    var okb = app.querySelector('.kok');
+    function isCell(f) { return f.tagName === 'TD'; }
+    function val(f) { return f.getAttribute('data-v') || ''; }
+    function setv(f, v) {
+      f.setAttribute('data-v', v);
+      f.textContent = isCell(f) ? v : fmt(v);
+      [].slice.call(app.querySelectorAll('[data-mir="' + f.getAttribute('data-o') + '"]')).forEach(function (m) { if (isCell(f) && f.classList.contains('in')) m.textContent = v; });
+    }
+    function sel(f) { if (cur) cur.classList.remove('cur'); cur = f; if (f) f.classList.add('cur'); }
+    function ready() { okb.disabled = fin || !chk.every(function (f) { return val(f) !== '' || f.hasAttribute('data-e'); }) || !chk.some(function (f) { return val(f) !== ''; }); }
+    function nextOf(f) {
+      if (f.classList.contains('in')) {
+        var o = +f.getAttribute('data-o');
+        return chk.filter(function (g) { return g.classList.contains('in') && +g.getAttribute('data-o') === o + 1; })[0] || null;
+      }
+      var row = f.parentNode, rtl = row.classList.contains('rtl'); if (!rtl && !row.classList.contains('ltr')) return null;
+      var cells = [].slice.call(row.children), j = cells.indexOf(f), n = cells[rtl ? j - 1 : j + 1];
+      return n && (n.classList.contains('fr') || n.classList.contains('in')) ? n : null;
+    }
+    function prevOf(f) {
+      if (!f.classList.contains('in')) return null;
+      var o = +f.getAttribute('data-o');
+      return chk.filter(function (g) { return g.classList.contains('in') && +g.getAttribute('data-o') === o - 1; })[0] || null;
+    }
+    function key(d) {
+      if (fin) return;
+      if (d === 'ok') { if (!okb.disabled) check(); return; }
+      if (!cur) return;
+      if (d === 'del') {
+        if (isCell(cur)) { if (val(cur) === '' && prevOf(cur)) sel(prevOf(cur)); setv(cur, ''); }
+        else setv(cur, val(cur).slice(0, -1));
+      } else if (isCell(cur)) { setv(cur, d); var n = nextOf(cur); if (n) sel(n); }
+      else { var v = val(cur); if (v.length < 7) setv(cur, v === '0' ? d : v + d); }
+      ready();
+    }
+    function check() {
+      fin = true; keyFn = null; sel(null);
+      var good = chk.every(function (f) {
+        var a = f.getAttribute('data-a'), v = val(f);
+        return isCell(f) ? v === a : v !== '' && String(+v) === String(+a);
+      });
+      chk.forEach(function (f) {
+        var a = f.getAttribute('data-a'), v = val(f), r = isCell(f) ? v === a : v !== '' && String(+v) === String(+a);
+        f.classList.add(r ? 'iok' : 'ino');
+        if (!r && !isCell(f)) f.insertAdjacentHTML('afterend', '<span class="nfix">' + fmt(a) + '</span>');
+      });
+      [].slice.call(app.querySelectorAll('.kp')).forEach(function (b) { b.disabled = true; });
+      app.querySelector('.kpw').classList.add('off');
+      if (!good && it.sol) document.getElementById('sol').innerHTML = '<div class="card solc"><p class="solt">' + L.icEye + '<span>' + L.sol + '</span></p>' + it.sol + '</div>';
+      if (it.after) it.after(good);
+      feedback(good, it.why);
+    }
+    F.forEach(function (f) { f.addEventListener('click', function () { if (!fin) sel(f); }); });
+    [].slice.call(app.querySelectorAll('.kp')).forEach(function (b) { b.addEventListener('click', function () { key(b.getAttribute('data-d')); }); });
+    keyFn = key;
+    var first = chk.filter(function (f) { return f.classList.contains('in') && f.getAttribute('data-o') === '0'; })[0] || chk[0];
+    sel(first); ready();
+    it.auto = function (good) {   // nur für Tests
+      chk.forEach(function (f, j) { var a = f.getAttribute('data-a'); setv(f, !good && j === 0 ? String((+a + 1) % 10 + (isCell(f) ? 0 : 10)) : (f.hasAttribute('data-e') ? '' : a)); });
+      ready(); check();
+    };
+    top();
+  }
+
+  // ------------------------------------------------------------ Geld legen: Münzen und Scheine antippen oder ziehen
+  var GVALS = [5000, 2000, 1000, 500, 200, 100, 50, 20, 10, 5, 2, 1];
+  function mIcon(v) {
+    if (v >= 500) { var w = 118 * GNWH[v][0] / 120, h = w * GNWH[v][1] / GNWH[v][0]; return '<svg class="gmi gn" viewBox="0 0 ' + f1(w) + ' ' + f1(h) + '">' + gNote(v, 0, h / 2 - 32) + '</svg>'; }
+    var d = GCOIN[v][0] * 2.4; return '<svg class="gmi gc" viewBox="0 0 ' + f1(d + 2) + ' ' + f1(d + 2) + '" style="width:' + f1(d * 1.25) + 'px">' + gCoin(v, d / 2 + 1, d / 2 + 1, 2.4) + '</svg>';
+  }
+  function greedy(ct) { var o = []; GVALS.forEach(function (v) { while (ct >= v) { o.push(v); ct -= v; } }); return o; }
+  function geldTask(it) {
+    var tray = [], fin = false;
+    function draw() {
+      app.innerHTML = head(it) + (it.body || '') +
+        '<div class="gtray" id="gt"><p class="gtt">' + L.tray + '</p><div class="gtin">' + tray.map(function (v, k) {
+          return '<button class="gtk" type="button" data-k="' + k + '"' + (fin ? ' disabled' : '') + '>' + mIcon(v) + '</button>'; }).join('') + '</div></div>' +
+        '<div class="gbank">' + it.vals.map(function (v) { return '<button class="gbk" type="button" data-v="' + v + '"' + (fin ? ' disabled' : '') + '>' + mIcon(v) + '</button>'; }).join('') + '</div>' +
+        '<button class="btn pri gok" id="gok" type="button"' + (fin || !tray.length ? ' disabled' : '') + '>' + L.icOk + '<span>' + L.check + '</span></button>' +
+        '<div id="sol"></div><div id="fb"></div>';
+        if (fin) return;
+      [].slice.call(app.querySelectorAll('.gbk')).forEach(function (b) {
+        var v = +b.getAttribute('data-v');
+        dragOrTap(b, function () { add(v); }, function (el) { if (el && el.closest && el.closest('#gt')) add(v); });
+      });
+      [].slice.call(app.querySelectorAll('.gtk')).forEach(function (b) { b.onclick = function () { tray.splice(+b.getAttribute('data-k'), 1); draw(); }; });
+      document.getElementById('gok').onclick = check;
+    }
+    function add(v) { if (tray.length < 16) { tray.push(v); tray.sort(function (a, b) { return b - a; }); draw(); } }
+    function check() {
+      fin = true; var s = sum(tray), good = s === it.ans; draw();
+      document.getElementById('gt').classList.add(good ? 'iok' : 'ino');
+      if (!good) document.getElementById('sol').innerHTML = '<div class="card solc"><p class="solt">' + L.icEye + '<span>' + L.sol + '</span></p><div class="gsw">' + gMoney(greedy(it.ans)) + '</div></div>';
+      feedback(good, S('Du hast ' + gEuro(s) + ' gelegt. ') + it.why);
+    }
+    it.auto = function (good) { tray = greedy(it.ans + (good ? 0 : 10)); check(); };
+    draw(); top();
+  }
+
+  // ------------------------------------------------------------ Tipp (Glühbirne) zu jeder Aufgabe
+  var TIP = {};
+  function tipOf(it) { return it.tip || TIP[it.tipk || D.type] || ''; }
+
+  // ============================================================ Interaktiver: Zahlen eintippen statt antippen (gemischt), Karo-Feld, Stellenwerttafel, Geld legen, Verbinden, Ordnen
+  function numAns(it) { var a = String(it.ans); return /^\d+$/.test(a) ? a : null; }
+  // Zahlen und Einheiten der richtigen Antwort, z. B. „1 h 10 min“ → [[1, 'h'], [10, 'min']]
+  function ansParts(it) {
+    var c = (it.choices || []).filter(function (x) { return String(x.v) === String(it.ans); })[0];
+    if (!c) return [[numAns(it), '']];
+    var t = String(c.h).replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ').trim(), out = [], re = /(\d(?:[\d\s  ]*\d)?)\s*([^\d\s  ]*)/g, m;
+    while ((m = re.exec(t))) out.push([m[1].replace(/[\s  ]/g, ''), m[2]]);
+    if (!out.length || t.replace(re, '').trim()) return null;
+    return out;
+  }
+  // Antwort-Auswahl in ein Eingabefeld verwandeln: Feld an die Stelle von „?“ (in Rechnungen), sonst unter die Aufgabe
+  function asInp(it, pre) {
+    if (it.kind || !numAns(it)) return it;
+    var P = ansParts(it); if (!P || P.length > 2) return it;
+    var b = it.body || '';
+    if (P.length === 1 && b.indexOf('<b class="qb" id="qb">?</b>') >= 0) { b = b.replace('<b class="qb" id="qb">?</b>', nin(P[0][0])); delete it.after; }
+    else if (P.length === 1 && /<b class="qb[^"]*">\?<\/b>/.test(b)) { b = b.replace(/<b class="qb[^"]*">\?<\/b>/, nin(P[0][0])); delete it.after; }
+    else if (P.length === 1 && /(=\s*|<span>)\?(\s|<|$)/.test(b)) { b = b.replace(/(=\s*|<span>)\?(\s|<|$)/, '$1' + nin(P[0][0]) + '$2'); delete it.after; }
+    else b += '<div class="ninw">' + (pre ? '<span>' + pre + '</span>' : '') + P.map(function (x) { return nin(x[0], P.length > 1 ? 'sm' : '') + (x[1] ? '<span>' + x[1] + '</span>' : ''); }).join('') + '</div>';
+    it.body = b; it.kind = 'inp'; delete it.choices;
+    return it;
+  }
+  // jede zweite passende Aufgabe zum Eintippen (die erste bleibt zum Antippen)
+  function mix(set, pre, start) {
+    var n = 0;
+    return set.map(function (it) {
+      if (it.kind || !numAns(it)) return it;
+      n++; return (n + (start || 0)) % 2 === 0 ? asInp(it, pre) : it;
+    });
+  }
+  function wrapGen(name, fn) { var g = GEN[name]; GEN[name] = function () { return fn(g()); }; }
+
+  // ------------------------------------------------------------ Karo-Feld zum Ausfüllen (schriftlich rechnen wie im Heft)
+  function karoAdd(ns, op, nc) {
+    var res = op === '+' ? sum(ns) : ns[0] - ns[1], lab = ['T', 'H', 'Z', 'E'].slice(4 - nc), h = '<table class="sgr"><tr class="hd"><td class="o"></td>';
+    lab.forEach(function (l) { h += '<td>' + l + '</td>'; }); h += '</tr>';
+    ns.forEach(function (n, r) {
+      var s = String(n); while (s.length < nc) s = ' ' + s;
+      h += '<tr><td class="o">' + (r === ns.length - 1 ? (op === '+' ? '+' : '–') : '') + '</td>';
+      for (var k = 0; k < nc; k++) h += '<td>' + (s[k] === ' ' ? '' : s[k]) + '</td>';
+      h += '</tr>';
+    });
+    h += '<tr class="ue"><td class="o"></td>'; for (var k2 = 0; k2 < nc; k2++) h += k2 < nc - 1 ? tdFr() : '<td></td>'; h += '</tr>';
+    var rs = String(res);
+    h += '<tr class="rs"><td class="o"></td>';
+    for (var k3 = 0; k3 < nc; k3++) { var j = k3 - (nc - rs.length); h += j < 0 ? '<td class="nb"></td>' : tdIn(rs[j], rs.length - 1 - j); }
+    return h + '</tr></table>';
+  }
+  function karoMul(a, b) {
+    var A = String(a), B = String(b), task = [''].concat(A.split(''), [MP], B.split('')), W = task.length, Rs = String(a * b), lr = Rs.length;
+    var top = task.map(function (c) { return td(c, 'k pr'); }).join('') + td('=', 'sy');
+    if (B.length === 1) {
+      var ob = ''; for (var k = 0; k <= W; k++) ob += td('', 'x');
+      for (var i = 0; i < lr; i++) ob += i < lr - 1 ? tdFr('ob') : td('', 'x');
+      return '<table class="kgr"><tr class="obr">' + ob + '</tr><tr>' + top + Rs.split('').map(function (c, j) { return tdIn(c, lr - 1 - j, 'rb'); }).join('') + '</tr></table>';
+    }
+    // zweistellig: Teilzeilen und Übertrag frei, Ergebnis unter dem Doppelstrich wird bewertet und oben hinter „=“ übernommen
+    var h = '<table class="kgr"><tr>' + top + Rs.split('').map(function (c, j) { return '<td class="rb mir" data-mir="' + (lr - 1 - j) + '"></td>'; }).join('') + '</tr>';
+    for (var r = 0; r < 2; r++) { h += '<tr class="rtl">'; for (var c = 0; c < W; c++) h += c ? tdFr('k') : td('', 'k'); h += '<td class="x" colspan="9"></td></tr>'; }
+    h += '<tr class="uer">'; for (var c2 = 0; c2 < W; c2++) h += c2 ? tdFr('k uw ob') : td('', 'k uw'); h += '<td class="x" colspan="9"></td></tr>';
+    h += '<tr>'; for (var c3 = 0; c3 < W; c3++) { var j3 = c3 - (W - lr); h += j3 >= 0 ? tdIn(Rs[j3], lr - 1 - j3, 'k ln dl') : td('', 'k' + (c3 >= 1 ? ' ln' : '')); }
+    return h + '<td class="x" colspan="9"></td></tr></table>';
+  }
+  function karoDiv(dd, dv) {
+    var D = String(dd), W = D.length + 1, Q = String(Math.floor(dd / dv));
+    var h = '<table class="kgr"><tr>' + td('', 'k') + D.split('').map(function (c) { return td(c, 'k pr'); }).join('') + td(':', 'sy') + td(dv, 'k pr') + td('=', 'sy') +
+      Q.split('').map(function (c, j) { return tdIn(c, j, 'rb'); }).join('') + '</tr>';
+    divRows(dd, dv).rows.forEach(function (r) {
+      h += '<tr class="ltr">'; for (var c = 0; c < W; c++) { var ul = (r._ || []).indexOf(c) >= 0 ? ' ul' : ''; h += r[c] === '–' ? td('–', 'k' + ul) : tdFr('k' + ul); }
+      h += '<td class="x" colspan="9"></td></tr>';
+    });
+    return h + '</table>';
+  }
+  function karoItem(it, body, sol, tip) {
+    it.kind = 'inp'; it.head = S('Rechne schriftlich im Karo-Feld.'); it.body = body; it.sol = sol; it.tip = tip;
+    delete it.choices; delete it.after; return it;
+  }
+  var TADD = S('Beginne rechts bei den Einern. Ist eine Summe größer als 9, schreibe den Übertrag klein in die graue Zeile.');
+  var TSUB = S('Ergänze von unten nach oben. Beginne rechts bei den Einern. Musst du über 10 ergänzen, schreibe den Übertrag 1 klein in die graue Zeile.');
+  var TMUL = S('Beginne hinten bei den Einern. Die Zahl im Sinn kannst du klein darüber schreiben.');
+  var TMUL2 = S('Zehner zuerst: Die erste Zeile endet unter der Zehnerziffer. Die zweite Zeile rückt eine Stelle nach rechts. Addiere am Schluss beide Zeilen.');
+  var TDIV = S('Beginne vorne. Wie oft passt die Zahl hinein? Multipliziere, subtrahiere, ziehe die nächste Ziffer herunter.');
+
+  // ------------------------------------------------------------ Natürliche Zahlen
+  wrapGen('runden', function (set) { return set.map(function (it, k) { return k % 2 ? asInp(it, '≈') : it; }); });
+  wrapGen('zahlwort', function (set) {
+    return set.map(function (it, k) {
+      if (k % 3 !== 1) return it;
+      var s = String(it.ans), h = '<table class="stt"><tr>', d = '<tr class="ltr">';
+      for (var r = 5; r >= 0; r--) { h += '<th>' + PK[r] + '</th>'; var j = s.length - 1 - r; d += j >= 0 ? tdIn(s[j], 5 - r) : '<td class="in" data-a="" data-e="1" data-o="' + (5 - r) + '"></td>'; }
+      it.kind = 'inp'; it.head = S('Schreibe die Zahl in die Stellenwerttafel.');
+      it.body = it.body + '<div class="stw">' + h + '</tr>' + d + '</tr></table></div>';
+      it.tip = S('Suche zuerst das Wort „tausend“. Die Zahl davor gehört zu T, ZT und HT. Die Zahl danach gehört zu H, Z und E. Steht bei einer Stelle nichts, schreibe 0. Ganz vorne bleiben leere Felder frei.');
+      delete it.choices; return it;
+    });
+  });
+  wrapGen('wert', function (set) { return set.map(function (it, k) { return k % 3 === 2 ? asInp(it) : it; }); });
+  wrapGen('nachbar', function (set) { return mix(set); });
+  wrapGen('zstrahl', function (set) { var n = 0; return set.map(function (it) { if (it.kind) return it; n++; return n % 2 === 0 ? asInp(it) : it; }); });
+
+  // ------------------------------------------------------------ Addition und Subtraktion
+  function eqHtml(parts, blue) { return parts.map(function (p, j) { return j === blue ? '<b class="nx">' + p + '</b>' : p; }).join(' '); }
+  wrapGen('begriffe', function (set) {
+    var a = R(12, 68), b = R(11, 99 - a), c = R(40, 99), d = R(11, c - 10);
+    var L4 = [[eqHtml([a, '+', b, '=', a + b], 4), 'Summe'], [eqHtml([c, '–', d, '=', c - d], 0), 'Minuend'], [eqHtml([c, '–', d, '=', c - d], 2), 'Subtrahend'], [eqHtml([c, '–', d, '=', c - d], 4), 'Differenz']];
+    set.splice(4, 1, { kind: 'match', mcls: 'eq', head: S('Wie heißt die blaue Zahl? Verbinde.'),
+      left: L4.map(function (x, k) { return { h: '<span class="eqc">' + x[0] + '</span>', k: x[1] }; }), right: shuffle(L4.map(function (x) { return { h: S(x[1]), k: x[1] }; })),
+      why: S('Plus: Summand + Summand = Summe. Minus: Minuend – Subtrahend = Differenz.') });
+    return set;
+  });
+  wrapGen('kopf', function (set) { return mix(set); });
+  wrapGen('luecke', function (set) { return mix(set, '', 1); });
+  wrapGen('add', function (set) {
+    return [0, 1, 3, 5, 7, 9].map(function (k) { var it = set[k], q = it.q; return karoItem(it, '<div class="card sgw kin">' + karoAdd(q.ns, '+', q.nc) + '</div>', '<div class="sgw">' + gridHtml(q.ns, '+', q.nc, true) + '</div>', TADD); });
+  });
+  wrapGen('sub', function (set) {
+    return [0, 1, 3, 4, 6, 7].map(function (k) { var it = set[k], q = it.q; return karoItem(it, '<div class="card sgw kin">' + karoAdd(q.ns, '–', 3) + '</div>', '<div class="sgw">' + gridHtml(q.ns, '–', 3, true) + '</div>', TSUB); });
+  });
+  wrapGen('ueb', function (set) { var n = 0; return set.map(function (it) { if (it.cols !== 3) return it; n++; return n % 2 === 0 ? asInp(it, 'Ü:') : it; }); });
+  wrapGen('klammern', function (set) { return mix(set); });
+
+  // ------------------------------------------------------------ Multiplikation und Division
+  wrapGen('mdbegriffe', function (set) {
+    var a = R(3, 9), b = R(3, 9), c = R(3, 9) * R(3, 9), dv = R(3, 9), dd = dv * R(3, 9);
+    var L4 = [[eqHtml([a, MP, b, '=', a * b], 4), 'Produkt'], [eqHtml([dd, ':', dv, '=', dd / dv], 0), 'Dividend'], [eqHtml([dd, ':', dv, '=', dd / dv], 2), 'Divisor'], [eqHtml([dd, ':', dv, '=', dd / dv], 4), 'Quotient']];
+    set.splice(4, 1, { kind: 'match', mcls: 'eq', head: S('Wie heißt die blaue Zahl? Verbinde.'),
+      left: L4.map(function (x) { return { h: '<span class="eqc">' + x[0] + '</span>', k: x[1] }; }), right: shuffle(L4.map(function (x) { return { h: S(x[1]), k: x[1] }; })),
+      why: S('Mal: Faktor · Faktor = Produkt. Geteilt: Dividend : Divisor = Quotient.') });
+    return set;
+  });
+  wrapGen('einmaleins', function (set) {
+    var used = {}, P = [];
+    while (P.length < 4) { var x = R(3, 9), y = R(3, 9); if (!used[x * y]) { used[x * y] = 1; P.push([x, y]); } }
+    set = mix(set);
+    set.splice(5, 1, { kind: 'match', mcls: 'eq', head: S('Verbinde jede Aufgabe mit ihrem Ergebnis.'),
+      left: P.map(function (p) { return { h: p[0] + ' ' + MP + ' ' + p[1], k: p[0] * p[1] }; }), right: shuffle(P.map(function (p) { return { h: String(p[0] * p[1]), k: p[0] * p[1] }; })),
+      why: S(P.map(function (p) { return p[0] + ' · ' + p[1] + ' = ' + p[0] * p[1]; }).join('; ') + '.') });
+    return set;
+  });
+  wrapGen('mdluecke', function (set) { return mix(set, '', 1); });
+  wrapGen('regeln', function (set) { return mix(set); });
+  wrapGen('mdueb', function (set) { var n = 0; return set.map(function (it) { if (it.cols !== 3) return it; n++; return n % 2 === 0 ? asInp(it, 'Ü:') : it; }); });
+  wrapGen('halb', function (set) { return mix(set); });
+  wrapGen('mul1', function (set) {
+    return [0, 2, 3, 5, 7, 9].map(function (k) { var it = set[k], q = it.q; return karoItem(it, '<div class="card kgw kin">' + karoMul(q.a, q.b) + '</div>', '<div class="kgw">' + kgMul(q.a, q.b, true) + '</div>', TMUL); });
+  });
+  wrapGen('mul2', function (set) {
+    return [0, 2, 3, 5, 7, 9].map(function (k) { var it = set[k], q = it.q; return karoItem(it, '<div class="card kgw kin">' + karoMul(q.a, q.b) + '</div>', '<div class="kgw">' + kgMul(q.a, q.b, true) + '</div>', TMUL2); });
+  });
+  wrapGen('div', function (set) {
+    return [0, 1, 4, 5, 6, 8].map(function (k) { var it = set[k], q = it.q; return karoItem(it, '<div class="card kgw kin">' + karoDiv(q.dd, q.dv) + '</div>', '<div class="kgw">' + kgDiv(q.dd, q.dv, true) + '</div>', TDIV); });
+  });
+  wrapGen('mdsach', function (set) { return mix(set); });
+
+  // ------------------------------------------------------------ Umfang und Flächeninhalt
+  wrapGen('ufurechnen', function (set) { return mix(set); });
+  wrapGen('ufarechnen', function (set) { return mix(set); });
+  wrapGen('ufsach', function (set) { return mix(set); });
+
+  // ------------------------------------------------------------ Größen
+  function eurCt(it, ct) {   // Antwort in € und ct: zwei Felder
+    it.kind = 'inp'; delete it.choices;
+    var e = Math.floor(ct / 100), c = ct % 100;
+    it.body += '<div class="ninw">' + nin(e, 'sm') + '<span>€</span>' + nin(c, 'sm') + '<span>ct</span></div>';
+    return it;
+  }
+  function geldItem(ct, komma) {
+    var lab = komma ? gKomma(ct) : gEuro(ct), g = greedy(ct);
+    return { kind: 'geld', head: S('Lege ' + lab + '. Tippe die Münzen und Scheine an.'), body: komma ? big(lab) : '', ans: ct, vals: GVALS.slice(1),
+      tip: S('Lege zuerst die Euro: Scheine und Euro-Münzen. Lege dann die Cent. Eine Münze nimmst du wieder weg, wenn du sie unten antippst.'),
+      why: S('Zum Beispiel: ' + g.map(gEuro).join(' + ') + '.') };
+  }
+  wrapGen('grgeld', function (set) {
+    set[1] = geldItem(R(2, 9) * 100 + one([15, 35, 45, 60, 85]), false);
+    set[2] = geldItem(R(1, 8) * 100 + one([25, 49, 75, 90]) + one([0, 1000]), true);
+    set = set.map(function (it) {
+      if (it.kind) return it;
+      if (/= \? ct/.test(it.body)) return asInp(it);
+      return it;
+    });
+    var last = set[set.length - 1];
+    if (last && !last.kind && /^\d+$/.test(String(last.ans))) eurCt(last, +last.ans);
+    return set;
+  });
+  function ordItem(head, vals, lab, why) {   // vals in der kleinsten Einheit (verschieden)
+    return { kind: 'order', head: S(head), nums: shuffle(vals.slice()), ans: vals.slice().sort(function (a, b) { return a - b; }), lab: lab, why: S(why) };
+  }
+  function lastHead(set, w) { for (var k = set.length - 1; k >= 0; k--) if (!set[k].kind && String(set[k].head).replace(/<[^>]+>/g, '').indexOf(w) >= 0) return k; return -1; }
+  wrapGen('grlaengen', function (set) {
+    var mm = R(31, 89), c1 = R(2, 9), c2 = R(12, 95), m1 = R(1, 3), c3 = R(1, 9) * 10;
+    var v = [mm, c1 * 10, c2 * 10, m1 * 1000 + c3 * 10], lab = {};
+    lab[v[0]] = v[0] + NB + 'mm'; lab[v[1]] = c1 + NB + 'cm'; lab[v[2]] = c2 + NB + 'cm'; lab[v[3]] = m1 + NB + 'm ' + c3 + NB + 'cm';
+    var k = lastHead(set, 'Einheit');
+    if (uniq(v).length === 4 && k >= 0) set.splice(k, 1, ordItem('Ordne die Längen. Beginne mit der kürzesten.', v, lab,
+      'Wandle alles in mm um: ' + v.slice().sort(function (x, y) { return x - y; }).map(function (x) { return lab[x] + ' = ' + fmt(x) + ' mm'; }).join('; ') + '.'));
+    return set;
+  });
+  wrapGen('grlumrechnen', function (set) { return mix(set); });
+  wrapGen('grlrechnen', function (set) { return mix(set); });
+  wrapGen('grmassen', function (set) {
+    set = mix(set);
+    var g1 = R(2, 9) * 100, k1 = R(2, 4), g2 = R(11, 99) * 10, k2 = k1 * 1000 + R(1, 9) * 100;
+    var v = uniq([g1, k1 * 1000, g2, k2]);
+    if (v.length === 4) {
+      var lab = {}; lab[g1] = fmt(g1) + NB + 'g'; lab[k1 * 1000] = k1 + NB + 'kg'; lab[g2] = fmt(g2) + NB + 'g'; lab[k2] = k1 + NB + 'kg ' + (k2 - k1 * 1000) + NB + 'g';
+      var kk = lastHead(set, 'Einheit'); if (kk >= 0) set.splice(kk, 1, ordItem('Ordne. Beginne mit dem leichtesten.', v, lab, 'Wandle alles in g um: 1 kg = 1 000 g. ' + v.slice().sort(function (a, b) { return a - b; }).map(function (x) { return fmt(x) + ' g'; }).join(' < ') + '.'));
+    }
+    return set;
+  });
+  wrapGen('grzeit', function (set) { return mix(set); });
+  wrapGen('grsach', function (set) { return mix(set); });
+
+
+  // ------------------------------------------------------------ Uhr stellen: Zeiger ziehen (großer Zeiger in 5-Minuten-Schritten)
+  function uhrTask(it) {
+    var h = 12, m = 0, fin = false, face = gClock(null, 0), drag = null, AC2 = AC;
+    function hands(col) {
+      var ah = ((h % 12) * 30 + m * .5) * Math.PI / 180, am = m * 6 * Math.PI / 180, c = 140, r = 128;
+      return '<g class="uhh"><line x1="140" y1="140" x2="' + f1(c + r * .5 * Math.sin(ah)) + '" y2="' + f1(c - r * .5 * Math.cos(ah)) + '" stroke="' + (col || INK) + '" stroke-width="13" stroke-linecap="round"/></g>' +
+        '<g class="uhm"><line x1="140" y1="140" x2="' + f1(c + r * .8 * Math.sin(am)) + '" y2="' + f1(c - r * .8 * Math.cos(am)) + '" stroke="' + (col || AC2) + '" stroke-width="7" stroke-linecap="round"/></g>' + dt(c, c, 9);
+    }
+    app.innerHTML = head(it) + '<div class="card gsw"><svg class="gsv uclk" id="uc" viewBox="0 0 280 280" style="max-width:320px;margin:0 auto">' + face + '<g id="uh">' + hands() + '</g></svg></div>' +
+      '<button class="btn pri gok" id="gok" type="button">' + L.icOk + '<span>' + L.check + '</span></button><div id="sol"></div><div id="fb"></div>';
+    var sv = document.getElementById('uc');
+    function ang(e) { var b = sv.getBoundingClientRect(), x = (e.clientX - b.left) / b.width * 280 - 140, y = (e.clientY - b.top) / b.height * 280 - 140; return (Math.atan2(x, -y) * 180 / Math.PI + 360) % 360; }
+    function setTo(e) {
+      var a = ang(e);
+      if (drag === 'm') m = Math.round(a / 30) * 5 % 60;
+      else { var hh = Math.round((a - m * .5) / 30); h = ((hh % 12) + 12) % 12 || 12; }
+      document.getElementById('uh').innerHTML = hands();
+    }
+    sv.addEventListener('pointerdown', function (e) {
+      if (fin) return;
+      var a = ang(e), am = m * 6, ah = ((h % 12) * 30 + m * .5), b = sv.getBoundingClientRect();
+      var rr = Math.hypot((e.clientX - b.left) / b.width * 280 - 140, (e.clientY - b.top) / b.height * 280 - 140);
+      function d(x, y) { var t = Math.abs(x - y) % 360; return Math.min(t, 360 - t); }
+      var da = d(a, am), dh = d(a, ah);   // liegen die Zeiger übereinander, entscheidet der Abstand zur Mitte: innen der kleine, außen der große Zeiger
+      drag = Math.abs(da - dh) < 25 ? (rr < 78 ? 'h' : 'm') : (da < dh ? 'm' : 'h');
+      sv.setPointerCapture(e.pointerId); setTo(e); e.preventDefault();
+    });
+    sv.addEventListener('pointermove', function (e) { if (drag && !fin) { setTo(e); e.preventDefault(); } });
+    sv.addEventListener('pointerup', function () { drag = null; });
+    sv.addEventListener('pointercancel', function () { drag = null; });
+    function check() {
+      fin = true; var good = h % 12 === it.ans[0] % 12 && m === it.ans[1];
+      document.getElementById('uh').innerHTML = hands(good ? OKC : NOC);
+      document.getElementById('gok').disabled = true;
+      if (!good) document.getElementById('sol').innerHTML = '<div class="card solc"><p class="solt">' + L.icEye + '<span>' + L.sol + '</span></p><div class="gsw">' + gClock(it.ans[0], it.ans[1]) + '</div></div>';
+      feedback(good, it.why);
+    }
+    document.getElementById('gok').onclick = check;
+    it.auto = function (good) { h = it.ans[0]; m = good ? it.ans[1] : (it.ans[1] + 5) % 60; check(); };
+    top();
+  }
+  wrapGen('gruhr', function (set) {
+    [1, 3].forEach(function (k) {
+      var h = R(1, 11), mm = one([0, 15, 30, 45, 10, 20, 40, 50]);
+      set[k] = { kind: 'uhr', head: S('Stelle die Uhr auf ' + hm(h, mm) + '. Ziehe die Zeiger.'), ans: [h, mm],
+        tip: S('Ziehe zuerst den großen Zeiger auf die Minuten: Bei 30 Minuten steht er auf der 6. Dann den kleinen Zeiger auf die Stunde.'),
+        why: S('Der große Zeiger zeigt ' + mm + ' Minuten' + (mm ? ': Er steht auf der ' + (mm / 5) + '.' : ': Er steht oben auf der 12.') + ' Der kleine Zeiger zeigt die ' + h + '.' + (mm >= 30 ? ' Nach halb steht er schon fast bei der ' + (h % 12 + 1) + '.' : '')) };
+    });
+    return set;
+  });
+
+  // ============================================================ Englisch: Wörter der Wörterliste hören und antippen (Daten aus der Seite)
+  var AUD = null;
+  function say(url) { try { if (AUD) AUD.pause(); AUD = new Audio(url); var pr = AUD.play(); if (pr && pr.catch) pr.catch(function () {}); } catch (e) {} }
+  function vPlay(w) { return '<div class="vpl"><button class="btn vlb" type="button" data-a="' + D.base + w.id + '.mp3">' + L.icSpeaker + '<span>' + L.listen + '</span></button></div>'; }
+  function vPic(w) {
+    if (w.img) return '<img src="' + D.base + w.id + '.jpg" alt="">';
+    if (w.num) return '<span class="vnum">' + w.num + '</span>';
+    if (w.col) return '<span class="vcol" style="background:' + w.col + '"></span>';
+    if (w.ic) return '<span class="vic">' + w.ic + '</span>';
+    return '';
+  }
+  function vHas(w) { return !!(w.img || w.num || w.col || w.ic); }
+  function wire(it) { it.init = function () { [].slice.call(app.querySelectorAll('.vlb')).forEach(function (b) { b.onclick = function () { say(b.getAttribute('data-a')); }; }); if (it.auto1) say(D.base + it.auto1 + '.mp3'); }; return it; }
+  function EH(en, de) { return '<b class="ten">' + en + '</b> <span class="tde">' + de + '</span>'; }
+  GEN.vok = function () {
+    var W = D.words.slice(), set = [], pics = W.filter(vHas), N = W.length;
+    function others(w, pool, k) { return shuffle(pool.filter(function (x) { return x.id !== w.id && x.de !== w.de && x.en !== w.en; })).slice(0, k); }
+    var order = shuffle(W.slice()), nL = Math.min(6, N), used = order.slice(0, nL);
+    used.forEach(function (w) {   // hören → Bild (oder deutsches Wort) antippen
+      var usePic = vHas(w) && pics.length >= 3, pool = usePic ? pics : W, ch = [w].concat(others(w, pool, 2));
+      var lng = ch.some(function (x) { return x.de.length > 12; });
+      set.push(wire({ head: EH('Listen and tap.', 'Höre zu. Tippe an.'), body: vPlay(w), auto1: w.id, cols: usePic ? 3 : (lng ? 1 : 3), imgc: usePic, ans: w.id,
+        choices: shuffle(ch).map(function (x) { return { v: x.id, h: usePic ? vPic(x) : esc(x.de) }; }),
+        why: '<b>' + esc(w.en) + '</b> – ' + esc(w.de) }));
+    });
+    [order[nL % N], order[(nL + 1) % N]].forEach(function (w) {   // hören → englisches Wort antippen
+      var ch = [w].concat(others(w, W, 2));
+      set.push(wire({ head: EH('Listen. Which word is it?', 'Höre zu. Welches Wort ist es?'), body: vPlay(w), auto1: w.id, cols: 1, ans: w.id,
+        choices: shuffle(ch).map(function (x) { return { v: x.id, h: '<span class="ven">' + esc(x.en) + '</span>' }; }),
+        why: '<b>' + esc(w.en) + '</b> – ' + esc(w.de) }));
+    });
+    var r = order[(nL + 2) % N], rc = [r].concat(others(r, W, 2));   // lesen → deutsches Wort antippen
+    set.push(wire({ head: EH('Read and tap.', 'Lies. Tippe an.'), body: '<div class="card cmpq sm ven">' + esc(r.en) + '</div>' + vPlay(r), cols: 1, ans: r.id,
+      choices: shuffle(rc).map(function (x) { return { v: x.id, h: esc(x.de) }; }), why: '<b>' + esc(r.en) + '</b> – ' + esc(r.de) }));
+    var M = []; shuffle(W.slice()).forEach(function (x) { if (M.length < 4 && !M.some(function (y) { return y.de === x.de || y.en === x.en; })) M.push(x); });
+    set.push({ kind: 'match', mcls: 'eq vk', head: EH('Match.', 'Verbinde Englisch und Deutsch.'),
+      left: M.map(function (x) { return { h: esc(x.en), k: x.id }; }), right: shuffle(M.map(function (x) { return { h: esc(x.de), k: x.id }; })),
+      why: M.map(function (x) { return '<b>' + esc(x.en) + '</b> – ' + esc(x.de); }).join('; ') });
+    return set;
+  };
+
+  // ============================================================ Deutsch: Aufgaben aus einer Sammlung (Seitendaten), Wörter oder Satzglieder antippen
+  var MKP = { n: ['Nomen', 'Nomen'], v: ['Verb', 'Verben'], a: ['Adjektiv', 'Adjektive'], b: ['Subjekt', 'Subjekt'], r: ['Prädikat', 'Prädikat'], g: ['Akkusativobjekt', 'Akkusativobjekt'], o: ['Dativobjekt', 'Dativobjekt'] };
+  function cap1(t) { return t.charAt(0).toUpperCase() + t.slice(1); }
+  function low1(t) { return t.charAt(0).toLowerCase() + t.slice(1); }
+  function parseMark(s) {
+    var re = /(\*?)\{([^}]*)\}|(\*?)([A-Za-zÄÖÜäöüß\-]+)|([^A-Za-zÄÖÜäöüß*{]+)/g, m, out = [];
+    while ((m = re.exec(s))) {
+      if (m[5] !== undefined) out.push({ sep: m[5] });
+      else if (m[2] !== undefined) out.push({ w: m[2], t: !!m[1] });
+      else out.push({ w: m[4], t: !!m[3] });
+    }
+    return out;
+  }
+  function markTask(it) {
+    var T = parseMark(it.s), sel = T.map(function () { return false; }), fin = false, gk = it.m === 'gk';
+    function shown(x, k) { if (!gk) return esc(x.w); return esc(sel[k] ? cap1(x.w) : (x.t ? low1(x.w) : x.w)); }
+    function draw() {
+      app.innerHTML = head(it) + '<div class="card mkw m-' + it.m + '">' + T.map(function (x, k) {
+        if (x.sep !== undefined) return '<span class="mks">' + esc(x.sep) + '</span>';
+        var c = 'mk' + (sel[k] ? ' on' : '');
+        if (fin) c += x.t && sel[k] ? ' mok' : x.t ? ' mmiss' : sel[k] ? ' mno' : '';
+        return '<button class="' + c + '" type="button" data-k="' + k + '"' + (fin ? ' disabled' : '') + '>' + (fin && x.t && gk ? esc(cap1(x.w)) : shown(x, k)) + '</button>';
+      }).join('') + '</div><button class="btn pri gok" id="gok" type="button"' + (fin || !sel.some(Boolean) ? ' disabled' : '') + '>' + L.icOk + '<span>' + L.check + '</span></button><div id="fb"></div>';
+      if (fin) return;
+      [].slice.call(app.querySelectorAll('.mk')).forEach(function (b) { b.onclick = function () { var k = +b.getAttribute('data-k'); sel[k] = !sel[k]; draw(); }; });
+      document.getElementById('gok').onclick = check;
+    }
+    function check() {
+      fin = true; var good = T.every(function (x, k) { return x.sep !== undefined || !!x.t === sel[k]; });
+      var tg = T.filter(function (x) { return x.t; }).map(function (x) { return gk ? cap1(x.w) : x.w; });
+      var nm = MKP[it.m] ? MKP[it.m][tg.length > 1 ? 1 : 0] + ': ' : 'Groß: ';
+      draw(); feedback(good, (it.why ? it.why + ' ' : '') + nm + tg.map(esc).join(', ') + '.');
+    }
+    it.auto = function (good) { T.forEach(function (x, k) { sel[k] = !!x.t; }); if (!good) { for (var k = 0; k < T.length; k++) if (T[k].w && !T[k].t) { sel[k] = true; break; } } check(); };
+    draw(); top();
+  }
+  // Sammlung → Aufgaben: zufällige Auswahl (bei „Neue Aufgaben“ eine andere Mischung)
+  GEN.bank = function () {
+    var B = shuffle(D.bank.slice()), n = Math.min(D.n || 10, B.length);
+    var pick = B.slice(0, n);
+    if (D.keep) pick.sort(function (a, b) { return D.bank.indexOf(a) - D.bank.indexOf(b); });
+    return pick.map(function (x) {
+      var h = x.h || D.h[x.k] || '';
+      if (x.k === 'mark') return { kind: 'mark', head: esc(h), m: x.m, s: x.s, why: x.why ? esc(x.why) : '', tip: x.tip ? esc(x.tip) : '' };
+      if (x.k === 'mc') { var ch = x.o.map(function (o, j) { return { v: String(j), h: esc(o) }; }), a = x.a || 0;
+        return { head: esc(h), body: x.q ? '<div class="card dq">' + x.q + '</div>' : '', cols: x.cols || (x.o.some(function (o) { return o.length > 9; }) ? 1 : x.o.length), ans: String(a),
+          choices: x.fix ? ch : shuffle(ch), why: x.why ? esc(x.why) : '<b>' + esc(x.o[a]) + '</b>', tip: x.tip ? esc(x.tip) : '' }; }
+      if (x.k === 'sort') return { kind: 'sort', scls: 'txt', head: esc(h), cats: x.cats.map(function (c) { return { v: c[0], h: esc(c[1]) }; }),
+        items: shuffle(x.it.map(function (y) { return { h: '<span>' + esc(y[0]) + '</span>', c: y[1] }; })), why: esc(x.why || '') };
+      if (x.k === 'match') return { kind: 'match', mcls: 'eq vk', head: esc(h), left: x.p.map(function (y, j) { return { h: esc(y[0]), k: j }; }),
+        right: shuffle(x.p.map(function (y, j) { return { h: esc(y[1]), k: j }; })), why: esc(x.why || x.p.map(function (y) { return y[0] + ' – ' + y[1]; }).join('; ')) };
+      if (x.k === 'order') { var lab = {}; x.w.forEach(function (w, j) { lab[j] = esc(w); });
+        return { kind: 'order', head: esc(h), nums: shuffle(x.w.map(function (w, j) { return j; })), ans: x.w.map(function (w, j) { return j; }), lab: lab, sep: ' ', why: esc(x.why || x.w.join(' ')) }; }
+      return null;
+    }).filter(Boolean);
+  };
+  // ------------------------------------------------------------ Tipps (Glühbirne): für jede Übung ein Tipp, einzelne Aufgaben haben eigene
+  TIP = {
+    runden: S('Schaue auf die Ziffer rechts neben dem Punkt. Bei 0, 1, 2, 3, 4 rundest du ab. Bei 5, 6, 7, 8, 9 rundest du auf.'),
+    zahlwort: S('Suche zuerst das Wort „tausend“. Was davor steht, sind die Tausender. Was danach steht, sind H, Z und E.'),
+    wert: S('Lege die Zahl in Gedanken in die Stellenwerttafel: E, Z, H, T, ZT, HT. Von rechts nach links.'),
+    nachbar: S('Nachfolger: 1 mehr. Vorgänger: 1 weniger. Nachbarzehner enden mit 0, Nachbarhunderter mit 00.'),
+    zstrahl: S('Wie groß ist ein Schritt? Schaue zwei Zahlen am Strahl an und zähle die Striche dazwischen.'),
+    vergl: S('Vergleiche zuerst die Anzahl der Stellen. Sind sie gleich, vergleiche von vorne Ziffer für Ziffer.'),
+    begriffe: S('Plus: Summand + Summand = Summe. Minus: Minuend – Subtrahend = Differenz.'),
+    kopf: S('Rechne in Schritten: Zerlege die zweite Zahl, zum Beispiel erst bis zum nächsten Zehner.'),
+    luecke: S('Nutze die Umkehraufgabe: Aus plus wird minus, aus minus wird plus.'),
+    add: TADD, sub: TSUB,
+    ueb: S('Runde beide Zahlen auf Hunderter. Rechne dann mit den gerundeten Zahlen.'),
+    sach: S('Lies die Frage genau. Kommt etwas dazu (plus) oder geht etwas weg (minus)?'),
+    klammern: S('Was in der Klammer steht, rechnest du zuerst. Suche Zahlen, die zusammen 10 oder 100 ergeben.'),
+    mdbegriffe: S('Mal: Faktor · Faktor = Produkt. Geteilt: Dividend : Divisor = Quotient.'),
+    einmaleins: S('Nutze eine leichte Aufgabe: 5 · 7 = 35, dann ist 6 · 7 = 35 + 7.'),
+    mdluecke: S('Nutze die Umkehraufgabe: Aus mal wird geteilt, aus geteilt wird mal.'),
+    regeln: S('Punkt vor Strich: Rechne mal und geteilt zuerst. Klammern immer ganz zuerst.'),
+    mdueb: S('Runde die große Zahl auf ihre erste Stelle. Rechne dann im Kopf.'),
+    halb: S('Zerlege die große Zahl in H, Z und E. Multipliziere jeden Teil. Addiere am Schluss.'),
+    mul1: TMUL, mul2: TMUL2, div: TDIV,
+    mdsach: S('Gleich viele mehrmals: mal. Gerecht verteilen: geteilt.'),
+    linien: S('Gerade: kein Anfang, kein Ende. Strecke: Anfang und Ende. Strahl: ein Anfang, kein Ende.'),
+    messen: S('Lege die 0 vom Lineal genau an den Anfang der Strecke.'),
+    senkpar: S('Senkrecht: Die Linien bilden einen rechten Winkel. Parallel: Sie haben überall den gleichen Abstand.'),
+    koord: S('Erst nach rechts, dann nach oben. Die erste Zahl sagt, wie weit nach rechts.'),
+    symm: S('Stell dir vor, du faltest die Figur an der Achse. Liegen beide Hälften genau aufeinander?'),
+    spiegeln: S('Zähle die Kästchen vom Punkt bis zur Achse. Auf der anderen Seite gehst du genauso viele Kästchen weiter.'),
+    schatz: S('Erst nach rechts, dann nach oben. Zähle die Kästchen genau.'),
+    ufrechteck: S('Rechteck: 4 rechte Winkel, gegenüberliegende Seiten gleich lang. Quadrat: alle 4 Seiten gleich lang.'),
+    ufumfang: S('Fahre mit dem Finger einmal am Rand entlang und zähle jede Kästchenseite.'),
+    ufurechnen: S('Umfang: Addiere alle vier Seiten. Beim Rechteck: Länge + Breite + Länge + Breite.'),
+    ufflaeche: S('Zähle alle Kästchen in der Figur. Ein Kästchen ist 1 cm².'),
+    ufeinheiten: S('Kleine Flächen wie ein Heft misst du in cm². Große Flächen wie ein Zimmer misst du in m².'),
+    ufarechnen: S('Flächeninhalt: Länge mal Breite. A = a · b.'),
+    ufunterschied: S('Umfang: einmal um den Rand herum. Flächeninhalt: die ganze Fläche innen.'),
+    ufsach: S('Geht es um den Rand (Zaun, Band) oder um die Fläche (Rasen, Fliesen)?'),
+    grgeld: S('1 € = 100 ct. Zähle erst die Euro, dann die Cent.'),
+    grlaengen: S('1 cm = 10 mm. 1 m = 100 cm. 1 km = 1 000 m.'),
+    grlumrechnen: S('Von der großen zur kleinen Einheit: Die Zahl wird größer. 1 m = 100 cm, 1 cm = 10 mm, 1 km = 1 000 m.'),
+    grlrechnen: S('Wandle zuerst beide Längen in die gleiche Einheit um. Rechne dann.'),
+    grmassen: S('1 kg = 1 000 g. 1 t = 1 000 kg.'),
+    gruhr: S('Der kurze Zeiger zeigt die Stunden, der lange Zeiger die Minuten. Am Nachmittag zählst du 12 dazu.'),
+    grzeit: S('1 h = 60 min. 1 min = 60 s. 1 Tag = 24 h.'),
+    grsach: S('Lies genau: Was kostet alles zusammen? Wie viel Geld bekommst du zurück?'),
+    vok: 'Tippe auf „Anhören“. Dann hörst du das Wort noch einmal.'
+  };
+  if (D.tip) TIP.bank = D.tip;
+
+  // ------------------------------------------------------------ Ablauf
+  var set, i, ok, rep = false, wrongs = [], tipOpen = false;
+  function head(it) {
+    var tp = tipOf(it);
+    return '<div class="qh"><p class="cnt">' + (rep ? L.rep2 + ': ' : '') + L.task + ' ' + (i + 1) + ' ' + L.of + ' ' + set.length + '</p>' +
+      (tp ? '<button class="tipb' + (tipOpen ? ' on' : '') + '" type="button">' + L.icTip + '<span>' + L.tip + '</span></button>' : '') + '</div>' +
+      '<p class="rq">' + it.head + '</p>' + (tp ? '<div class="tipx"' + (tipOpen ? '' : ' hidden') + '>' + L.icTip + '<span>' + tp + '</span></div>' : '');
+  }
+  app.addEventListener('click', function (e) {
+    var b = e.target.closest ? e.target.closest('.tipb') : null; if (!b) return;
+    tipOpen = !tipOpen; var t = app.querySelector('.tipx'); if (t) t.hidden = !tipOpen; b.classList.toggle('on', tipOpen);
+  });
   function show() {
-    var it = set[i];
+    var it = set[i]; tipOpen = false; keyFn = null;
+    if (it.kind === 'inp') return inpTask(it);
+    if (it.kind === 'geld') return geldTask(it);
+    if (it.kind === 'uhr') return uhrTask(it);
+    if (it.kind === 'mark') return markTask(it);
     if (it.kind === 'order') return order(it);
     if (it.kind === 'sort') return sortTask(it);
     if (it.kind === 'match') return matchTask(it);
@@ -2201,7 +2748,6 @@
       b.addEventListener('click', function () {
         if (fin) return; fin = true;
         var v = b.getAttribute('data-v'), good = v === String(it.ans);
-        if (good) ok++;
         bs.forEach(function (x) { if (x.tagName === 'BUTTON') x.disabled = true; if (x.getAttribute('data-v') === String(it.ans)) x.classList.add('ok'); });
         if (!good) b.classList.add('no');
         if (it.after) it.after(good, v);
@@ -2216,12 +2762,12 @@
     function draw() {
       var slots = '';
       for (var k = 0; k < it.nums.length; k++) {
-        if (k) slots += '<span class="olt">&lt;</span>';
+        if (k) slots += '<span class="olt">' + (it.sep || '&lt;') + '</span>';
         var v = placed[k];
-        slots += '<button class="os' + (v !== undefined ? ' f' : '') + '" type="button" data-k="' + k + '"' + (fin ? ' disabled' : '') + '>' + (v !== undefined ? fmt(v) : '') + '</button>';
+        slots += '<button class="os' + (v !== undefined ? ' f' : '') + '" type="button" data-k="' + k + '"' + (fin ? ' disabled' : '') + '>' + (v !== undefined ? (it.lab ? it.lab[v] : fmt(v)) : '') + '</button>';
       }
       app.innerHTML = head(it) + '<div class="osl">' + slots + '</div><div class="rch c2 opool">' + it.nums.map(function (v) {
-        return '<button class="ch rc" type="button" data-v="' + v + '"' + (placed.indexOf(v) >= 0 || fin ? ' disabled' : '') + '>' + fmt(v) + '</button>';
+        return '<button class="ch rc" type="button" data-v="' + v + '"' + (placed.indexOf(v) >= 0 || fin ? ' disabled' : '') + '>' + (it.lab ? it.lab[v] : fmt(v)) + '</button>';
       }).join('') + '</div><div id="fb"></div>';
       [].slice.call(app.querySelectorAll('.opool .rc')).forEach(function (b) {
         b.onclick = function () {
@@ -2230,8 +2776,7 @@
           if (placed.length === it.nums.length) {
             fin = true;
             var good = placed.every(function (v, k) { return v === it.ans[k]; });
-            if (good) ok++;
-            draw();
+                draw();
             [].slice.call(app.querySelectorAll('.os')).forEach(function (s, k) { s.classList.add(placed[k] === it.ans[k] ? 'ok' : 'no'); });
             feedback(good, it.why);
           } else draw();
@@ -2244,6 +2789,7 @@
     draw(); top();
   }
   function feedback(good, why) {
+    if (good) ok++; else wrongs.push(set[i]);
     document.getElementById('fb').innerHTML =
       '<div class="fbx ' + (good ? 'okb' : 'nob') + '">' + (good ? L.icOk + '<b>' + L.right + '</b>' : L.icNo + '<b>' + L.wrong + '</b>') +
       ' <span>' + why + '</span></div>' +
@@ -2254,13 +2800,18 @@
     if (r.bottom > window.innerHeight) window.scrollBy({ top: r.bottom - window.innerHeight + 16, behavior: 'smooth' });
   }
   function top() { var r = app.getBoundingClientRect(); if (r.top < 0) window.scrollBy({ top: r.top - 12 }); }
+  // Am Ende: falsch gelöste Aufgaben noch einmal üben (so oft, bis alle richtig sind) oder neue Aufgaben
   function end() {
-    app.innerHTML = '<div class="done">' + L.done + ' ' + L.first + ' ' + ok + ' ' + L.of + ' ' + set.length + '</div>' +
-      '<button class="btn pri" id="ag" type="button">' + L.icAgain + '<span>' + L.again + '</span></button>';
+    var w = wrongs.slice(); keyFn = null;
+    app.innerHTML = '<div class="done">' + L.done + ' ' + L.first + ' ' + ok + ' ' + L.of + ' ' + set.length + '</div><div class="endb">' +
+      (w.length ? '<button class="btn pri" id="rp" type="button">' + L.icRep + '<span>' + L.rep + '</span></button>' : '') +
+      '<button class="btn' + (w.length ? '' : ' pri') + '" id="ag" type="button">' + L.icAgain + '<span>' + L.again + '</span></button></div>';
     document.getElementById('ag').onclick = start;
+    if (w.length) document.getElementById('rp').onclick = function () { run(w, true); };
     top();
   }
-  function start() { set = GEN[D.type](); i = 0; ok = 0; show(); }
+  function run(s, r) { set = s; rep = r; i = 0; ok = 0; wrongs = []; show(); }
+  function start() { run(GEN[D.type](), false); }
   start();
-  window.__mt = { set: function () { return set; }, i: function () { return i; }, auto: function (g) { var it = set[i]; if (it.auto) it.auto(g); } };
+  window.__mt = { set: function () { return set; }, i: function () { return i; }, rep: function () { return rep; }, go: function (k) { i = k; show(); }, auto: function (g) { var it = set[i]; if (it.auto) it.auto(g); } };
 })();
