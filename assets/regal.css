@@ -1,0 +1,158 @@
+/* Bücherregal – Holzregal wie im alten iBooks, mit Lerncampus-Branding */
+:root {
+  --ink: #3f2810;
+  --de: #b97a74; --de-d: #9c4f47;
+  --ma: #6f8fba; --ma-d: #47699a;
+  --en: #bd9a3c; --en-d: #85661a;
+  --lc1: #2e7fe0; --lc2: #f2852b;
+  --fc: var(--de); --fcd: var(--de-d);
+}
+.f-de { --fc: var(--de); --fcd: var(--de-d); }
+.f-ma { --fc: var(--ma); --fcd: var(--ma-d); }
+.f-en { --fc: var(--en); --fcd: var(--en-d); }
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body.regal-body {
+  margin: 0; min-height: 100vh; color: var(--ink);
+  font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+  display: flex; flex-direction: column;
+  /* helles Holz mit senkrechter Maserung */
+  background-color: #dfb57b;
+  background-image:
+    repeating-linear-gradient(90deg, rgba(255, 240, 210, .10) 0 1px, transparent 1px 7px),
+    repeating-linear-gradient(90deg, rgba(120, 70, 20, .07) 0 2px, transparent 2px 23px),
+    repeating-linear-gradient(90deg, rgba(120, 70, 20, .05) 0 37px, rgba(255, 235, 200, .07) 37px 91px, rgba(120, 70, 20, .04) 91px 153px),
+    linear-gradient(90deg, #d6a86a, #e6c48e 28%, #dcb176 57%, #e5c08a 83%, #d4a466);
+}
+a { color: inherit; }
+.ic { display: inline-flex; width: 26px; height: 26px; flex: none; }
+.ic svg { width: 100%; height: 100%; fill: currentColor; }
+
+/* ---------- Holzleiste oben ---------- */
+.bar {
+  position: sticky; top: 0; z-index: 5;
+  background: linear-gradient(#f4dcb0, #dbb27a);
+  border-bottom: 1px solid #8f6535;
+  box-shadow: 0 2px 7px rgba(60, 30, 0, .35), inset 0 1px 0 rgba(255, 255, 255, .55);
+}
+.bar-in {
+  display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 10px;
+  max-width: 1120px; margin: 0 auto; padding: 8px 12px 6px;
+}
+.bar h1 {
+  margin: 0; font-size: 22px; font-weight: 800; text-align: center; letter-spacing: .01em;
+  color: #4b2e10; text-shadow: 0 1px 0 rgba(255, 255, 255, .65);
+}
+.bar-r { justify-self: end; }
+.brand, .btn {
+  justify-self: start; display: inline-flex; align-items: center; gap: 8px; text-decoration: none;
+  background: linear-gradient(#fffdf8, #f2e6d0); border: 1px solid #9c7444; border-radius: 7px;
+  padding: 4px 10px 4px 5px; box-shadow: inset 0 1px 0 #fff, 0 1px 2px rgba(60, 30, 0, .3);
+}
+.brand img { width: 30px; height: 30px; }
+.lc { font-size: 12px; letter-spacing: .1em; text-transform: uppercase; white-space: nowrap; }
+.lc1 { color: var(--lc1); } .lc2 { color: var(--lc2); }
+.btn { font-weight: 700; font-size: 15px; color: #4b2e10; padding: 6px 12px 6px 4px; }
+.btn .ic { width: 22px; height: 22px; }
+.segs { display: flex; justify-content: center; padding: 0 10px 8px; }
+.seg {
+  text-decoration: none; font-size: 15px; font-weight: 700; color: #4b2e10;
+  padding: 6px 14px; border: 1px solid #9c7444; border-left-width: 0;
+  background: linear-gradient(#f9ebcf, #e4c58f); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .7);
+}
+.seg:first-child { border-left-width: 1px; border-radius: 7px 0 0 7px; }
+.seg:last-child { border-radius: 0 7px 7px 0; }
+.seg.on { background: linear-gradient(#b98a52, #d2a56a); color: #fff; text-shadow: 0 -1px 0 rgba(0, 0, 0, .35);
+  box-shadow: inset 0 2px 4px rgba(60, 30, 0, .45); }
+
+/* ---------- Regal ---------- */
+main.wood { flex: 1; width: 100%; max-width: 1120px; margin: 0 auto; padding: 18px 0 10px; }
+.shelf { margin: 0 0 22px; }
+.plate {
+  display: table; margin: 4px auto 0; font-size: 17px; font-weight: 800; letter-spacing: .04em;
+  background: linear-gradient(#fbf1dc, #e6cc9b); border: 1px solid #9c7444; border-left: 9px solid var(--fc);
+  border-radius: 4px; padding: 4px 16px; box-shadow: 0 2px 4px rgba(60, 30, 0, .35), inset 0 1px 0 #fff;
+}
+.plate a { text-decoration: none; color: #4b2e10; }
+.books {
+  --bw: 118px; --bh: calc(var(--bw) * 1.4142); --gap: 30px; --bd: 22px;
+  --row: calc(var(--bh) + var(--gap) + var(--bd));
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(calc(var(--bw) + 22px), 1fr));
+  grid-auto-rows: var(--row); align-items: end; justify-items: center; padding: 0 12px;
+  /* je Reihe ein Brett: Schatten oben, Oberseite hell, Vorderkante dunkler */
+  background: repeating-linear-gradient(to bottom,
+    rgba(70, 40, 10, .25) 0, rgba(70, 40, 10, 0) 16px,
+    transparent 16px, transparent calc(var(--row) - var(--bd)),
+    #f4ddb3 calc(var(--row) - var(--bd)), #e8c794 calc(var(--row) - var(--bd) + 8px),
+    #cfa166 calc(var(--row) - var(--bd) + 8px), #b9894f calc(var(--row) - 3px),
+    #8a5f31 calc(var(--row) - 3px), #8a5f31 var(--row));
+}
+/* Fach-Seite: leere Bretter bis unten, wie im iBooks-Regal */
+.solo .books { min-height: calc(100vh - 150px); }
+.book {
+  position: relative; display: block; width: var(--bw); margin-bottom: calc(var(--bd) - 6px);
+  background: #fff; box-shadow: 0 1px 1px rgba(0, 0, 0, .3), 4px 5px 8px rgba(40, 20, 0, .45);
+  transition: transform .12s ease;
+}
+.book img { display: block; width: 100%; height: auto; }
+.book::after {   /* Buchrücken links */
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(90deg, rgba(0, 0, 0, .22) 0, rgba(255, 255, 255, .45) 3px, rgba(0, 0, 0, .10) 6px, transparent 11px);
+}
+.book:active, .book:hover { transform: translateY(-4px); }
+
+/* ---------- Heft-Seite (Karte wie das iBooks-Menü) ---------- */
+.card {
+  display: grid; grid-template-columns: 250px 1fr; gap: 28px; align-items: start;
+  max-width: 820px; margin: 18px auto 24px; padding: 24px;
+  background: #fbf7ee; border: 1px solid #b08a58; border-radius: 12px;
+  box-shadow: 0 12px 30px rgba(60, 30, 0, .38), inset 0 1px 0 #fff;
+}
+.cover img { display: block; width: 100%; height: auto; box-shadow: 0 1px 1px rgba(0, 0, 0, .25), 4px 6px 12px rgba(40, 20, 0, .4); }
+.kind { margin: 2px 0 4px; font-size: 14px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--fcd); }
+.info h2 { margin: 0 0 18px; font-size: 30px; line-height: 1.15; hyphens: auto; -webkit-hyphens: auto; }
+.open {
+  display: inline-flex; align-items: center; gap: 12px; text-decoration: none;
+  font-size: 22px; font-weight: 800; color: #fff; background: var(--fcd);
+  padding: 14px 24px 14px 18px; border-radius: 12px; border: 1px solid rgba(0, 0, 0, .25);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .35), 0 2px 5px rgba(0, 0, 0, .3);
+}
+.open .ic { width: 30px; height: 30px; }
+.open:active { transform: translateY(1px); box-shadow: inset 0 2px 4px rgba(0, 0, 0, .3); }
+.size { margin: 10px 0 22px; font-size: 14px; color: #7a6145; }
+.how { border-top: 1px solid #e0cfae; padding-top: 14px; }
+.how-h { margin: 0 0 8px; font-size: 17px; font-weight: 800; }
+.how ol { list-style: none; margin: 0; padding: 0; counter-reset: s; }
+.how li { counter-increment: s; display: flex; align-items: center; gap: 12px; margin: 0 0 10px; font-size: 18px; line-height: 1.3; }
+.how li::before {
+  content: counter(s); flex: none; width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center;
+  background: var(--fcd); color: #fff; font-weight: 800; font-size: 16px;
+}
+.how li .ic { color: var(--fcd); width: 28px; height: 28px; }
+
+/* ---------- Fußzeile ---------- */
+.foot {
+  display: flex; align-items: center; justify-content: center; gap: 8px; margin: 0 auto 18px;
+  background: rgba(255, 253, 248, .9); border: 1px solid #b08a58; border-radius: 8px; padding: 5px 12px 5px 6px;
+  font-size: 12px; letter-spacing: .1em; text-transform: uppercase; box-shadow: 0 1px 3px rgba(60, 30, 0, .3);
+}
+.foot img { width: 24px; height: 24px; }
+
+/* ---------- schmal (Handy) ---------- */
+@media (max-width: 640px) {
+  .bar-in { grid-template-columns: auto 1fr; }
+  .bar h1 { text-align: right; font-size: 19px; }
+  .bar-r { display: none; }
+  .lc { display: none; }
+  .brand { padding: 4px; }
+  .btn { font-size: 14px; padding: 5px 10px 5px 2px; }
+  .seg { padding: 6px 10px; font-size: 14px; }
+  .books { --bw: 92px; --gap: 22px; --bd: 18px; padding: 0 6px; grid-template-columns: repeat(auto-fill, minmax(calc(var(--bw) + 14px), 1fr)); }
+  .card { grid-template-columns: 1fr; padding: 18px; margin: 12px 12px 20px; gap: 18px; }
+  .cover { width: 170px; margin: 0 auto; }
+  .info h2 { font-size: 26px; }
+  .open { width: 100%; justify-content: center; }
+}
+@media (min-width: 1000px) {
+  .books { --bw: 132px; }
+}
