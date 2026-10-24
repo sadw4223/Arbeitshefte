@@ -69,10 +69,9 @@ a { color: inherit; }
 main.wood { flex: 1; width: 100%; max-width: 1120px; margin: 0 auto; padding: 18px 0 10px; }
 .shelf { margin: 0 0 22px; }
 .shelf-h {   /* Fach-Überschrift auf dem Holz (kein Knopf: die Fächer-Schalter stehen oben) */
-  margin: 6px 0 2px; text-align: center; font-size: 24px; font-weight: 800; letter-spacing: .03em;
+  margin: 6px 0 10px; text-align: center; font-size: 24px; font-weight: 800; letter-spacing: .03em;
   color: #4b2e10; text-shadow: 0 1px 0 rgba(255, 255, 255, .55);
 }
-.shelf-h::after { content: ""; display: block; width: 54px; height: 5px; margin: 5px auto 0; background: var(--fc); border-radius: 3px; }
 .books {
   --bw: 118px; --bh: calc(var(--bw) * 1.4142); --gap: 30px; --bd: 22px;
   --row: calc(var(--bh) + var(--gap) + var(--bd));
@@ -93,7 +92,7 @@ main.wood { flex: 1; width: 100%; max-width: 1120px; margin: 0 auto; padding: 18
   position: relative; display: flex; flex-direction: column; align-items: center; overflow: hidden;
   width: var(--bw); height: var(--bh); margin-bottom: calc(var(--bd) - 6px);
   padding: calc(var(--bw) * .07) calc(var(--bw) * .05) 0; text-decoration: none; color: #1a1a1a;
-  background: #fff; border-top: calc(var(--bw) * .04) solid var(--fc);
+  background: #fff; border-left: calc(var(--bw) * .065) solid var(--fc);   /* Fachfarbe am Buchrücken */
   box-shadow: 0 1px 1px rgba(0, 0, 0, .3), 4px 5px 8px rgba(40, 20, 0, .45);
   transition: transform .12s ease;
 }
