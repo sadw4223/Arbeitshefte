@@ -68,12 +68,11 @@ a { color: inherit; }
 /* ---------- Regal ---------- */
 main.wood { flex: 1; width: 100%; max-width: 1120px; margin: 0 auto; padding: 18px 0 10px; }
 .shelf { margin: 0 0 22px; }
-.plate {
-  display: table; margin: 4px auto 0; font-size: 17px; font-weight: 800; letter-spacing: .04em;
-  background: linear-gradient(#fbf1dc, #e6cc9b); border: 1px solid #9c7444; border-left: 9px solid var(--fc);
-  border-radius: 4px; padding: 4px 16px; box-shadow: 0 2px 4px rgba(60, 30, 0, .35), inset 0 1px 0 #fff;
+.shelf-h {   /* Fach-Überschrift auf dem Holz (kein Knopf: die Fächer-Schalter stehen oben) */
+  margin: 6px 0 2px; text-align: center; font-size: 24px; font-weight: 800; letter-spacing: .03em;
+  color: #4b2e10; text-shadow: 0 1px 0 rgba(255, 255, 255, .55);
 }
-.plate a { text-decoration: none; color: #4b2e10; }
+.shelf-h::after { content: ""; display: block; width: 54px; height: 5px; margin: 5px auto 0; background: var(--fc); border-radius: 3px; }
 .books {
   --bw: 118px; --bh: calc(var(--bw) * 1.4142); --gap: 30px; --bd: 22px;
   --row: calc(var(--bh) + var(--gap) + var(--bd));
@@ -89,12 +88,24 @@ main.wood { flex: 1; width: 100%; max-width: 1120px; margin: 0 auto; padding: 18
 }
 /* Fach-Seite: leere Bretter bis unten, wie im iBooks-Regal */
 .solo .books { min-height: calc(100vh - 150px); }
+.solo { margin-top: 6px; }
 .book {
-  position: relative; display: block; width: var(--bw); margin-bottom: calc(var(--bd) - 6px);
-  background: #fff; box-shadow: 0 1px 1px rgba(0, 0, 0, .3), 4px 5px 8px rgba(40, 20, 0, .45);
+  position: relative; display: flex; flex-direction: column; align-items: center; overflow: hidden;
+  width: var(--bw); height: var(--bh); margin-bottom: calc(var(--bd) - 6px);
+  padding: calc(var(--bw) * .07) calc(var(--bw) * .05) 0; text-decoration: none; color: #1a1a1a;
+  background: #fff; border-top: calc(var(--bw) * .04) solid var(--fc);
+  box-shadow: 0 1px 1px rgba(0, 0, 0, .3), 4px 5px 8px rgba(40, 20, 0, .45);
   transition: transform .12s ease;
 }
-.book img { display: block; width: 100%; height: auto; }
+.bk-top { align-self: flex-start; display: flex; }
+.bk-top img { width: calc(var(--bw) * .13); height: auto; }
+.bk-top span { display: none; }
+.bk-title {
+  margin: calc(var(--bw) * .09) 0 calc(var(--bw) * .08); width: 100%;
+  font-size: calc(var(--bw) * .128); font-weight: 800; line-height: 1.12; text-align: center;
+  hyphens: manual; -webkit-hyphens: manual; overflow-wrap: break-word;
+}
+.bk-img { display: block; width: 100%; height: auto; }
 .book::after {   /* Buchrücken links */
   content: ""; position: absolute; inset: 0; pointer-events: none;
   background: linear-gradient(90deg, rgba(0, 0, 0, .22) 0, rgba(255, 255, 255, .45) 3px, rgba(0, 0, 0, .10) 6px, transparent 11px);
@@ -119,16 +130,9 @@ main.wood { flex: 1; width: 100%; max-width: 1120px; margin: 0 auto; padding: 18
 }
 .open .ic { width: 30px; height: 30px; }
 .open:active { transform: translateY(1px); box-shadow: inset 0 2px 4px rgba(0, 0, 0, .3); }
-.size { margin: 10px 0 22px; font-size: 14px; color: #7a6145; }
-.how { border-top: 1px solid #e0cfae; padding-top: 14px; }
-.how-h { margin: 0 0 8px; font-size: 17px; font-weight: 800; }
-.how ol { list-style: none; margin: 0; padding: 0; counter-reset: s; }
-.how li { counter-increment: s; display: flex; align-items: center; gap: 12px; margin: 0 0 10px; font-size: 18px; line-height: 1.3; }
-.how li::before {
-  content: counter(s); flex: none; width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center;
-  background: var(--fcd); color: #fff; font-weight: 800; font-size: 16px;
-}
-.how li .ic { color: var(--fcd); width: 28px; height: 28px; }
+.size { margin: 10px 0 0; font-size: 14px; color: #7a6145; }
+.sum { margin: 0 0 22px; font-size: 19px; line-height: 1.45; }
+.sum i { font-style: normal; font-weight: 700; }
 
 /* ---------- Fußzeile ---------- */
 .foot {
@@ -140,9 +144,7 @@ main.wood { flex: 1; width: 100%; max-width: 1120px; margin: 0 auto; padding: 18
 
 /* ---------- schmal (Handy) ---------- */
 @media (max-width: 640px) {
-  .bar-in { grid-template-columns: auto 1fr; }
-  .bar h1 { text-align: right; font-size: 19px; }
-  .bar-r { display: none; }
+  .bar h1 { font-size: 19px; }
   .lc { display: none; }
   .brand { padding: 4px; }
   .btn { font-size: 14px; padding: 5px 10px 5px 2px; }
