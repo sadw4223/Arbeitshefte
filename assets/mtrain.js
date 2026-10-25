@@ -2893,31 +2893,18 @@
   };
 
   // ------------------------------------------------------------ Einmaleins (Kapitel 7): Kopfrechnen mit dem Ziffernblock
-  // Tipp mit Kernaufgabe (1-mal, 2-mal, 5-mal, 10-mal), passend zum Merkkasten im Heft
-  function kern(a, b) {
-    var c = a * b;
-    if (a === 1) return 'Mal 1 bleibt die Zahl gleich: 1 · ' + b + ' = ' + b + '.';
-    if (a === 2) return 'Das Doppelte: ' + b + ' + ' + b + ' = ' + c + '.';
-    if (a === 5) return '10 · ' + b + ' = ' + 10 * b + '. Die Hälfte davon ist ' + c + '.';
-    if (a === 10) return 'Mal 10: Hänge eine 0 an. 10 · ' + b + ' = ' + c + '.';
-    if (a === 3) return 'Kernaufgabe: 2 · ' + b + ' = ' + 2 * b + '. Dazu noch 1 · ' + b + ': ' + 2 * b + ' + ' + b + ' = ' + c + '.';
-    if (a === 4) return 'Kernaufgabe: 2 · ' + b + ' = ' + 2 * b + '. Das Doppelte davon: ' + 2 * b + ' + ' + 2 * b + ' = ' + c + '.';
-    if (a === 6) return 'Kernaufgabe: 5 · ' + b + ' = ' + 5 * b + '. Dazu noch 1 · ' + b + ': ' + 5 * b + ' + ' + b + ' = ' + c + '.';
-    if (a === 7) return 'Kernaufgabe: 5 · ' + b + ' = ' + 5 * b + '. Dazu noch 2 · ' + b + ' = ' + 2 * b + ': ' + 5 * b + ' + ' + 2 * b + ' = ' + c + '.';
-    if (a === 8) return 'Kernaufgabe: 10 · ' + b + ' = ' + 10 * b + '. 2 · ' + b + ' weniger: ' + 10 * b + ' – ' + 2 * b + ' = ' + c + '.';
-    return 'Kernaufgabe: 10 · ' + b + ' = ' + 10 * b + '. 1 · ' + b + ' weniger: ' + 10 * b + ' – ' + b + ' = ' + c + '.';
-  }
   function eqIn(parts, ans) { return '<div class="card cmpq eqc">' + parts.map(function (p) { return '<span>' + (p === '?' ? nin(ans) : p) + '</span>'; }).join('') + '</div>'; }
   // Aufgaben ohne Tauschdoppel in einer Runde
   function pairsOf(list) { var o = []; list.forEach(function (a) { [2, 3, 4, 5, 6, 7, 8, 9].forEach(function (b) { o.push([a, b]); }); }); return shuffle(o); }
   GEN.tv1x1 = function () {
+    // einfach abfragen (Wiederholung): leichte und schwere Reihen gemischt, schwere etwas öfter
     var K = pairsOf([2, 5, 10]), H = pairsOf([3, 4, 6, 7, 8, 9]), out = [], used = {};
     function take(src) { while (src.length) { var p = src.pop(), k = Math.min(p[0], p[1]) + 'x' + Math.max(p[0], p[1]); if (!used[k]) { used[k] = 1; return p; } } return null; }
     var plan = shuffle(['k', 'k', 'k', 'h', 'h', 'h', 'h', 'h', 'h', 'h']);
     plan.forEach(function (t) {
       var p = take(t === 'k' ? K : H); if (!p) return;
       var a = p[0], b = p[1];
-      out.push({ kind: 'inp', head: S('Rechne im Kopf.'), body: eqIn([a, MP, b, '=', '?'], a * b), ans: a * b, why: S(a + ' · ' + b + ' = ' + a * b + '. ' + kern(a, b)) });
+      out.push({ kind: 'inp', head: S('Rechne im Kopf.'), body: eqIn([a, MP, b, '=', '?'], a * b), ans: a * b, why: S(a + ' · ' + b + ' = ' + a * b + '.') });
     });
     return out;
   };
@@ -2927,9 +2914,9 @@
     plan.forEach(function (t) {
       var p; do { p = H.pop(); } while (p && used[p[0] + 'x' + p[1]]); if (!p) return; used[p[0] + 'x' + p[1]] = 1;
       var x = p[0], b = p[1], c = x * b, it;
-      if (t === 'xb') it = { body: eqIn(['?', MP, b, '=', c], x), ans: x, why: 'Welche Zahl mal ' + b + ' ergibt ' + c + '? ' + x + ' · ' + b + ' = ' + c + '. Rechne auch: ' + c + ' : ' + b + ' = ' + x + '.' };
-      else if (t === 'ax') it = { body: eqIn([b, MP, '?', '=', c], x), ans: x, why: b + ' mal welche Zahl ergibt ' + c + '? ' + b + ' · ' + x + ' = ' + c + '. Rechne auch: ' + c + ' : ' + b + ' = ' + x + '.' };
-      else it = { body: eqIn([c, ':', b, '=', '?'], x), ans: x, why: 'Denke an die Malaufgabe: ' + x + ' · ' + b + ' = ' + c + '. Also ist ' + c + ' : ' + b + ' = ' + x + '.' };
+      if (t === 'xb') it = { body: eqIn(['?', MP, b, '=', c], x), ans: x, why: x + ' · ' + b + ' = ' + c + '.' };
+      else if (t === 'ax') it = { body: eqIn([b, MP, '?', '=', c], x), ans: x, why: b + ' · ' + x + ' = ' + c + '.' };
+      else it = { body: eqIn([c, ':', b, '=', '?'], x), ans: x, why: c + ' : ' + b + ' = ' + x + ', denn ' + x + ' · ' + b + ' = ' + c + '.' };
       it.kind = 'inp'; it.head = S(t === 'd' ? 'Rechne im Kopf.' : 'Welche Zahl fehlt?'); it.why = S(it.why);
       out.push(it);
     });
@@ -2991,8 +2978,8 @@
   TIP.tvprim = S('Eine Primzahl hat genau zwei Teiler: die 1 und sich selbst. Die 1 ist keine Primzahl.');
   TIP.tvkgv = S('Schreibe die Vielfachen beider Zahlen auf. Das kgV ist die kleinste Zahl, die in beiden Reihen vorkommt.');
   TIP.tvggt = S('Schreibe die Teiler beider Zahlen auf. Der ggT ist die größte Zahl, die in beiden Listen vorkommt.');
-  TIP.tv1x1 = S('Nimm eine Kernaufgabe mit 1, 2, 5 oder 10. Bei 6 · 7: 5 · 7 = 35, dazu noch 7. Das ist 42.');
-  TIP.tv1x1b = S('Denke an die Malaufgabe. 42 : 7: Welche Zahl mal 7 ergibt 42? 6 · 7 = 42. Also ist 42 : 7 = 6.');
+  TIP.tv1x1 = S('Sage die Einmaleinsreihe leise auf, bis du beim Ergebnis bist.');
+  TIP.tv1x1b = S('Denke an die Malaufgabe: 42 : 7 = 6, denn 6 · 7 = 42.');
 
   // ------------------------------------------------------------ Ablauf
   var set, i, ok, rep = false, wrongs = [], tipOpen = false;
