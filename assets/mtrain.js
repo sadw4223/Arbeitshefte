@@ -5,7 +5,8 @@
    linien, messen, senkpar, koord, symm, spiegeln, schatz (Grundlagen der Geometrie: auch Ziehen, Zuordnen, Verbinden und Antippen in der Zeichnung);
    ufrechteck, ufumfang, ufurechnen, ufflaeche, ufeinheiten, ufarechnen, ufunterschied, ufsach (Umfang und Flächeninhalt);
    grgeld, grlaengen, grlumrechnen, grlrechnen, grmassen, gruhr, grzeit, grsach (Größen);
-   tvviel, tvteiler, tvregeln, tvprim, tvkgv, tvggt, tv1x1, tv1x1b (Teiler und Vielfache, 6. Schuljahr; auch Mehrfachauswahl im Zahlenfeld).
+   tvviel, tvteiler, tvregeln, tvprim, tvkgv, tvggt, tv1x1, tv1x1b (Teiler und Vielfache, 6. Schuljahr; auch Mehrfachauswahl im Zahlenfeld);
+   brerkennen, brdarst, brzstrahl, brteile, brerw, brkurz (Brüche, 6. Schuljahr; Färben durch Antippen, Bruch mit zwei Eingabefeldern).
    Schreibweise wie im Heft. */
 (function () {
   var D = JSON.parse(document.getElementById('data').textContent), L = D.labels;
@@ -2923,8 +2924,1504 @@
     return out;
   };
 
+  // ============================================================ Brüche (6. Schuljahr): erkennen, darstellen, Zahlenstrahl, Bruchteile, Erweitern, Kürzen
+  // Schreibweise wie im Heft: Bruch mit Bruchstrich; Nenner bis 12, beim Erweitern bis 24; Erweiterungs- und Kürzungszahlen 2 bis 5;
+  // gekürzt wird nur mit vorgegebener Zahl. Färben: Teile antippen (kind 'paint').
+  var BFILL = '#a7c0de';
+  function FR(z, n, cls) { return '<span class="bru' + (cls ? ' ' + cls : '') + '"><span>' + z + '</span><span>' + n + '</span></span>'; }
+  function FX(z, n, show) {
+    return '<span class="brx">' + (show === 'z' ? '<span class="brg">' + z + '</span>' : nin(z)) + '<span class="brl"></span>' +
+      (show === 'n' ? '<span class="brg">' + n + '</span>' : nin(n)) + '</span>';
+  }
+  function FC(z, n) { return { v: z + '/' + n, h: FR(z, n) }; }
+  function fracChoices(z, n, wrong) {
+    var c = [[z, n]], seen = {}; seen[z + '/' + n] = 1;
+    wrong.forEach(function (w) { var k = w[0] + '/' + w[1]; if (w[0] > 0 && w[0] < w[1] && w[1] <= 24 && !seen[k] && c.length < 3) { seen[k] = 1; c.push(w); } });
+    var t = 1; while (c.length < 3) { var w2 = [z, n + t]; if (!seen[w2.join('/')]) { seen[w2.join('/')] = 1; c.push(w2); } t++; }
+    return shuffle(c.map(function (p) { return FC(p[0], p[1]); }));
+  }
+  function inSel(sel, i) { return sel.indexOf(i) >= 0; }
+  function bPart(d, i, sel, paint) {
+    return '<path' + (paint ? ' class="bp" data-k="' + i + '"' : '') + ' d="' + d + '" fill="' + (inSel(sel, i) ? BFILL : '#fff') + '" stroke="' + INK + '" stroke-width="3" stroke-linejoin="round"/>';
+  }
+  function bPie(n, sel, o) {
+    o = o || {}; var r = o.r || 80, c = r + 4, a = -90, s = '';
+    if (n === 1) s = '<circle' + (o.paint ? ' class="bp" data-k="0"' : '') + ' cx="' + c + '" cy="' + c + '" r="' + r + '" fill="' + (inSel(sel, 0) ? BFILL : '#fff') + '" stroke="' + INK + '" stroke-width="3"/>';
+    else for (var i = 0; i < n; i++) {
+      var d = o.ang ? o.ang[i] : 360 / n, a0 = a * Math.PI / 180, a1 = (a + d) * Math.PI / 180;
+      s += bPart('M' + c + ' ' + c + ' L' + f1(c + r * Math.cos(a0)) + ' ' + f1(c + r * Math.sin(a0)) + ' A' + r + ' ' + r + ' 0 ' + (d > 180 ? 1 : 0) + ' 1 ' +
+        f1(c + r * Math.cos(a1)) + ' ' + f1(c + r * Math.sin(a1)) + ' Z', i, sel, o.paint);
+      a += d;
+    }
+    return '<svg class="brf" viewBox="0 0 ' + 2 * c + ' ' + 2 * c + '" style="max-width:' + (o.mw || 2 * c) + 'px">' + s + '</svg>';
+  }
+  function bStrip(n, sel, o) {
+    o = o || {}; var w = o.w || 360, h = o.h || 70, x = 3, s = '';
+    for (var i = 0; i < n; i++) { var ww = (o.ws ? o.ws[i] : 1 / n) * w; s += bPart('M' + f1(x) + ' 3 h' + f1(ww) + ' v' + h + ' h' + f1(-ww) + ' Z', i, sel, o.paint); x += ww; }
+    if (o.fine) for (var j = 1; j < n * o.fine; j++) if (j % o.fine) { var xx = 3 + w * j / (n * o.fine); s += '<line x1="' + f1(xx) + '" y1="3" x2="' + f1(xx) + '" y2="' + (h + 3) + '" stroke="' + INK + '" stroke-width="2.5" stroke-dasharray="8 6"/>'; }
+    if (o.coarse) {
+      for (var k = o.coarse; k < n; k += o.coarse) { var xc = 3 + w * k / n; s += '<line x1="' + f1(xc) + '" y1="2" x2="' + f1(xc) + '" y2="' + (h + 4) + '" stroke="' + INK + '" stroke-width="8"/>'; }
+      s += '<rect x="3" y="3" width="' + w + '" height="' + h + '" fill="none" stroke="' + INK + '" stroke-width="7"/>';
+    }
+    return '<svg class="brf" viewBox="0 0 ' + (w + 6) + ' ' + (h + 6) + '" style="max-width:' + (o.mw || w + 6) + 'px">' + s + '</svg>';
+  }
+  function bGrid(r, c, sel, o) {
+    o = o || {}; var q = o.s || 56, s = '';
+    for (var y = 0; y < r; y++) for (var x = 0; x < c; x++) s += bPart('M' + (3 + x * q) + ' ' + (3 + y * q) + ' h' + q + ' v' + q + ' h' + (-q) + ' Z', y * c + x, sel, o.paint);
+    return '<svg class="brf" viewBox="0 0 ' + (c * q + 6) + ' ' + (r * q + 6) + '" style="max-width:' + (o.mw || c * q + 6) + 'px">' + s + '</svg>';
+  }
+  var BGR = { 4: [2, 2], 6: [2, 3], 8: [2, 4], 9: [3, 3], 10: [2, 5], 12: [3, 4] };
+  function bKind(n) { var k = ['p', 's']; if (BGR[n]) k.push('g'); if (n > 10) k = BGR[n] ? ['s', 'g'] : ['s']; return one(k); }
+  function bFig(n, sel, kind, o) {
+    o = o || {};
+    if (kind === 'g' && BGR[n]) return bGrid(BGR[n][0], BGR[n][1], sel, o);
+    if (kind === 's') return bStrip(n, sel, o);
+    return bPie(n, sel, o);
+  }
+  function firstK(k) { var a = []; for (var i = 0; i < k; i++) a.push(i); return a; }
+  function figCard(svg, cls) { return '<div class="card brfc' + (cls ? ' ' + cls : '') + '">' + svg + '</div>'; }
+  var NAMEN = { 2: 'Halbe', 3: 'Drittel', 4: 'Viertel', 5: 'Fünftel', 6: 'Sechstel', 7: 'Siebtel', 8: 'Achtel', 9: 'Neuntel', 10: 'Zehntel', 11: 'Elftel', 12: 'Zwölftel' };
+  var ZWB = ['', 'ein', 'zwei', 'drei', 'vier', 'fünf', 'sechs', 'sieben', 'acht', 'neun', 'zehn', 'elf', 'zwölf'];
+  function bName(z, n) { return z === 1 ? (n === 2 ? 'ein Halb' : 'ein ' + NAMEN[n]) : ZWB[z] + ' ' + NAMEN[n]; }
+  function bFrac(maxN, minN) { var n = R(minN || 2, maxN || 12), z = R(1, n - 1); return [z, n]; }
+  // Bögen über und unter dem Gleichheitszeichen (Erweitern, Kürzen); lab: Zahl oder Eingabefeld
+  var ARC_T = '<svg class="bga2" viewBox="0 0 64 20"><path d="M5 18 Q32 -6 55 13" fill="none" stroke="' + INK + '" stroke-width="2.6"/><path d="M60 17 l-11 -2.5 l6.5 -7z" fill="' + INK + '"/></svg>';
+  var ARC_B = '<svg class="bga2" viewBox="0 0 64 20"><path d="M5 2 Q32 26 55 7" fill="none" stroke="' + INK + '" stroke-width="2.6"/><path d="M60 3 l-11 2.5 l6.5 7z" fill="' + INK + '"/></svg>';
+  function BOG(op, f) {
+    var l = '<span class="bgl2">' + op + ' ' + f + '</span>';
+    return '<span class="bgm2"><span class="bgt2">' + l + ARC_T + '</span><span class="bge2">=</span><span class="bgb2">' + ARC_B + l + '</span></span>';
+  }
+  function ewCard(inner) { return '<div class="card ewq2">' + inner + '</div>'; }
+  // Pfeilbild: Ganzes —: Nenner→ ein Teil —· Zähler→ Bruchteil
+  function PA(lab) { return '<span class="pfa2"><span class="pfo2">' + lab + '</span><svg viewBox="0 0 70 14"><line x1="2" y1="7" x2="58" y2="7" stroke="' + INK + '" stroke-width="3"/><path d="M68 7 l-12 -6 v12z" fill="' + INK + '"/></svg></span>'; }
+  function PFK(x, n, z, a, b, u) {
+    u = u ? '<span class="pfu2">' + u + '</span>' : '';
+    return '<div class="card pfk2"><span>' + fmt(x) + u + '</span>' + PA(': ' + n) + '<span>' + a + u + '</span>' + PA(MP + ' ' + z) + '<span>' + b + u + '</span></div>';
+  }
+  // Zahlenstrahl mit Brüchen (0 bis units, jede Einheit in n Teile)
+  function sFr(x, y, z, n, sz, col) {
+    col = col || INK;
+    return '<text x="' + f1(x) + '" y="' + f1(y - 5) + '" font-size="' + sz + '" font-weight="700" fill="' + col + '" text-anchor="middle">' + z + '</text>' +
+      '<line x1="' + f1(x - sz * .5) + '" y1="' + y + '" x2="' + f1(x + sz * .5) + '" y2="' + y + '" stroke="' + col + '" stroke-width="2.5"/>' +
+      '<text x="' + f1(x) + '" y="' + f1(y + sz * .88) + '" font-size="' + sz + '" font-weight="700" fill="' + col + '" text-anchor="middle">' + n + '</text>';
+  }
+  function bAxis(n, o, y) {
+    var u = o.units || 1, N = n * u, x0 = 60, x1 = 620, s = '';
+    function X(k) { return x0 + (x1 - x0) * k / N; }
+    s += '<line x1="' + (x0 - 30) + '" y1="' + y + '" x2="' + (x1 + 38) + '" y2="' + y + '" stroke="' + INK + '" stroke-width="3"/><path d="M' + (x1 + 50) + ' ' + y + ' l-18 -9 v18z" fill="' + INK + '"/>';
+    for (var k = 0; k <= N; k++) {
+      var wh = k % n === 0, e = wh ? 16 : 11;
+      var tick = '<line x1="' + f1(X(k)) + '" y1="' + (y - e) + '" x2="' + f1(X(k)) + '" y2="' + (y + e) + '" stroke="' + INK + '" stroke-width="' + (wh ? 3 : 2.5) + '"/>';
+      if (o.tap && !wh) { var w = (x1 - x0) / N; s += '<g class="tp" data-v="' + k + '"><rect x="' + f1(X(k) - w / 2) + '" y="' + (y - 60) + '" width="' + f1(w) + '" height="120" fill="transparent"/>' + tick + '</g>'; }
+      else s += tick;
+      if (wh) s += '<text x="' + f1(X(k)) + '" y="' + (y + 44) + '" font-size="26" font-weight="700" fill="' + INK + '" text-anchor="middle">' + (k / n) + '</text>';
+    }
+    (o.labs || []).forEach(function (k) { if (k % n) s += sFr(X(k), y + 40, k, n, 22, o.hl === k ? AC : INK); });
+    if (o.arrow !== undefined) {
+      var xa = f1(X(o.arrow));
+      s += '<line x1="' + xa + '" y1="' + (y - 64) + '" x2="' + xa + '" y2="' + (y - 30) + '" stroke="' + AC + '" stroke-width="5" stroke-linecap="round"/><path d="M' + xa + ' ' + (y - 18) + ' l-10 -16 h20z" fill="' + AC + '"/>';
+      s += '<text x="' + xa + '" y="' + (y - 72) + '" font-size="30" font-weight="800" fill="' + AC + '" text-anchor="middle">?</text>';
+    }
+    if (o.res) Object.keys(o.res).forEach(function (k) {
+      var c = o.res[k] === 'ok' ? OKC : NOC; s += '<circle cx="' + f1(X(+k)) + '" cy="' + y + '" r="12" fill="' + c + '"/>';
+      if (o.res[k] === 'ok') s += '<rect x="' + f1(X(+k) - 22) + '" y="' + (y + 18) + '" width="44" height="52" fill="#fff"/>' + sFr(X(+k), y + 40, k, n, 22, OKC);
+    });
+    if (o.dot !== undefined) s += '<circle cx="' + f1(X(o.dot)) + '" cy="' + y + '" r="12" fill="' + (o.dotCol || AC) + '"/>';
+    return s;
+  }
+  function bLine(n, o) { o = o || {}; var y = o.arrow !== undefined ? 100 : 70, H = y + 80; return '<svg class="rl" viewBox="0 0 700 ' + H + '">' + bAxis(n, o, y) + '</svg>'; }
+  function bStory(t) { return '<div class="card story">' + t + '</div>'; }
+  function TF(t) {   // Text mit [z/n] in Silbenschrift, Brüche mit Bruchstrich
+    return String(t).split(/(\[\d+\/\d+\])/).map(function (p) { var m = /^\[(\d+)\/(\d+)\]$/.exec(p); return m ? FR(m[1], m[2]) : S(p); }).join('');
+  }
+
+  // Kind „paint“: Teile einer Figur antippen (färben), dann prüfen; es zählt nur die Anzahl
+  function paintTask(it) {
+    var sel = [], fin = false;
+    function draw() {
+      app.innerHTML = head(it) + (it.body || '') + '<div class="card brpw' + (fin ? '' : ' tapk') + '" id="pw">' + it.fig(sel) + '</div>' +
+        '<button class="btn pri gok" id="gok" type="button"' + (fin || !sel.length ? ' disabled' : '') + '>' + L.icOk + '<span>' + L.check + '</span></button><div id="fb"></div>';
+      if (fin) return;
+      [].slice.call(app.querySelectorAll('.bp')).forEach(function (p) {
+        p.addEventListener('click', function () { var k = +p.getAttribute('data-k'), j = sel.indexOf(k); if (j >= 0) sel.splice(j, 1); else sel.push(k); draw(); });
+      });
+      document.getElementById('gok').onclick = check;
+    }
+    function check() {
+      fin = true; var good = sel.length === it.need; draw();
+      document.getElementById('pw').classList.add(good ? 'iok' : 'ino');
+      feedback(good, (good ? '' : S('Du hast ' + sel.length + ' Teile gefärbt. ')) + it.why);
+    }
+    it.auto = function (good) { sel = firstK(good ? it.need : (it.need < it.n ? it.need + 1 : it.need - 1)); check(); };
+    draw(); top();
+  }
+
+  GEN.brerkennen = function () {
+    var plan = shuffle(['mc', 'in', 'mc', 'in', 'w', 'w2', 'g', 'mc', 'in', 'g']);
+    return plan.map(function (t) {
+      var f = bFrac(12), z = f[0], n = f[1], kind = bKind(n), sel = Math.random() < .3 && kind === 'g' ? shuffle(firstK(n)).slice(0, z) : firstK(z);
+      var why = S(z + ' von ' + n + ' gleich großen Teilen sind gefärbt: ') + FR(z, n) + '.';
+      if (t === 'mc') return { head: S('Welcher Anteil ist gefärbt?'), body: figCard(bFig(n, sel, kind)), choices: fracChoices(z, n, [[n - z, n], [z, n - z], [z, n + 1]]), ans: z + '/' + n, cols: 3, why: why };
+      if (t === 'in') return { kind: 'inp', head: S('Welcher Anteil ist gefärbt? Trage Zähler und Nenner ein.'), body: figCard(bFig(n, sel, kind)) + '<div class="card cmpq">' + FX(z, n) + '</div>', ans: z + '/' + n, why: why };
+      if (t === 'w') return { head: S('Welcher Bruch ist das?'), body: '<div class="card cmpq sm">' + S(bName(z, n)) + '</div>', choices: fracChoices(z, n, [[n, z], [z, n + 1], [z + 1, n]]), ans: z + '/' + n, cols: 3,
+        why: S(bName(z, n) + ': Das erste Wort ist der Zähler, das zweite der Nenner: ') + FR(z, n) + '.' };
+      if (t === 'w2') {
+        var ws = [bName(z, n)]; [[z, n + 1], [z + 1, n], [z - 1, n], [z, n - 1]].forEach(function (p) { if (p[0] >= 1 && p[0] < p[1] && p[1] <= 12) ws.push(bName(p[0], p[1])); });
+        ws = uniq(ws).slice(0, 3);
+        return { head: S('Wie liest man den Bruch?'), body: '<div class="card cmpq">' + FR(z, n) + '</div>', choices: shuffle(ws.map(function (w) { return { v: w, h: S(w) }; })), ans: bName(z, n), cols: 1,
+          why: S('Zähler ' + z + ', Nenner ' + n + ': ' + bName(z, n) + '.') };
+      }
+      // gleich große Teile?
+      var m = one([3, 4]), yes = Math.random() < .45, sp;
+      if (yes) sp = Math.random() < .5 ? bPie(m, [0]) : bStrip(m, [0]);
+      else if (m === 3) sp = Math.random() < .5 ? bPie(3, [one([0, 1])], { ang: [180, 90, 90] }) : bStrip(3, [one([0, 1, 2])], { ws: one([[.5, .25, .25], [.4, .35, .25]]) });
+      else sp = Math.random() < .5 ? bPie(4, [one([0, 2])], { ang: one([[120, 120, 60, 60], [180, 60, 60, 60]]) }) : bStrip(4, [one([0, 1])], { ws: one([[.4, .2, .2, .2], [.3, .3, .25, .15]]) });
+      return { head: S('Zeigt das Bild ') + FR(1, m) + S('?'), body: figCard(sp), choices: JN, cols: 2, ans: yes ? 'j' : 'n',
+        why: yes ? S('Alle ' + m + ' Teile sind gleich groß. 1 Teil ist gefärbt: ') + FR(1, m) + '.' : S('Die Teile sind nicht gleich groß. Darum ist das kein ' + NAMEN[m] + '.') };
+    });
+  };
+
+  GEN.brdarst = function () {
+    var plan = shuffle(['p', 'p', 'p', 'b', 'p', 'b', 'k', 'p', 'b', 'k']);
+    return plan.map(function (t) {
+      var f = bFrac(12), z = f[0], n = f[1], kind = bKind(n);
+      if (t === 'p') return { kind: 'paint', head: S('Färbe ') + FR(z, n) + S('. Tippe auf die Teile.'), n: n, need: z, ans: z + '/' + n + kind,
+        fig: function (sel) { return bFig(n, sel, kind, { paint: true, w: 600, h: 110, r: 150, s: 96 }); }, why: S('Der Nenner ist ' + n + ': ' + n + ' gleich große Teile. Der Zähler ist ' + z + ': Du färbst ' + z + ' Teile.') };
+      if (t === 'b') {
+        var good = bFig(n, firstK(z), kind, { mw: 220 }), w1 = bFig(n, firstK(z < n - 1 ? z + 1 : z - 1), kind, { mw: 220 }), w2;
+        if (n <= 5 && z < n) w2 = bStrip(n, firstK(z), { mw: 220, ws: n === 3 ? [.5, .25, .25] : n === 4 ? [.4, .2, .2, .2] : n === 2 ? [.65, .35] : [.3, .25, .15, .15, .15] });
+        else w2 = bFig(n + 1 <= 12 ? n + 1 : n - 1, firstK(z), bKind(n + 1 <= 12 ? n + 1 : n - 1), { mw: 220 });
+        return { head: S('Welches Bild zeigt ') + FR(z, n) + S('?'), choices: shuffle([{ v: 'a', h: good }, { v: 'b', h: w1 }, { v: 'c', h: w2 }]), ans: 'a', cols: 3, imgc: true,
+          why: S('Richtig ist das Bild mit ' + n + ' gleich großen Teilen und ' + z + ' gefärbten Teilen.') };
+      }
+      var nn = one([2, 3, 4, 6]), zz = R(1, nn - 1), per = 12 / nn;
+      return { kind: 'inp', head: S('Der Streifen hat 12 Kästchen. Wie viele Kästchen musst du für ') + FR(zz, nn) + S(' färben?'),
+        body: figCard(bGrid(1, 12, [], { s: 50 })) + '<div class="ninw">' + nin(per * zz) + '<span>' + S('Kästchen') + '</span></div>', ans: per * zz + 'k' + nn,
+        why: S('12 : ' + nn + ' = ' + per + '. Ein Teil sind ' + per + ' Kästchen. ' + per + ' · ' + zz + ' = ' + per * zz + '.') };
+    });
+  };
+
+  GEN.brzstrahl = function () {
+    var plan = shuffle(['r', 'r', 't', 't', 'c', 'c', 't', 'r', 'g', 'g']);
+    return plan.map(function (t) {
+      var n = one([2, 3, 4, 5, 6, 8, 10]), k = R(1, n - 1);
+      var why = S('Die Strecke von 0 bis 1 hat ' + n + ' gleich große Teile. Bis zum Strich sind es ' + k + ' Teile: ') + FR(k, n) + '.';
+      if (t === 'r') return { kind: 'inp', head: S('Welcher Bruch ist markiert? Trage Zähler und Nenner ein.'), body: '<div class="rlw">' + bLine(n, { arrow: k }) + '</div><div class="card cmpq">' + FX(k, n) + '</div>', ans: k + '/' + n, why: why };
+      if (t === 'c') {
+        var it = { head: S('Welcher Bruch ist markiert?'), body: '<div class="rlw" id="lw">' + bLine(n, { arrow: k }) + '</div>', choices: fracChoices(k, n, [[k, n + 1], [k + 1, n], [n - k, n]]), ans: k + '/' + n, cols: 3, why: why };
+        it.after = function () { var r = {}; r[k] = 'ok'; document.getElementById('lw').innerHTML = bLine(n, { res: r }); };
+        return it;
+      }
+      if (t === 't') {
+        var it2 = { kind: 'tap', head: S('Tippe auf ') + FR(k, n) + S('.'), body: '<div class="rlw tap" id="lw">' + bLine(n, { tap: true }) + '</div>', ans: k, why: why };
+        it2.after = function (good, got) { var r = {}; r[k] = 'ok'; if (!good) r[got] = 'no'; document.getElementById('lw').innerHTML = bLine(n, { res: r }); };
+        return it2;
+      }
+      // an derselben Stelle: oben ein Bruch, unten feinere Einteilung
+      var P = one([[2, 4], [2, 6], [3, 6], [4, 8], [2, 8], [3, 12], [4, 12], [5, 10], [2, 10]]), a = P[0], b = P[1], m = b / a, ka = R(1, a - 1), kb = ka * m;
+      var labsA = firstK(a + 1), labsB = firstK(b + 1);
+      var xk = f1(60 + 560 * ka / a);
+      var svg = '<svg class="rl" viewBox="0 0 700 260">' + bAxis(a, { labs: labsA, hl: ka }, 60) + bAxis(b, { labs: labsB.filter(function (x) { return x % b === 0; }) }, 180) +
+        '<line x1="' + xk + '" y1="126" x2="' + xk + '" y2="164" stroke="' + AC + '" stroke-width="3" stroke-dasharray="6 5"/></svg>';
+      return { head: S('Welcher Bruch auf dem unteren Zahlenstrahl liegt an derselben Stelle wie ') + FR(ka, a) + S('?'), body: '<div class="rlw">' + svg + '</div>',
+        choices: fracChoices(kb, b, [[ka, b], [kb + 1, b], [kb - 1, b]]), ans: kb + '/' + b, cols: 3, why: FR(ka, a) + ' = ' + FR(kb, b) + S('. Beide liegen an derselben Stelle.') };
+    });
+  };
+
+  var BUNITS = [['€', [20, 30, 40, 50, 60, 80, 100]], ['cm', [20, 30, 40, 60, 80, 100]], ['m', [12, 24, 36, 48, 60, 90]], ['kg', [10, 20, 30, 40, 50, 100]],
+    ['min', [60]], ['g', [100, 50, 40, 80]], ['km', [12, 15, 20, 24, 30]]];
+  function bPart2(xs) { var c = []; xs.forEach(function (x) { for (var n = 2; n <= 10; n++) if (x % n === 0 && x / n <= 50) c.push([x, n]); }); return one(c); }
+  GEN.brteile = function () {
+    var plan = shuffle(['pf', 'pf', 'mc', 'gr', 'pf', 'gr', 'mc', 's', 'pf', 's']);
+    var NAMES = ['Mia', 'Ben', 'Ayla', 'Jonas'];
+    return plan.map(function (t) {
+      var n = R(2, 10), per = R(2, 10), x = n * per; while (x > 100) { per--; x = n * per; }
+      var z = R(1, n - 1), res = per * z;
+      var why = S(fmt(x) + ' : ' + n + ' = ' + per + '. ' + per + ' · ' + z + ' = ' + res + '.');
+      if (t === 'pf') return { kind: 'inp', head: FR(z, n) + S(' von ' + fmt(x) + '. Rechne mit dem Pfeilbild.'), body: PFK(x, n, z, nin(per), nin(res)), ans: z + '/' + n + 'v' + x, why: why };
+      if (t === 'mc') return { head: S('Wie viel sind ') + FR(z, n) + S(' von ' + fmt(x) + '?'), choices: nums(three(res, [per, res + per, x - res, res - per])), ans: res, cols: 3, why: why };
+      if (t === 'gr') {
+        var U = one(BUNITS), p = bPart2(U[1]), xx = p[0], nn = p[1], zz = R(1, nn - 1), pp = xx / nn;
+        return { kind: 'inp', head: S('Wie viel sind ') + FR(zz, nn) + S(' von ' + fmt(xx) + ' ' + U[0] + '?'),
+          body: PFK(xx, nn, zz, nin(pp), nin(pp * zz), U[0]), ans: zz + '/' + nn + 'v' + xx + U[0], why: S(xx + ' ' + U[0] + ' : ' + nn + ' = ' + pp + ' ' + U[0] + '. ' + pp + ' ' + U[0] + ' · ' + zz + ' = ' + pp * zz + ' ' + U[0] + '.') };
+      }
+      var ti = R(0, 3), lim = [[12, 30], [12, 60], [12, 100], [20, 100]][ti]; for (var g = 0; g < 200 && (x < lim[0] || x > lim[1]); g++) { n = R(2, 10); per = R(2, 10); x = n * per; }
+      z = R(1, n - 1); res = per * z; why = S(fmt(x) + ' : ' + n + ' = ' + per + '. ' + per + ' · ' + z + ' = ' + res + '.');
+      var nm = one(NAMES), T = [
+        ['In der Klasse von ' + nm + ' sind ' + x + ' Kinder. [' + z + '/' + n + '] der Kinder spielen Fußball. Wie viele Kinder spielen Fußball?', 'Kinder'],
+        [nm + ' hat ' + x + ' Murmeln. [' + z + '/' + n + '] davon sind blau. Wie viele Murmeln sind blau?', 'Murmeln'],
+        ['Beim Schulfest gibt es ' + x + ' Becher Saft. [' + z + '/' + n + '] davon sind Apfelsaft. Wie viele Becher sind Apfelsaft?', 'Becher'],
+        [nm + ' liest ein Buch mit ' + x + ' Seiten. ' + (nm === 'Ben' || nm === 'Jonas' ? 'Er' : 'Sie') + ' hat schon [' + z + '/' + n + '] gelesen. Wie viele Seiten sind das?', 'Seiten']][ti];
+      return { kind: 'inp', head: S('Lies genau. Rechne.'), body: bStory(TF(T[0])) + '<div class="ninw">' + nin(res) + '<span>' + S(T[1]) + '</span></div>', ans: z + '/' + n + 'v' + x + T[1], why: why };
+    });
+  };
+
+  function bEw() { for (;;) { var n = R(2, 12), z = R(1, n - 1), f = R(2, 5); if (n * f <= 24) return [z, n, f]; } }
+  GEN.brerw = function () {
+    var plan = shuffle(['ew', 'ew', 'mit', 'auf', 'ew', 'bild', 'auf', 'gl', 'mit', 'ew']);
+    return plan.map(function (t) {
+      var e = bEw(), z = e[0], n = e[1], f = e[2], Z = z * f, N = n * f;
+      var why = S(z + ' · ' + f + ' = ' + Z + ' und ' + n + ' · ' + f + ' = ' + N + '. Also ') + FR(z, n) + ' = ' + FR(Z, N) + '.';
+      if (t === 'ew') return { kind: 'inp', head: S('Erweitere mit ' + f + '.'), body: ewCard(FR(z, n) + BOG(MP, f) + FX(Z, N)), ans: z + '/' + n + 'e' + f, why: why };
+      if (t === 'mit') return { head: S('Mit welcher Zahl wurde erweitert?'), body: ewCard(FR(z, n) + BOG(MP, '?') + FR(Z, N)), choices: nums(three(f, [f + 1, f - 1, N - n].filter(function (v) { return v >= 2; }))), ans: f, cols: 3,
+        why: S(n + ' · ' + f + ' = ' + N + '. Es wurde mit ' + f + ' erweitert.') };
+      if (t === 'auf') return { kind: 'inp', head: S('Erweitere auf den Nenner ' + N + '. Trage den Zähler ein.'), body: ewCard(FR(z, n) + BOG(MP, '?') + FX(Z, N, 'n')), ans: z + '/' + n + 'a' + N,
+        why: S(n + ' · ' + f + ' = ' + N + '. Also auch ' + z + ' · ' + f + ' = ' + Z + '.') };
+      if (t === 'bild') {
+        var ee; do { ee = bEw(); } while (ee[1] > 6 || ee[2] > 3); z = ee[0]; n = ee[1]; f = ee[2]; Z = z * f; N = n * f;
+        return { head: S('Jedes Teil wird in ' + f + ' Teile geteilt. Welcher Bruch ist gleich?'), body: figCard(bStrip(n, firstK(z), { fine: f, w: 420 })) + '<div class="card cmpq">' + FR(z, n) + ' = ?</div>',
+          choices: fracChoices(Z, N, [[z, N], [Z, n * f + f], [Z + 1, N]]), ans: Z + '/' + N, cols: 3, why: S('Jetzt sind es ' + N + ' kleine Teile. ' + Z + ' davon sind gefärbt: ') + FR(Z, N) + '.' };
+      }
+      // gleichwertig?
+      var yes = Math.random() < .5, c = yes ? [Z, N] : one([[z + f, n + f], [Z, N + 1], [Z, n]]);
+      if (!yes && c[0] * n === z * c[1]) c = [Z + 1, N];
+      return { head: S('Sind die Brüche gleichwertig?'), body: '<div class="card cmpq">' + FR(z, n) + ' = ' + FR(c[0], c[1]) + '</div>', choices: JN, cols: 2, ans: yes ? 'j' : 'n',
+        why: yes ? why : S('Erweitern heißt: Zähler und Nenner mal dieselbe Zahl. Das passt hier nicht.') };
+    });
+  };
+
+  function bKz() { for (;;) { var b = R(2, 12), a = R(1, b - 1), f = R(2, 5); if (b * f <= 24 && gcd2(a, b) === 1) return [a, b, f]; } }
+  function gcd2(a, b) { while (b) { var t = a % b; a = b; b = t; } return a; }
+  GEN.brkurz = function () {
+    var plan = shuffle(['kz', 'kz', 'mia', 'eog', 'kz', 'bild', 'mia', 'eog', 'kz', 'bild']);
+    return plan.map(function (t) {
+      var k = bKz(), a = k[0], b = k[1], f = k[2], A = a * f, Bn = b * f;
+      var why = S(A + ' : ' + f + ' = ' + a + ' und ' + Bn + ' : ' + f + ' = ' + b + '. Also ') + FR(A, Bn) + ' = ' + FR(a, b) + '.';
+      if (t === 'kz') return { kind: 'inp', head: S('Kürze mit ' + f + '.'), body: ewCard(FR(A, Bn) + BOG(':', f) + FX(a, b)), ans: A + '/' + Bn + 'k' + f, why: why };
+      if (t === 'mia') {
+        var yes = Math.random() < .5, c = yes ? [a, b] : one([[a, Bn], [A, b], [a, b + 1], [a + 1, b]]);
+        var who = one(['Mia', 'Ben', 'Ayla', 'Jonas']);
+        return { head: S(who + ' hat gekürzt. Stimmt das?'), body: ewCard(FR(A, Bn) + BOG(':', f) + FR(c[0], c[1])), choices: JN, cols: 2, ans: yes ? 'j' : 'n', why: why };
+      }
+      if (t === 'eog') {
+        var up = Math.random() < .5, L1 = up ? [a, b] : [A, Bn], L2 = up ? [A, Bn] : [a, b];
+        return { head: S('Wurde erweitert oder gekürzt?'), body: '<div class="card cmpq">' + FR(L1[0], L1[1]) + ' = ' + FR(L2[0], L2[1]) + '</div>',
+          choices: [{ v: 'e', h: S('erweitert') }, { v: 'k', h: S('gekürzt') }], cols: 2, ans: up ? 'e' : 'k',
+          why: S(up ? 'Die Zahlen werden größer: Es wurde mit ' + f + ' erweitert.' : 'Die Zahlen werden kleiner: Es wurde mit ' + f + ' gekürzt.') };
+      }
+      var kk; do { kk = bKz(); } while (kk[1] * kk[2] > 12); a = kk[0]; b = kk[1]; f = kk[2]; A = a * f; Bn = b * f;
+      return { head: S('Die dicken Linien fassen je ' + f + ' Teile zusammen. Welcher Bruch ist gleich?'), body: figCard(bStrip(Bn, firstK(A), { coarse: f, w: 420 })) + '<div class="card cmpq">' + FR(A, Bn) + ' = ?</div>',
+        choices: fracChoices(a, b, [[A, b], [a, Bn], [a + 1, b]]), ans: a + '/' + b, cols: 3, why: S('Jetzt sind es ' + b + ' große Teile. ' + a + ' davon sind gefärbt: ') + FR(a, b) + '.' };
+    });
+  };
+
+  // ============================================================ Dezimalzahlen (6. Schuljahr): Stellenwerte, Brüche, Zahlenstrahl, Vergleichen, Runden, Rechnen
+  // Höchstens 2 Nachkommastellen (Wunsch Dennis: passt zu Preisen). Zahlen intern in Hundertsteln (ganze Zahlen, keine Rundungsfehler).
+  // Eingabe wie im Heft: ein Kästchen je Ziffer, das Komma steht schon da (td.in, Reihenfolge von links).
+  function dzS(h, nd) {
+    var a = Math.floor(h / 100), b = h % 100;
+    if (nd === undefined) nd = b === 0 ? 0 : (b % 10 === 0 ? 1 : 2);
+    if (nd === 0) return fmt(a);
+    return fmt(a) + ',' + (nd === 1 ? String(Math.floor(b / 10)) : (b < 10 ? '0' : '') + b);
+  }
+  function dzH(s) { var p = String(s).split(','), b = (p[1] || '') + '00'; return (+p[0]) * 100 + (+b.slice(0, 2)); }
+  function dzR(maxE, nd) {   // zufällige Dezimalzahl (Hundertstel): Ganze 0 … maxE, nd Nachkommastellen, letzte Ziffer nicht 0
+    var a = R(0, maxE), b = nd === 1 ? R(1, 9) * 10 : R(1, 99);
+    if (nd === 2 && b % 10 === 0) b += R(1, 9);
+    return a * 100 + b;
+  }
+  function DK(s, st) {
+    var o = st || 0, h = '<table class="dkt"><tr>';
+    String(s).replace(/[\s ]/g, '').split('').forEach(function (c) { h += c === ',' ? '<td class="dkk">,</td>' : tdIn(c, o++); });
+    return h + '</tr></table>';
+  }
+  function dzQ(t, s, u) { return '<div class="card cmpq dzq">' + t + DK(s) + (u ? '<span class="dzu">' + u + '</span>' : '') + '</div>'; }
+  function dzC(v) { return { v: v, h: dzS(v) }; }
+  function dzThree(ans, wrong) {
+    var c = [ans];
+    wrong.forEach(function (w) { if (w >= 0 && c.indexOf(w) < 0 && c.length < 3) c.push(w); });
+    var k = 1; while (c.length < 3) { var z = ans + k * 10; if (c.indexOf(z) < 0) c.push(z); k++; }
+    return c.sort(function (a, b) { return a - b; }).map(dzC);
+  }
+  var DZW = ['null', 'eins', 'zwei', 'drei', 'vier', 'fünf', 'sechs', 'sieben', 'acht', 'neun', 'zehn', 'elf', 'zwölf'];
+  function dzWort(s) { var p = s.split(','); return DZW[+p[0]] + (p[1] ? ' Komma ' + p[1].split('').map(function (d) { return DZW[+d]; }).join(' ') : ''); }
+  function dzHi(s, idx) { var k = 0; return s.split('').map(function (c) { if (c === ',') return ','; var o = k === idx ? '<b class="dzh">' + c + '</b>' : c; k++; return o; }).join(''); }
+  function dzTab(s) {
+    var p = s.split(','), a = p[0], b = p[1] || '', cells = [a.length > 1 ? a[a.length - 2] : '', a[a.length - 1], b[0] || '', b[1] || ''];
+    return '<table class="stt dzt"><tr>' + ['Z', 'E', 'z', 'h'].map(function (k, j) { return '<th' + (j === 2 ? ' class="kc"' : '') + '>' + k + '</th>'; }).join('') + '</tr><tr>' +
+      cells.map(function (c, j) { return '<td' + (j === 2 ? ' class="kc"' : '') + '>' + c + '</td>'; }).join('') + '</tr></table>';
+  }
+  // Zahlenstrahl mit 10 Schritten ab lo (Hundertstel), Schritt st (10 = Zehntel, 1 = Hundertstel)
+  function dzAxis(lo, st, o, y) {
+    var x0 = 60, x1 = 620, s = '';
+    function X(k) { return x0 + (x1 - x0) * k / 10; }
+    s += '<line x1="' + (x0 - 30) + '" y1="' + y + '" x2="' + (x1 + 38) + '" y2="' + y + '" stroke="' + INK + '" stroke-width="3"/><path d="M' + (x1 + 50) + ' ' + y + ' l-18 -9 v18z" fill="' + INK + '"/>';
+    for (var k = 0; k <= 10; k++) {
+      var big = k % 5 === 0, e = big ? 16 : 11;
+      var tick = '<line x1="' + f1(X(k)) + '" y1="' + (y - e) + '" x2="' + f1(X(k)) + '" y2="' + (y + e) + '" stroke="' + INK + '" stroke-width="' + (big ? 3 : 2.5) + '"/>';
+      if (o.tap && k % 10) s += '<g class="tp" data-v="' + k + '"><rect x="' + f1(X(k) - 28) + '" y="' + (y - 60) + '" width="56" height="120" fill="transparent"/>' + tick + '</g>';
+      else s += tick;
+      if (big) s += '<text x="' + f1(X(k)) + '" y="' + (y + 44) + '" font-size="26" font-weight="700" fill="' + INK + '" text-anchor="middle">' + dzS(lo + k * st) + '</text>';
+    }
+    if (o.arrow !== undefined) {
+      var xa = f1(X(o.arrow));
+      s += '<line x1="' + xa + '" y1="' + (y - 64) + '" x2="' + xa + '" y2="' + (y - 30) + '" stroke="' + AC + '" stroke-width="5" stroke-linecap="round"/><path d="M' + xa + ' ' + (y - 18) + ' l-10 -16 h20z" fill="' + AC + '"/>';
+      s += '<text x="' + xa + '" y="' + (y - 72) + '" font-size="30" font-weight="800" fill="' + AC + '" text-anchor="middle">?</text>';
+    }
+    if (o.res) Object.keys(o.res).forEach(function (k) {
+      var c = o.res[k] === 'ok' ? OKC : NOC, xx = f1(X(+k));
+      s += '<circle cx="' + xx + '" cy="' + y + '" r="12" fill="' + c + '"/>';
+      if (o.res[k] === 'ok') s += '<rect x="' + (xx - 38) + '" y="' + (y + 20) + '" width="76" height="34" fill="#fff"/><text x="' + xx + '" y="' + (y + 44) + '" font-size="26" font-weight="800" fill="' + OKC + '" text-anchor="middle">' + dzS(lo + k * st) + '</text>';
+    });
+    return s;
+  }
+  function dzLine(lo, st, o) { o = o || {}; var y = o.arrow !== undefined ? 100 : 70, H = y + 80; return '<svg class="rl" viewBox="0 0 700 ' + H + '">' + dzAxis(lo, st, o, y) + '</svg>'; }
+  // Karo-Feld mit Komma-Linie (Z E z h): Komma unter Komma, fehlende Endnullen grau gedruckt; Ergebnis von rechts eintragen
+  function dzKaro(ns, op) {
+    var H = ns.map(dzH), res = op === '+' ? H[0] + H[1] : H[0] - H[1];
+    var h = '<table class="sgr dzk"><tr class="hd"><td class="o"></td>' + ['Z', 'E', 'z', 'h'].map(function (l, j) { return '<td' + (j === 2 ? ' class="kc"' : '') + '>' + l + '</td>'; }).join('') + '</tr>';
+    ns.forEach(function (s, r) {
+      var p = s.split(','), a = p[0], b = p[1] || '', cells = [a.length > 1 ? a[a.length - 2] : '', a[a.length - 1], b[0] || '0', b[1] || '0'], pad = [false, false, !b[0], !b[1]];
+      h += '<tr><td class="o">' + (r === 1 ? (op === '+' ? '+' : '–') : '') + '</td>' +
+        cells.map(function (c, j) { var cl = (j === 2 ? 'kc' : '') + (pad[j] ? ' pz' : ''); return '<td' + (cl ? ' class="' + cl.trim() + '"' : '') + '>' + c + '</td>'; }).join('') + '</tr>';
+    });
+    h += '<tr class="ue"><td class="o"></td>' + [0, 1, 2, 3].map(function (j) { return j < 3 ? tdFr(j === 2 ? 'kc' : '') : '<td></td>'; }).join('') + '</tr>';
+    var rs = String(res); while (rs.length < 3) rs = '0' + rs;
+    h += '<tr class="rs"><td class="o"></td>';
+    for (var k = 0; k < 4; k++) { var j = k - (4 - rs.length); h += j < 0 ? '<td class="nb"></td>' : tdIn(rs[j], rs.length - 1 - j, k === 2 ? 'kc' : ''); }
+    return h + '</tr></table>';
+  }
+  function dzKaroSol(ns, op) {   // Lösung: fertig ausgefüllt (ohne Eingabefelder)
+    return dzKaro(ns, op).replace(/<td class="in( kc)?" data-a="(\d)" data-o="\d+"><\/td>/g, function (m, kc, d) { return '<td class="rv' + (kc || '') + '">' + d + '</td>'; }).replace(/<td class="fr( kc)?"><\/td>/g, '<td class="$1"></td>');
+  }
+  var DZN = ['Mia', 'Ben', 'Ayla', 'Jonas'];
+  var TDZA = S('Komma unter Komma. Beginne rechts bei den Hundertsteln. Ist eine Summe größer als 9, schreibe den Übertrag klein in die graue Zeile.');
+  var TDZS = S('Komma unter Komma. Beginne rechts bei den Hundertsteln. Ergänze von unten nach oben. Musst du über 10 ergänzen, schreibe den Übertrag 1 klein in die graue Zeile.');
+  function dzSie(n) { return n === 'Ben' || n === 'Jonas' ? 'er' : 'sie'; }
+
+  GEN.dzstw = function () {
+    var plan = shuffle(['w', 'w', 't', 't', 'z', 'z', 'g', 'w', 't', 'z']);
+    var NM = ['Zehner', 'Einer', 'Zehntel', 'Hundertstel'];
+    return plan.map(function (t) {
+      var nd = one([1, 2, 2]), h = dzR(t === 'z' ? 12 : 29, nd), s = dzS(h, nd);
+      if (t === 'w') {
+        var digs = s.replace(',', ''), ni = s.split(',')[0].length, idx = R(h < 100 ? 1 : 0, digs.length - 1), pos = idx - ni;
+        var name = pos === -2 ? 'Zehner' : pos === -1 ? 'Einer' : pos === 0 ? 'Zehntel' : 'Hundertstel';
+        return { head: S('Welchen Wert hat die blaue Ziffer?'), body: '<div class="card cmpq"><span>' + dzHi(s, idx) + '</span></div>', choices: NM.map(function (n) { return { v: n, h: S(n) }; }), ans: name, cols: 2,
+          why: S(pos < 0 ? 'Die Ziffer steht vor dem Komma bei den ' + name + 'n.' : (pos === 0 ? 'Die erste Ziffer nach dem Komma sind die Zehntel.' : 'Die zweite Ziffer nach dem Komma sind die Hundertstel.')) };
+      }
+      if (t === 't') return { kind: 'inp', head: S('Welche Zahl steht in der Stellenwerttafel? Trage sie ein.'), body: '<div class="card dztw">' + dzTab(s) + '</div>' + dzQ('', s), ans: 't' + s,
+        why: S('Das Komma steht zwischen E und z: ') + s + '.' };
+      if (t === 'z') return { kind: 'inp', head: S('Schreibe die Zahl.'), body: '<div class="card cmpq sm">' + S(dzWort(s)) + '</div>' + dzQ('', s), ans: 'w' + s,
+        why: S(dzWort(s) + ' ist ') + s + S('. Nach dem Komma liest man jede Ziffer einzeln.') };
+      var a = R(0, 9), d = R(1, 9), yes = Math.random() < .5, x = a + ',' + d, y = yes ? a + ',' + d + '0' : a + ',0' + d;
+      if (Math.random() < .5) { var tt = x; x = y; y = tt; }
+      return { head: S('Sind die Zahlen gleich groß?'), body: '<div class="card cmpq">' + x + ' <span class="dzv">' + S('und') + '</span> ' + y + '</div>', choices: JN, cols: 2, ans: yes ? 'j' : 'n',
+        why: yes ? S('Eine Null am Ende nach dem Komma ändert den Wert nicht.') : S('Eine Null direkt nach dem Komma ändert den Wert: Aus Zehnteln werden Hundertstel.') };
+    });
+  };
+
+  GEN.dzbr = function () {
+    var plan = shuffle(['bd', 'bd', 'db', 'db', 'hv', 'hv', 'fg', 'fg', 'bd', 'db']);
+    var HV = [[1, 2, 50, 5, 10], [1, 4, 25, 25, 100], [3, 4, 75, 25, 100], [1, 5, 20, 2, 10], [2, 5, 40, 2, 10], [3, 5, 60, 2, 10], [4, 5, 80, 2, 10]];
+    return plan.map(function (t) {
+      var n = one([10, 100, 100]), z = n === 10 ? R(1, 9) : R(1, 99); if (n === 100 && z % 10 === 0) z += R(1, 9);
+      var s = dzS(n === 10 ? z * 10 : z);
+      var why = FR(z, n) + ' = ' + s + S(n === 10 ? '. Zehntel: 1 Stelle nach dem Komma.' : '. Hundertstel: 2 Stellen nach dem Komma.');
+      if (t === 'bd') return { kind: 'inp', head: S('Schreibe als Dezimalzahl.'), body: dzQ(FR(z, n) + ' = ', s), ans: 'b' + z + '/' + n, why: why };
+      if (t === 'db') return { kind: 'inp', head: S('Schreibe als Bruch. Trage Zähler und Nenner ein.'), body: '<div class="card cmpq">' + s + ' = ' + FX(z, n) + '</div>', ans: 'd' + s, why: why };
+      if (t === 'hv') {
+        var q = one(HV);
+        return { head: S('Welche Dezimalzahl ist ') + FR(q[0], q[1]) + S('?'), body: '<div class="card cmpq">' + FR(q[0], q[1]) + ' = ?</div>',
+          choices: dzThree(q[2], [q[0] * 100 + q[1] * 10, q[0] * 10 + q[1]]), ans: q[2], cols: 3,
+          why: S('Erweitere mit ' + q[3] + ': ') + FR(q[0], q[1]) + ' = ' + FR(q[0] * q[3], q[1] * q[3]) + ' = ' + dzS(q[2]) + '.' };
+      }
+      var hund = Math.random() < .6, k = hund ? R(11, 89) : R(1, 9); if (hund && k % 10 === 0) k += R(1, 9);
+      var hs = hund ? k : k * 10;
+      var fig = hund ? bGrid(10, 10, firstK(k), { s: 24, mw: 250 }) : bStrip(10, firstK(k), { w: 420 });
+      return { kind: 'inp', head: S('Wie viel ist gefärbt? Schreibe als Dezimalzahl.'), body: figCard(fig) + dzQ('', dzS(hs)), ans: 'f' + hs + (hund ? 'g' : 's'),
+        why: S(hund ? k + ' von 100 Kästchen sind gefärbt: ' : k + ' von 10 Teilen sind gefärbt: ') + FR(k, hund ? 100 : 10) + ' = ' + dzS(hs) + '.' };
+    });
+  };
+
+  GEN.dzzs = function () {
+    var plan = shuffle(['r', 'r', 't', 't', 'c', 'r', 't', 'c', 'r', 't']);
+    return plan.map(function (t) {
+      var fine = Math.random() < .4, st = fine ? 1 : 10, lo = fine ? R(0, 59) * 10 : R(0, 9) * 100, k = one([1, 2, 3, 4, 6, 7, 8, 9]), v = lo + k * st, s = dzS(v);
+      var why = S('Ein Schritt ist ' + (fine ? '1 Hundertstel' : '1 Zehntel') + '. Von ' + dzS(lo) + ' aus sind es ' + k + ' Schritte: ') + s + '.';
+      if (t === 'r') return { kind: 'inp', head: S('Welche Zahl zeigt der Pfeil? Trage sie ein.'), body: '<div class="rlw">' + dzLine(lo, st, { arrow: k }) + '</div>' + dzQ('', s), ans: 'r' + v + 's' + st, why: why };
+      if (t === 'c') {
+        var it = { head: S('Welche Zahl zeigt der Pfeil?'), body: '<div class="rlw" id="lw">' + dzLine(lo, st, { arrow: k }) + '</div>',
+          choices: dzThree(v, [fine ? lo + k * 10 : lo + k, v + st, v - st]), ans: v, cols: 3, why: why };
+        it.after = function () { var r = {}; r[k] = 'ok'; document.getElementById('lw').innerHTML = dzLine(lo, st, { res: r }); };
+        return it;
+      }
+      var it2 = { kind: 'tap', head: S('Tippe auf ') + s + '.', body: '<div class="rlw tap" id="lw">' + dzLine(lo, st, { tap: true }) + '</div>', ans: k, why: why };
+      it2.after = function (good, got) { var r = {}; r[k] = 'ok'; if (!good) r[got] = 'no'; document.getElementById('lw').innerHTML = dzLine(lo, st, { res: r }); };
+      return it2;
+    });
+  };
+
+  var DZCMP = [{ v: 'k', h: '&#60;' }, { v: 'g', h: '&#62;' }, { v: 'e', h: '=' }];
+  function dzPair() {
+    var I = R(0, 9) * 100, t = one(['len', 'len', 'z', 'h', 'eq']), a, b;
+    if (t === 'len') { a = I + R(2, 9) * 10; do { b = I + R(11, 99); } while (b % 10 === 0 || Math.floor(b / 10) * 10 === a); }   // 0,8 und 0,75
+    else if (t === 'z') { a = I + R(1, 9) * 10; do { b = I + R(1, 9) * 10; } while (b === a); }
+    else if (t === 'h') { a = I + R(1, 9); b = I + R(1, 9) * 10; }                                                                  // 0,07 und 0,7
+    else { a = I + R(1, 9) * 10; b = a; }
+    if (Math.random() < .5) { var x = a; a = b; b = x; }
+    var sa = dzS(a), sb = t === 'eq' ? dzS(b, 2) : dzS(b);
+    return [a, b, sa, sb];
+  }
+  GEN.dzvgl = function () {
+    var plan = shuffle(['s', 's', 's', 'b', 'b', 'o', 'o', 'z', 's', 'o']);
+    return plan.map(function (t) {
+      if (t === 's') {
+        var p = dzPair(), a = p[0], b = p[1], sg = a < b ? 'k' : a > b ? 'g' : 'e';
+        return { head: S('Setze das richtige Zeichen ein.'), body: '<div class="card cmpq">' + p[2] + ' <b class="qb">?</b> ' + p[3] + '</div>', choices: DZCMP, cols: 3, ans: sg,
+          why: S('Hänge Nullen an: ') + dzS(a, 2) + S(' und ') + dzS(b, 2) + '. ' + dzS(a) + ' ' + (sg === 'k' ? '&#60;' : sg === 'g' ? '&#62;' : '=') + ' ' + dzS(b) + '.' };
+      }
+      if (t === 'b') {
+        var q = dzPair(); while (q[0] === q[1]) q = dzPair();
+        var big = Math.max(q[0], q[1]);
+        return { head: S('Welche Zahl ist größer?'), choices: shuffle([dzC(q[0]), dzC(q[1])]), ans: big, cols: 2,
+          why: S('Hänge Nullen an: ') + dzS(q[0], 2) + S(' und ') + dzS(q[1], 2) + S('. Größer ist ') + dzS(big) + '.' };
+      }
+      if (t === 'o') {
+        var I = R(0, 5) * 100, d = R(1, 8), c = uniq([I + d * 10, I + d, I + d * 10 + d, I + (d + 1) * 10 + (d === 1 ? 2 : 1), I + d * 11 + 10]).slice(0, 4);
+        c = shuffle(c); var lab = c.map(function (v) { return dzS(v); }), idx = [0, 1, 2, 3], ans = idx.slice().sort(function (x, y) { return c[x] - c[y]; });
+        return { kind: 'order', head: S('Ordne die Zahlen. Beginne mit der kleinsten Zahl.'), nums: idx, lab: lab, ans: ans,
+          why: S('Vergleiche zuerst die Ganzen, dann die Zehntel, dann die Hundertstel: ') + ans.map(function (k) { return lab[k]; }).join(' &#60; ') + '.' };
+      }
+      var lo = R(0, 9) * 100 + R(1, 8) * 10, hi = lo + 10, m = lo + R(1, 9);
+      return { head: S('Welche Zahl liegt zwischen ') + dzS(lo) + S(' und ') + dzS(hi) + S('?'), choices: dzThree(m, [m - lo + Math.floor(lo / 100) * 100, hi + R(1, 9), lo - R(1, 9)]), ans: m, cols: 3,
+        why: S('Hänge Nullen an: ') + dzS(lo, 2) + S(' und ') + dzS(hi, 2) + S('. Dazwischen liegen ') + dzS(lo + 1) + '; ' + dzS(lo + 2) + ' … ' + dzS(hi - 1) + '.' };
+    });
+  };
+
+  GEN.dzrund = function () {
+    var plan = shuffle(['g', 'g', 'z', 'z', 'e', 'mg', 'mz', 'g', 'z', 'e']);
+    return plan.map(function (t) {
+      if (t === 'g' || t === 'mg' || t === 'e') {
+        var h = dzR(t === 'e' ? 19 : 29, t === 'e' ? 2 : one([1, 2])), d = Math.floor(h % 100 / 10), r = Math.floor((h + 50) / 100), s = dzS(h);
+        var why = S('Die erste Ziffer nach dem Komma ist ' + d + ': ' + (d >= 5 ? 'aufrunden' : 'abrunden') + '. ') + s + (t === 'e' ? ' €' : '') + ' ≈ ' + r + (t === 'e' ? ' €' : '') + '.';
+        if (t === 'e') return { kind: 'inp', head: S('Runde auf ganze Euro.'), body: dzQ(s + ' € ≈ ', String(r), '€'), ans: 'e' + h, why: why };
+        if (t === 'g') return { kind: 'inp', head: S('Runde auf Ganze.'), body: dzQ(s + ' ≈ ', String(r)), ans: 'g' + h, why: why };
+        return { head: S('Runde ') + s + S(' auf Ganze.'), choices: dzThree(r * 100, [(r - 1) * 100, (r + 1) * 100, Math.floor(h / 10) * 10]), ans: r * 100, cols: 3, why: why };
+      }
+      var h2 = dzR(19, 2), d2 = h2 % 10, r2 = Math.floor((h2 + 5) / 10) * 10, s2 = dzS(h2), rs = dzS(r2, 1);
+      var why2 = S('Die zweite Ziffer nach dem Komma ist ' + d2 + ': ' + (d2 >= 5 ? 'aufrunden' : 'abrunden') + '. ') + s2 + ' ≈ ' + rs + '.';
+      if (t === 'z') return { kind: 'inp', head: S('Runde auf Zehntel.'), body: dzQ(s2 + ' ≈ ', rs), ans: 'z' + h2, why: why2 };
+      return { head: S('Runde ') + s2 + S(' auf Zehntel.'), choices: dzThree(r2, [Math.floor(h2 / 10) * 10 === r2 ? r2 + 10 : Math.floor(h2 / 10) * 10, Math.floor((h2 + 50) / 100) * 100]).map(function (c) { c.h = dzS(c.v, 1); return c; }),
+        ans: r2, cols: 3, why: why2 };
+    });
+  };
+
+  GEN.dzadd = function () {
+    var plan = shuffle(['k', 'k', 'h', 's', 'u', 'k', 'g', 's', 'u', 'h']);
+    return plan.map(function (t) {
+      if (t === 'k') {
+        var plus = Math.random() < .6, a = R(0, 4) * 100 + R(1, 9) * 10, b = R(1, 9) * 10;
+        if (!plus && a <= b) a += 100;
+        var r = plus ? a + b : a - b, task = dzS(a) + (plus ? ' + ' : ' – ') + dzS(b);
+        return { kind: 'inp', head: S('Rechne im Kopf.'), body: dzQ(task + ' = ', dzS(r)), ans: 'k' + task,
+          why: S('Rechne mit Zehnteln: ' + (a / 10) + (plus ? ' + ' : ' – ') + (b / 10) + ' = ' + (r / 10) + ' Zehntel. ') + task + ' = ' + dzS(r) + '.' };
+      }
+      if (t === 'h') {
+        var a2 = R(0, 3) * 100 + R(1, 9) * 10, b2 = R(1, 9), task2 = dzS(a2) + ' + ' + dzS(b2);
+        return { kind: 'inp', head: S('Rechne im Kopf. Achte auf die Stellen.'), body: dzQ(task2 + ' = ', dzS(a2 + b2)), ans: 'h' + task2,
+          why: dzS(a2) + S(' hat Zehntel, ') + dzS(b2) + S(' hat Hundertstel: ') + task2 + ' = ' + dzS(a2 + b2) + '.' };
+      }
+      if (t === 's' || t === 'u') {
+        var x1, x2, ns;
+        if (t === 's') { x1 = dzR(19, 2); x2 = dzR(9, 1); ns = Math.random() < .5 ? [dzS(x1), dzS(x2)] : [dzS(x2), dzS(x1)]; }
+        else { x1 = dzR(19, one([1, 2])); if (x1 < 300) x1 += 500; do { x2 = R(101, x1 - 50); } while (x2 % 100 === 0); ns = [dzS(x1), dzS(x2)]; }
+        var op = t === 's' ? '+' : '–', res = t === 's' ? dzH(ns[0]) + dzH(ns[1]) : dzH(ns[0]) - dzH(ns[1]);
+        return karoItem({ ans: 'kr' + ns.join(op), why: S('Komma unter Komma. Fehlende Stellen sind Nullen. ') + ns[0] + ' ' + op + ' ' + ns[1] + ' = ' + dzS(res, 2) + '.' },
+          '<div class="card sgw kin">' + dzKaro(ns, op) + '</div>', '<div class="sgw">' + dzKaroSol(ns, op) + '</div>', t === 's' ? TDZA : TDZS);
+      }
+      var nm = one(DZN), p1 = R(10, 90) * 5, p2 = R(10, 90) * 5, sum = p1 + p2, back = Math.random() < .5, pay = sum <= 500 ? 500 : 1000;
+      var T = one([['Brötchen', 'eine Brezel'], ['ein Heft', 'einen Stift'], ['einen Apfelsaft', 'ein Brot']]);
+      var st = nm + ' kauft ' + T[0] + ' für ' + dzS(p1, 2) + ' € und ' + T[1] + ' für ' + dzS(p2, 2) + ' €. ' +
+        (back ? dzSie(nm).replace(/^./, function (c) { return c.toUpperCase(); }) + ' bezahlt mit ' + pay / 100 + ' €. Wie viel Geld bekommt ' + dzSie(nm) + ' zurück?' : 'Wie viel muss ' + dzSie(nm) + ' bezahlen?');
+      var rr = back ? pay - sum : sum;
+      return { kind: 'inp', head: S('Lies genau. Rechne.'), body: bStory(S(st)) + dzQ('', dzS(rr, 2), '€'), ans: 'g' + st,
+        why: S(dzS(p1, 2) + ' € + ' + dzS(p2, 2) + ' € = ' + dzS(sum, 2) + ' €.' + (back ? ' ' + pay / 100 + ',00 € – ' + dzS(sum, 2) + ' € = ' + dzS(rr, 2) + ' €.' : '')) };
+    });
+  };
+
+  GEN.dzzehn = function () {
+    var plan = shuffle(['m10', 'm100', 'd10', 'd100', 'f', 'e', 'm10', 'd10', 'm100', 'e']);
+    var EIN = [['m', 'cm', 100], ['€', 'ct', 100], ['cm', 'mm', 10]];
+    return plan.map(function (t) {
+      var a, f, r, mul;
+      if (t === 'm10') { a = dzR(9, one([1, 2])); f = 10; mul = true; }
+      else if (t === 'm100') { a = dzR(5, one([1, 2])); f = 100; mul = true; }
+      else if (t === 'd10') { a = R(1, 999) * 10; if (a % 100 === 0) a += 10; f = 10; mul = false; }
+      else if (t === 'd100') { a = R(1, 99) * 100; if (a % 1000 === 0) a += 100; f = 100; mul = false; }
+      if (t === 'f' || t === 'e') {
+        if (t === 'f') {
+          var ff = one([10, 100]), mm = Math.random() < .5, x = mm ? dzR(9, 2) : R(1, 99) * 100, y = mm ? x * ff : x / ff;
+          return { head: S('Welche Zahl fehlt?'), body: '<div class="card cmpq">' + dzS(x) + ' ' + (mm ? MP : ':') + ' <b class="qb">?</b> = ' + dzS(y) + '</div>', choices: nums([10, 100]), ans: ff, cols: 2,
+            why: S('Das Komma ist ' + (ff === 10 ? '1 Stelle' : '2 Stellen') + ' nach ' + (mm ? 'rechts' : 'links') + ' gewandert: ' + (mm ? 'mal ' : 'geteilt durch ') + ff + '.') };
+        }
+        var E = one(EIN), down = Math.random() < .5, big = E[2] === 100 ? dzR(9, 2) : dzR(19, 1), small = big * E[2] / 100;
+        if (!down) return { kind: 'inp', head: S('Rechne in die kleinere Einheit um.'), body: dzQ(dzS(big) + ' ' + E[0] + ' = ', dzS(small * 100), E[1]), ans: 'e' + big + E[0],
+          why: S('1 ' + E[0] + ' = ' + E[2] + ' ' + E[1] + '. Rechne mal ' + E[2] + ': ') + dzS(big) + ' ' + E[0] + ' = ' + dzS(small * 100) + ' ' + E[1] + '.' };
+        return { kind: 'inp', head: S('Rechne in die größere Einheit um.'), body: dzQ(dzS(small * 100) + ' ' + E[1] + ' = ', dzS(big), E[0]), ans: 'u' + big + E[0],
+          why: S('1 ' + E[0] + ' = ' + E[2] + ' ' + E[1] + '. Rechne geteilt durch ' + E[2] + ': ') + dzS(small * 100) + ' ' + E[1] + ' = ' + dzS(big) + ' ' + E[0] + '.' };
+      }
+      r = mul ? a * f : a / f;
+      var task = dzS(a) + ' ' + (mul ? MP : ':') + ' ' + f;
+      return { kind: 'inp', head: S('Rechne.'), body: dzQ(task + ' = ', dzS(r)), ans: t + task,
+        why: S((mul ? 'Mal ' : 'Geteilt durch ') + f + ': Das Komma wandert ' + (f === 10 ? '1 Stelle' : '2 Stellen') + ' nach ' + (mul ? 'rechts' : 'links') + '. ') + task + ' = ' + dzS(r) + '.' };
+    });
+  };
+
+  GEN.dzmal = function () {
+    var plan = shuffle(['m', 'm', 'mh', 'd', 'd', 'o', 's', 'm', 'd', 'o']);
+    return plan.map(function (t) {
+      var b = R(2, 9);
+      if (t === 'm' || t === 'mh') {
+        var a = t === 'm' ? R(0, 2) * 100 + R(1, 9) * 10 : one([R(1, 9), one([125, 225, 105, 115, 135, 145, 215, 245])]);
+        if (a > 100 && a % 10) b = R(2, 4);
+        var r = a * b, task = dzS(a) + ' ' + MP + ' ' + b;
+        var n0 = String(a % 100 === 0 ? a / 100 : a % 10 === 0 ? a / 10 : a);
+        return { kind: 'inp', head: S('Rechne.'), body: dzQ(task + ' = ', dzS(r)), ans: t + task,
+          why: S('Ohne Komma: ' + n0 + ' ' + MP + ' ' + b + ' = ' + (+n0 * b) + '. ') + dzS(a) + S(' hat ' + (a % 10 ? '2 Stellen' : '1 Stelle') + ' nach dem Komma: ') + task + ' = ' + dzS(r) + '.' };
+      }
+      if (t === 'd') {
+        var q = R(0, 1) * 100 + R(1, 9) * 10, aa = q * b, task2 = dzS(aa) + ' : ' + b;
+        return { kind: 'inp', head: S('Rechne.'), body: dzQ(task2 + ' = ', dzS(q)), ans: 'd' + task2,
+          why: S('Ohne Komma: ' + (aa / 10) + ' : ' + b + ' = ' + (q / 10) + '. Mit Komma: ') + task2 + ' = ' + dzS(q) + S('. Probe: ') + dzS(q) + ' ' + MP + ' ' + b + ' = ' + dzS(aa) + '.' };
+      }
+      if (t === 'o') {
+        var x, bb, p; do { x = R(1, 4) * 100 + R(1, 9) * 10 + R(1, 9); bb = R(2, 3); p = x * bb; } while (p % 10 === 0);
+        return { head: S('Ohne Komma: ' + x + ' ' + MP + ' ' + bb + ' = ' + p + '. Wie viel ist ') + dzS(x) + ' ' + MP + ' ' + bb + '?', choices: [dzC(p), dzC(p * 10), { v: p * 100, h: fmt(p) }],
+          ans: p, cols: 3, why: dzS(x) + S(' hat 2 Stellen nach dem Komma. Also hat auch das Ergebnis 2 Stellen: ') + dzS(p) + '.' };
+      }
+      var nm = one(DZN), pr = R(3, 19) * 5, k = R(2, 5), tot = pr * k;
+      var st = one([nm + ' kauft ' + k + ' Brezeln. Eine Brezel kostet ' + dzS(pr, 2) + ' €. Wie viel muss ' + dzSie(nm) + ' bezahlen?',
+        k + ' Kinder teilen sich ' + dzS(tot, 2) + ' € gerecht. Wie viel bekommt jedes Kind?']);
+      var div = st.indexOf('teilen') >= 0, res = div ? pr : tot;
+      return { kind: 'inp', head: S('Lies genau. Rechne.'), body: bStory(S(st)) + dzQ('', dzS(res, 2), '€'), ans: 's' + st,
+        why: S(div ? dzS(tot, 2) + ' € : ' + k + ' = ' + dzS(pr, 2) + ' €.' : dzS(pr, 2) + ' € ' + MP + ' ' + k + ' = ' + dzS(tot, 2) + ' €.') };
+    });
+  };
+
+  TIP.dzstw = S('Vor dem Komma stehen die Ganzen. Die erste Ziffer nach dem Komma sind die Zehntel, die zweite die Hundertstel.');
+  TIP.dzbr = S('1 Stelle nach dem Komma: Zehntel, Nenner 10. 2 Stellen nach dem Komma: Hundertstel, Nenner 100.');
+  TIP.dzzs = S('Schaue zuerst: Wie groß ist ein Schritt? Zähle dann die Striche ab der ersten Zahl.');
+  TIP.dzvgl = S('Hänge Nullen an, bis beide Zahlen gleich viele Stellen nach dem Komma haben. Der erste Unterschied entscheidet.');
+  TIP.dzrund = S('Die Ziffer rechts neben der Rundungsstelle entscheidet: bei 0, 1, 2, 3, 4 abrunden, bei 5, 6, 7, 8, 9 aufrunden.');
+  TIP.dzadd = S('Rechne mit Zehnteln wie mit Einern. Schriftlich: Komma unter Komma, fehlende Stellen sind Nullen.');
+  TIP.dzzehn = S('Mal 10 oder 100: Das Komma wandert 1 oder 2 Stellen nach rechts. Geteilt durch 10 oder 100: nach links.');
+  TIP.dzmal = S('Rechne zuerst ohne Komma. Das Ergebnis hat so viele Stellen nach dem Komma wie die Dezimalzahl.');
+
+  // ============================================================ Rechnen mit Brüchen (6. Schuljahr): addieren, subtrahieren, gemeinsamer Nenner, mal und geteilt durch eine Zahl, Bruchteil von einem Bruch
+  // Zahlenräume wie im Heft: Nenner bis 12 (bei Bruch mal Bruch bis 24), Ergebnisse höchstens 1, nicht kürzen (das Ergebnis wird so eingetragen, wie es entsteht).
+  var RB2 = '#f2c48d', RBD = '#4f74a0';
+  function rbFill(i, a, b) { return i < a ? BFILL : (i < a + b ? RB2 : '#fff'); }
+  function rbX(cx, cy, s) { return '<path d="M' + f1(cx - s) + ' ' + f1(cy - s) + ' L' + f1(cx + s) + ' ' + f1(cy + s) + ' M' + f1(cx + s) + ' ' + f1(cy - s) + ' L' + f1(cx - s) + ' ' + f1(cy + s) + '" stroke="' + INK + '" stroke-width="4" stroke-linecap="round"/>'; }
+  function rbPie(n, a, b, cross, mw) {
+    var r = 80, c = r + 4, s = '', d = 360 / n, A = -90;
+    for (var i = 0; i < n; i++) {
+      var a0 = A * Math.PI / 180, a1 = (A + d) * Math.PI / 180;
+      s += '<path d="M' + c + ' ' + c + ' L' + f1(c + r * Math.cos(a0)) + ' ' + f1(c + r * Math.sin(a0)) + ' A' + r + ' ' + r + ' 0 ' + (d > 180 ? 1 : 0) + ' 1 ' + f1(c + r * Math.cos(a1)) + ' ' + f1(c + r * Math.sin(a1)) + ' Z" fill="' + rbFill(i, a, b) + '" stroke="' + INK + '" stroke-width="3" stroke-linejoin="round"/>';
+      A += d;
+    }
+    A = -90;
+    for (var j = 0; j < n; j++) { if (cross && j >= a - cross && j < a) { var am = (A + d / 2) * Math.PI / 180; s += rbX(c + r * .6 * Math.cos(am), c + r * .6 * Math.sin(am), 12); } A += d; }
+    return '<svg class="brf" viewBox="0 0 ' + 2 * c + ' ' + 2 * c + '" style="max-width:' + (mw || 2 * c) + 'px">' + s + '</svg>';
+  }
+  function rbStrip(n, a, b, cross, seps, mw) {
+    var w = 420, h = 64, q = w / n, s = '';
+    for (var i = 0; i < n; i++) s += '<rect x="' + f1(3 + i * q) + '" y="3" width="' + f1(q) + '" height="' + h + '" fill="' + rbFill(i, a, b) + '" stroke="' + INK + '" stroke-width="3"/>';
+    for (var j = 0; j < n; j++) if (cross && j >= a - cross && j < a) s += rbX(3 + (j + .5) * q, 3 + h / 2, Math.min(q, h) * .24);
+    (seps || []).forEach(function (k) { var x = f1(3 + k * q); s += '<line x1="' + x + '" y1="0" x2="' + x + '" y2="' + (h + 6) + '" stroke="' + INK + '" stroke-width="9"/>'; });
+    return '<svg class="brf" viewBox="0 0 ' + (w + 6) + ' ' + (h + 6) + '" style="max-width:' + (mw || w + 6) + 'px">' + s + '</svg>';
+  }
+  function rbArea(cols, a, rows, b, mw) {   // Rechteck: cols Spalten (a hellblau), rows Zeilen (gestrichelt), b Zeilen der blauen Spalten dunkel
+    var W = 360, H = 220, cw = W / cols, rh = H / rows, s = '';
+    for (var x = 0; x < cols; x++) for (var y = 0; y < rows; y++) s += '<rect x="' + f1(3 + x * cw) + '" y="' + f1(3 + y * rh) + '" width="' + f1(cw) + '" height="' + f1(rh) + '" fill="' + (x < a ? (y < b ? RBD : BFILL) : '#fff') + '"/>';
+    for (var i = 1; i < cols; i++) s += '<line x1="' + f1(3 + i * cw) + '" y1="3" x2="' + f1(3 + i * cw) + '" y2="' + (H + 3) + '" stroke="' + INK + '" stroke-width="3"/>';
+    for (var k = 1; k < rows; k++) s += '<line x1="3" y1="' + f1(3 + k * rh) + '" x2="' + (W + 3) + '" y2="' + f1(3 + k * rh) + '" stroke="' + INK + '" stroke-width="3" stroke-dasharray="12 9"/>';
+    s += '<rect x="3" y="3" width="' + W + '" height="' + H + '" fill="none" stroke="' + INK + '" stroke-width="5"/>';
+    return '<svg class="brf" viewBox="0 0 ' + (W + 6) + ' ' + (H + 6) + '" style="max-width:' + (mw || 300) + 'px">' + s + '</svg>';
+  }
+  function rbQ(t) { return '<div class="card cmpq rbq2">' + t + '</div>'; }
+  function rbO(o) { return '<span class="rbo">' + o + '</span>'; }
+  function rbF(z, n) { return FR(z, n); }
+  function rbWrong(z, n, extra) {   // typische Fehler als Auswahl (Nenner addiert, Zähler und Nenner vertauscht …)
+    return fracChoices(z, n, extra);
+  }
+  function rbAB(maxN) { for (;;) { var n = R(3, maxN || 12), a = R(1, n - 2), b = R(1, n - a); if (a + b < n || Math.random() < .15) return [a, b, n]; } }
+  var RBM = [[2, 4], [2, 6], [2, 8], [2, 10], [2, 12], [3, 6], [3, 9], [3, 12], [4, 8], [4, 12], [5, 10], [6, 12]];
+  function rbPair(op) {   // a/n1 ± b/n2 mit n2 Vielfaches von n1, Ergebnis zwischen 0 und 1
+    for (;;) {
+      var P = one(RBM), n1 = P[0], m = P[1], f = m / n1, a = R(1, n1 - 1), b = R(1, m - 1), A = a * f;
+      var r = op === '+' ? A + b : A - b;
+      if (r > 0 && r <= m && (op === '–' || r < m || Math.random() < .2)) {
+        if (op === '+' && Math.random() < .5) return { a: b, n1: m, b: a, n2: n1, A: b, B: A, m: m, r: r, f: f, swap: true };
+        return { a: a, n1: n1, b: b, n2: m, A: A, B: b, m: m, r: r, f: f };
+      }
+    }
+  }
+  var RBNM = ['Mia', 'Ben', 'Ayla', 'Jonas'];
+
+  GEN.rbadd = function () {
+    var plan = shuffle(['bild', 'bild', 'in', 'in', 'in', 'fehlt', 'fehlt', 'mc', 'jn', 'in']);
+    return plan.map(function (t) {
+      var q = rbAB(12), a = q[0], b = q[1], n = q[2], r = a + b;
+      var why = S('Zähler plus Zähler: ' + a + ' + ' + b + ' = ' + r + '. Der Nenner bleibt ' + n + ': ') + FR(a, n) + ' + ' + FR(b, n) + ' = ' + FR(r, n) + '.';
+      if (t === 'bild') { if (n > 10) n = R(4, 10), a = R(1, n - 2), b = R(1, n - 1 - a), r = a + b;
+        var fig = Math.random() < .5 ? rbPie(n, a, b, 0, 220) : rbStrip(n, a, b, 0, null, 420);
+        return { kind: 'inp', head: S('Blau und orange zusammen: Welcher Bruch ist das? Trage Zähler und Nenner ein.'), body: figCard(fig) + rbQ(FR(a, n) + rbO('+') + FR(b, n) + rbO('=') + FX(r, n)), ans: 'b' + a + '+' + b + '/' + n,
+          why: S(a + ' blaue und ' + b + ' orange Teile sind ' + r + ' von ' + n + ' Teilen: ') + FR(r, n) + '.' }; }
+      if (t === 'in') return { kind: 'inp', head: S('Addiere. Trage Zähler und Nenner ein.'), body: rbQ(FR(a, n) + rbO('+') + FR(b, n) + rbO('=') + FX(r, n)), ans: 'i' + a + '+' + b + '/' + n, why: why };
+      if (t === 'fehlt') return { kind: 'inp', head: S('Welcher Zähler fehlt?'), body: rbQ(FR(a, n) + rbO('+') + FX(b, n, 'n') + rbO('=') + FR(r, n)), ans: 'f' + a + '+' + b + '/' + n,
+        why: S(a + ' plus ' + b + ' ist ' + r + '. Es fehlt ') + FR(b, n) + '.' };
+      if (t === 'mc') return { head: S('Was ist ') + FR(a, n) + ' + ' + FR(b, n) + S('?'), choices: rbWrong(r, n, [[r, 2 * n], [a + b, n + 1], [r + 1, n]]), ans: r + '/' + n, cols: 3, why: why };
+      var yes = Math.random() < .5, nm = one(RBNM);
+      var shown = yes ? [r, n] : one([[r, 2 * n], [r + 1, n]]);
+      if (!yes && shown[1] > 24) shown = [r + 1, n];
+      return { head: S(nm + ' hat gerechnet. Stimmt das?'), body: rbQ(FR(a, n) + rbO('+') + FR(b, n) + rbO('=') + FR(shown[0], shown[1])), choices: JN, cols: 2, ans: yes ? 'j' : 'n',
+        why: yes ? why : S('Der Nenner bleibt gleich. Richtig ist ') + FR(r, n) + '.' };
+    });
+  };
+
+  GEN.rbsub = function () {
+    var plan = shuffle(['bild', 'bild', 'in', 'in', 'ganz', 'ganz', 'fehlt', 'mc', 'in', 'zeichen']);
+    return plan.map(function (t) {
+      var n = R(3, 12), a = R(2, n), b = R(1, a - 1), r = a - b;
+      var why = S('Zähler minus Zähler: ' + a + ' – ' + b + ' = ' + r + '. Der Nenner bleibt ' + n + ': ') + FR(a, n) + ' – ' + FR(b, n) + ' = ' + FR(r, n) + '.';
+      if (t === 'bild') { if (n > 10) { n = R(4, 10); a = R(2, n); b = R(1, a - 1); r = a - b; }
+        var fig = Math.random() < .5 ? rbPie(n, a, 0, b, 220) : rbStrip(n, a, 0, b, null, 420);
+        return { kind: 'inp', head: S('Die durchgestrichenen Teile werden weggenommen. Welcher Bruch bleibt?'), body: figCard(fig) + rbQ(FR(a, n) + rbO('–') + FR(b, n) + rbO('=') + FX(r, n)), ans: 'b' + a + '-' + b + '/' + n,
+          why: S('Von ' + a + ' gefärbten Teilen werden ' + b + ' weggenommen. Es bleiben ' + r + ' Teile: ') + FR(r, n) + '.' }; }
+      if (t === 'in') return { kind: 'inp', head: S('Subtrahiere. Trage Zähler und Nenner ein.'), body: rbQ(FR(a, n) + rbO('–') + FR(b, n) + rbO('=') + FX(r, n)), ans: 'i' + a + '-' + b + '/' + n, why: why };
+      if (t === 'ganz') { var g = R(1, n - 1);
+        return { kind: 'inp', head: S('Wie viel fehlt bis zum Ganzen?'), body: rbQ('1' + rbO('–') + FR(g, n) + rbO('=') + FX(n - g, n)), ans: 'g' + g + '/' + n,
+          why: S('Ein Ganzes sind ') + FR(n, n) + '. ' + FR(n, n) + ' – ' + FR(g, n) + ' = ' + FR(n - g, n) + '.' }; }
+      if (t === 'fehlt') return { kind: 'inp', head: S('Welcher Zähler fehlt?'), body: rbQ(FR(a, n) + rbO('–') + FX(b, n, 'n') + rbO('=') + FR(r, n)), ans: 'f' + a + '-' + b + '/' + n,
+        why: S(a + ' minus ' + b + ' ist ' + r + '. Es fehlt ') + FR(b, n) + '.' };
+      if (t === 'mc') return { head: S('Was ist ') + FR(a, n) + ' – ' + FR(b, n) + S('?'), choices: rbWrong(r, n, [[r, n + 1], [a + b <= n ? a + b : r + 1, n], [r + 1, n]]), ans: r + '/' + n, cols: 3, why: why };
+      var plus = Math.random() < .5, x = plus ? R(1, n - 2) : R(2, n), y = plus ? R(1, n - 1 - x) : R(1, x - 1), z = plus ? x + y : x - y;
+      return { head: S('Plus oder minus?'), body: rbQ(FR(x, n) + ' <b class="qb">?</b> ' + FR(y, n) + rbO('=') + FR(z, n)), choices: [{ v: 'p', h: '+' }, { v: 'm', h: '–' }], cols: 2, ans: plus ? 'p' : 'm',
+        why: S(plus ? 'Das Ergebnis ist größer: plus. ' + x + ' + ' + y + ' = ' + z + '.' : 'Das Ergebnis ist kleiner: minus. ' + x + ' – ' + y + ' = ' + z + '.') };
+    });
+  };
+
+  GEN.rbnenner = function () {
+    var plan = shuffle(['erw', 'erw', 'add', 'add', 'add', 'sub', 'sub', 'mc', 'mc', 'sub']);
+    return plan.map(function (t) {
+      if (t === 'erw') { var P = one(RBM), n = P[0], m = P[1], f = m / n, z = R(1, n - 1);
+        return { kind: 'inp', head: S('Erweitere auf den Nenner ' + m + '.'), body: ewCard(FR(z, n) + BOG(MP, f) + FX(z * f, m, 'n')), ans: 'e' + z + '/' + n + '>' + m,
+          why: S(n + ' · ' + f + ' = ' + m + '. Also auch ' + z + ' · ' + f + ' = ' + z * f + ': ') + FR(z, n) + ' = ' + FR(z * f, m) + '.' }; }
+      if (t === 'mc') { var Q = one(RBM), a1 = R(1, Q[0] - 1), b1 = R(1, Q[1] - 1), w = uniq([Q[0], Q[0] + Q[1], Q[1] * 2]).filter(function (v) { return v !== Q[1]; }).slice(0, 2);
+        return { head: S('Welcher Nenner ist der gemeinsame Nenner von ') + FR(a1, Q[0]) + S(' und ') + FR(b1, Q[1]) + S('?'), choices: shuffle(nums([Q[1]].concat(w))), ans: Q[1], cols: 3,
+          why: S(Q[1] + ' ist ein Vielfaches von ' + Q[0] + '. Darum ist ' + Q[1] + ' der gemeinsame Nenner.') }; }
+      var op = t === 'add' ? '+' : '–', p = rbPair(op);
+      var steps = FR(p.a, p.n1) + ' ' + op + ' ' + FR(p.b, p.n2) + ' = ' + FR(p.A, p.m) + ' ' + op + ' ' + FR(p.B, p.m) + ' = ' + FR(p.r, p.m) + '.';
+      return { kind: 'inp', head: S('Bringe auf den gemeinsamen Nenner. Rechne. Trage das Ergebnis ein.'), body: rbQ(FR(p.a, p.n1) + rbO(op) + FR(p.b, p.n2) + rbO('=') + FX(p.r, p.m)), ans: t + p.a + '/' + p.n1 + op + p.b + '/' + p.n2,
+        sol: '<div class="card cmpq sm">' + steps + '</div>', why: S('Der gemeinsame Nenner ist ' + p.m + '. ') + steps };
+    });
+  };
+
+  function rbStory(kind) {
+    var nm = one(RBNM), er = nm === 'Ben' || nm === 'Jonas' ? 'er' : 'sie';
+    if (kind === 'plus') { var q = rbAB(12), a = q[0], b = q[1], n = q[2];
+      var T = one([[nm + ' isst [' + a + '/' + n + '] einer Pizza. Danach isst ' + er + ' noch [' + b + '/' + n + ']. Wie viel isst ' + er + ' zusammen?', ''],
+        [nm + ' trinkt [' + a + '/' + n + '] l Saft und dann noch [' + b + '/' + n + '] l. Wie viel trinkt ' + er + ' insgesamt?', 'l'],
+        [nm + ' läuft [' + a + '/' + n + '] km und danach [' + b + '/' + n + '] km. Wie weit läuft ' + er + ' zusammen?', 'km']]);
+      return { t: T[0], u: T[1], z: a + b, n: n, why: FR(a, n) + ' + ' + FR(b, n) + ' = ' + FR(a + b, n) + '.' }; }
+    var n2 = R(3, 12), x = R(2, n2), y = R(1, x - 1);
+    var T2 = one([['Im Krug sind [' + x + '/' + n2 + '] l Saft. ' + nm + ' gießt [' + y + '/' + n2 + '] l aus. Wie viel bleibt im Krug?', 'l'],
+      ['Ein Band ist [' + x + '/' + n2 + '] m lang. ' + nm + ' schneidet [' + y + '/' + n2 + '] m ab. Wie lang ist der Rest?', 'm'],
+      [nm + ' hat [' + x + '/' + n2 + '] einer Torte. ' + er.replace(/^./, function (c) { return c.toUpperCase(); }) + ' verschenkt [' + y + '/' + n2 + ']. Wie viel bleibt?', '']]);
+    return { t: T2[0], u: T2[1], z: x - y, n: n2, why: FR(x, n2) + ' – ' + FR(y, n2) + ' = ' + FR(x - y, n2) + '.' };
+  }
+  GEN.rbsach = function () {
+    var plan = shuffle(['p', 'p', 'm', 'm', 'w', 'w', 'p', 'm', 'w', 'g']);
+    return plan.map(function (t) {
+      if (t === 'w') { var k = Math.random() < .5 ? 'plus' : 'minus', st = rbStory(k);
+        return { head: S('Plus oder minus? Du musst nicht rechnen.'), body: bStory(TF(st.t)), choices: [{ v: 'plus', h: S('plus') }, { v: 'minus', h: S('minus') }], cols: 2, ans: k,
+          why: S(k === 'plus' ? 'Es kommt etwas dazu: plus. ' : 'Es geht etwas weg: minus. ') + st.why }; }
+      if (t === 'g') { var p = rbPair('+'), nm = one(RBNM);
+        var tx = nm + ' geht [' + p.a + '/' + p.n1 + '] km zum Bäcker und dann [' + p.b + '/' + p.n2 + '] km zur Schule. Wie weit geht ' + (nm === 'Ben' || nm === 'Jonas' ? 'er' : 'sie') + ' insgesamt?';
+        return { kind: 'inp', head: S('Lies genau. Rechne. Trage das Ergebnis ein.'), body: bStory(TF(tx)) + '<div class="card cmpq">' + FX(p.r, p.m) + '<span class="pfu2">km</span></div>', ans: 'g' + tx,
+          why: FR(p.a, p.n1) + ' + ' + FR(p.b, p.n2) + ' = ' + FR(p.A, p.m) + ' + ' + FR(p.B, p.m) + ' = ' + FR(p.r, p.m) + S(' km.') }; }
+      var s2 = rbStory(t === 'p' ? 'plus' : 'minus');
+      return { kind: 'inp', head: S('Lies genau. Rechne. Trage das Ergebnis ein.'), body: bStory(TF(s2.t)) + '<div class="card cmpq">' + FX(s2.z, s2.n) + (s2.u ? '<span class="pfu2">' + s2.u + '</span>' : '') + '</div>', ans: t + s2.t, why: s2.why };
+    });
+  };
+
+  GEN.rbmal = function () {
+    var plan = shuffle(['plus', 'plus', 'in', 'in', 'in', 'fehlt', 'fehlt', 'bild', 'jn', 'in']);
+    return plan.map(function (t) {
+      var n, z, k; do { n = R(3, 12); z = R(1, n - 1); k = R(2, 5); } while (k * z > n);
+      var why = S('Zähler mal Zahl: ' + k + ' · ' + z + ' = ' + k * z + '. Der Nenner bleibt ' + n + ': ') + k + ' · ' + FR(z, n) + ' = ' + FR(k * z, n) + '.';
+      if (t === 'plus') { var pl = []; for (var j = 0; j < k; j++) pl.push(FR(z, n));
+        return { kind: 'inp', head: S('Mal ist wie plus. Rechne.'), body: rbQ(k + rbO(MP) + FR(z, n) + rbO('=') + pl.join(rbO('+')) + rbO('=') + FX(k * z, n)), ans: 'p' + k + '*' + z + '/' + n, why: why }; }
+      if (t === 'in') return { kind: 'inp', head: S('Rechne. Trage Zähler und Nenner ein.'), body: rbQ(k + rbO(MP) + FR(z, n) + rbO('=') + FX(k * z, n)), ans: 'i' + k + '*' + z + '/' + n, why: why };
+      if (t === 'fehlt') return { kind: 'inp', head: S('Welche Zahl fehlt?'), body: rbQ(nin(k) + rbO(MP) + FR(z, n) + rbO('=') + FR(k * z, n)), ans: 'f' + k + '*' + z + '/' + n,
+        why: S(k + ' · ' + z + ' = ' + k * z + '. Es fehlt die ' + k + '.') };
+      if (t === 'bild') { var nn = one([3, 4, 5, 6, 8]), zz = R(1, Math.floor(nn / 2)), kk = Math.min(R(2, 4), Math.floor(nn / zz)), figs = '';
+        for (var i = 0; i < kk; i++) figs += bPie(nn, firstK(zz), { mw: 110 });
+        return { kind: 'inp', head: S('Jeder Kreis zeigt denselben Bruch. Wie viel ist es zusammen?'), body: '<div class="card brfc rbfs">' + figs + '</div>' + rbQ(kk + rbO(MP) + FR(zz, nn) + rbO('=') + FX(kk * zz, nn)), ans: 'b' + kk + '*' + zz + '/' + nn,
+          why: S(kk + ' · ' + zz + ' = ' + kk * zz + ': ') + FR(kk * zz, nn) + '.' }; }
+      var yes = k * z === n || Math.random() < .4; if (yes && k * z !== n) { for (;;) { n = R(3, 12); k = one([2, 3, 4]); if (n % k === 0) { z = n / k; break; } } }
+      return { head: S('Ist das Ergebnis ein Ganzes?'), body: rbQ(k + rbO(MP) + FR(z, n)), choices: JN, cols: 2, ans: k * z === n ? 'j' : 'n',
+        why: S(k + ' · ' + z + ' = ' + k * z + '. ') + FR(k * z, n) + S(k * z === n ? ' ist ein Ganzes.' : ' ist kein Ganzes. Zähler und Nenner sind verschieden.') };
+    });
+  };
+
+  GEN.rbteil = function () {
+    var plan = shuffle(['in', 'in', 'in', 'bild', 'bild', 'fehlt', 'fehlt', 'jn', 'probe', 'in']);
+    return plan.map(function (t) {
+      var n, k, g; do { n = R(3, 12); k = R(2, 5); g = R(1, Math.floor((n - 1) / k)); } while (g * k >= n || g < 1);
+      var z = g * k;
+      var why = S('Zähler geteilt durch die Zahl: ' + z + ' : ' + k + ' = ' + g + '. Der Nenner bleibt ' + n + ': ') + FR(z, n) + ' : ' + k + ' = ' + FR(g, n) + '.';
+      if (t === 'in') return { kind: 'inp', head: S('Teile. Trage Zähler und Nenner ein.'), body: rbQ(FR(z, n) + rbO(':') + k + rbO('=') + FX(g, n)), ans: 'i' + z + '/' + n + ':' + k, why: why };
+      if (t === 'bild') { var seps = []; for (var j = 1; j < k; j++) seps.push(j * g);
+        return { kind: 'inp', head: S('Die dicken Striche teilen gerecht. Wie viel ist ein Teil?'), body: figCard(rbStrip(n, z, 0, 0, seps, 420)) + rbQ(FR(z, n) + rbO(':') + k + rbO('=') + FX(g, n)), ans: 'b' + z + '/' + n + ':' + k, why: why }; }
+      if (t === 'fehlt') return { kind: 'inp', head: S('Welche Zahl fehlt?'), body: rbQ(FR(z, n) + rbO(':') + nin(k) + rbO('=') + FR(g, n)), ans: 'f' + z + '/' + n + ':' + k,
+        why: S(z + ' : ' + k + ' = ' + g + '. Es fehlt die ' + k + '.') };
+      if (t === 'probe') return { head: S('Welche Malaufgabe passt als Probe zu ') + FR(z, n) + ' : ' + k + ' = ' + FR(g, n) + S('?'),
+        choices: shuffle([{ v: 'r', h: FR(g, n) + ' · ' + k + ' = ' + FR(z, n) }, { v: 'w1', h: FR(z, n) + ' · ' + k + ' = ' + FR(z * k > 24 ? z + 1 : z * k, n) }, { v: 'w2', h: FR(g, n) + ' · ' + n + ' = ' + FR(g * n, n) }]), ans: 'r', cols: 1,
+        why: S('Die Probe ist die Umkehraufgabe: ') + FR(g, n) + ' · ' + k + ' = ' + FR(z, n) + '.' };
+      var yes = Math.random() < .5, shown = yes ? [g, n] : one([[g, n * k], [z, Math.min(24, n * k)]]);
+      if (!yes && shown[0] * n === g * shown[1]) shown = [g + 1, n];
+      return { head: S(one(RBNM) + ' hat geteilt. Stimmt das?'), body: rbQ(FR(z, n) + rbO(':') + k + rbO('=') + FR(shown[0], shown[1])), choices: JN, cols: 2, ans: yes ? 'j' : 'n',
+        why: yes ? why : S('Nur der Zähler wird geteilt, der Nenner bleibt. Richtig ist ') + FR(g, n) + '.' };
+    });
+  };
+
+  var RBV = [[2, 3], [2, 4], [2, 5], [2, 6], [3, 3], [3, 4], [2, 8], [4, 4], [3, 5], [4, 5], [2, 10], [3, 6], [3, 8], [4, 6]];
+  GEN.rbvon = function () {
+    var plan = shuffle(['bild', 'bild', 'bild', 'in', 'in', 'in', 'von', 'von', 'jn', 'in']);
+    return plan.map(function (t) {
+      var P = one(RBV), n = P[0], m = P[1], a = R(1, n - 1), b = R(1, m - 1);
+      if (Math.random() < .5) { var s = n; n = m; m = s; s = a; a = b; b = s; }
+      var why = S('Zähler mal Zähler: ' + a + ' · ' + b + ' = ' + a * b + '. Nenner mal Nenner: ' + n + ' · ' + m + ' = ' + n * m + '. ') + FR(a * b, n * m) + '.';
+      if (t === 'bild') { var cols = one([3, 4, 5]), ca = R(1, cols - 1), rows = one([2, 3]), rb = R(1, rows - 1);
+        return { kind: 'inp', head: S('Wie viel vom Ganzen ist dunkelblau? Trage Zähler und Nenner ein.'), body: figCard(rbArea(cols, ca, rows, rb, 300)) + rbQ(FR(rb, rows) + ' ' + S('von') + ' ' + FR(ca, cols) + rbO('=') + FX(ca * rb, cols * rows)),
+          ans: 'b' + cols + ca + rows + rb, why: S('Das Rechteck hat ' + cols * rows + ' kleine Teile. ' + ca * rb + ' davon sind dunkelblau: ') + FR(ca * rb, cols * rows) + '.' }; }
+      if (t === 'in') return { kind: 'inp', head: S('Rechne: Zähler mal Zähler, Nenner mal Nenner.'), body: rbQ(FR(a, n) + rbO(MP) + FR(b, m) + rbO('=') + FX(a * b, n * m)), ans: 'i' + a + '/' + n + '*' + b + '/' + m, why: why };
+      if (t === 'von') return { kind: 'inp', head: S('„von“ heißt „mal“. Rechne.'), body: rbQ(FR(a, n) + ' ' + S('von') + ' ' + FR(b, m) + rbO('=') + FX(a * b, n * m)), ans: 'v' + a + '/' + n + '*' + b + '/' + m, why: why };
+      var yes = Math.random() < .5, shown = yes ? [a * b, n * m] : one([[a + b, n + m], [a * b, n + m]]);
+      return { head: S(one(RBNM) + ' hat gerechnet. Stimmt das?'), body: rbQ(FR(a, n) + rbO(MP) + FR(b, m) + rbO('=') + FR(shown[0], shown[1])), choices: JN, cols: 2, ans: yes ? 'j' : 'n',
+        why: yes ? why : S('Bei mal wird nicht addiert. ') + why };
+    });
+  };
+
+  GEN.rbsach2 = function () {
+    var plan = shuffle(['mal', 'mal', 'teil', 'teil', 'von', 'von', 'w', 'w', 'w', 'mal']);
+    return plan.map(function (t) {
+      var nm = one(RBNM), er = nm === 'Ben' || nm === 'Jonas' ? 'er' : 'sie';
+      function mk(kind) {
+        if (kind === 'mal') { var n, z, k; do { n = R(4, 12); z = R(1, 3); k = R(2, 5); } while (k * z > n);
+          var T = one([['Für einen Pfannkuchen braucht ' + nm + ' [' + z + '/' + n + '] l Milch. ' + er.replace(/^./, function (c) { return c.toUpperCase(); }) + ' macht ' + k + ' Pfannkuchen. Wie viel Milch braucht ' + er + '?', 'l'],
+            [nm + ' läuft jeden Tag [' + z + '/' + n + '] km. Wie weit läuft ' + er + ' in ' + k + ' Tagen?', 'km']]);
+          return { t: T[0], u: T[1], z: k * z, n: n, why: k + ' · ' + FR(z, n) + ' = ' + FR(k * z, n) + '.' }; }
+        if (kind === 'teil') { var n2, k2, g; do { n2 = R(4, 12); k2 = R(2, 4); g = R(1, 3); } while (g * k2 >= n2);
+          var T2 = one([[nm + ' hat [' + g * k2 + '/' + n2 + '] m Band. ' + er.replace(/^./, function (c) { return c.toUpperCase(); }) + ' schneidet es in ' + k2 + ' gleich lange Stücke. Wie lang ist ein Stück?', 'm'],
+            [k2 + ' Kinder teilen sich [' + g * k2 + '/' + n2 + '] einer Pizza gerecht. Wie viel bekommt jedes Kind?', '']]);
+          return { t: T2[0], u: T2[1], z: g, n: n2, why: FR(g * k2, n2) + ' : ' + k2 + ' = ' + FR(g, n2) + '.' }; }
+        var P = one([[2, 3], [2, 4], [2, 5], [3, 4], [2, 6]]), b = R(1, P[1] - 1);
+        var T3 = one([['Vom Kuchen ist noch [' + b + '/' + P[1] + '] übrig. ' + nm + ' isst [1/' + P[0] + '] davon. Wie viel vom ganzen Kuchen ist das?', ''],
+          ['[' + b + '/' + P[1] + '] des Beetes sind Blumen. Auf [1/' + P[0] + '] davon wachsen Rosen. Wie viel vom ganzen Beet ist das?', '']]);
+        return { t: T3[0], u: T3[1], z: b, n: P[0] * P[1], why: FR(1, P[0]) + ' · ' + FR(b, P[1]) + ' = ' + FR(b, P[0] * P[1]) + '.' };
+      }
+      if (t === 'w') { var kind = one(['mal', 'teil', 'von']), st = mk(kind), op = kind === 'teil' ? 'geteilt' : 'mal';
+        return { head: S('Mal oder geteilt? Du musst nicht rechnen.'), body: bStory(TF(st.t)), choices: [{ v: 'mal', h: S('mal') }, { v: 'geteilt', h: S('geteilt') }], cols: 2, ans: op,
+          why: S(kind === 'teil' ? 'Gerecht teilen oder in gleiche Stücke schneiden: geteilt. ' : (kind === 'mal' ? 'Mehrmals gleich viel: mal. ' : 'Ein Teil von einem Teil: mal. ')) + st.why }; }
+      var s2 = mk(t);
+      return { kind: 'inp', head: S('Lies genau. Rechne. Trage das Ergebnis ein.'), body: bStory(TF(s2.t)) + '<div class="card cmpq">' + FX(s2.z, s2.n) + (s2.u ? '<span class="pfu2">' + s2.u + '</span>' : '') + '</div>', ans: t + s2.t, why: s2.why };
+    });
+  };
+  TIP.rbadd = S('Gleiche Nenner: Addiere die Zähler. Der Nenner bleibt gleich. Die Nenner werden nicht addiert.');
+  TIP.rbsub = S('Gleiche Nenner: Subtrahiere die Zähler. Der Nenner bleibt gleich. Ein Ganzes ist zum Beispiel ') + FR(8, 8) + '.';
+  TIP.rbnenner = S('Der größere Nenner ist der gemeinsame Nenner. Erweitere den anderen Bruch: ') + FR(1, 2) + ' = ' + FR(2, 4) + '.';
+  TIP.rbsach = S('Kommt etwas dazu, rechnest du plus. Geht etwas weg oder bleibt etwas übrig, rechnest du minus.');
+  TIP.rbmal = S('Bruch mal Zahl: Nimm den Zähler mal die Zahl. Der Nenner bleibt gleich.');
+  TIP.rbteil = S('Bruch geteilt durch Zahl: Teile den Zähler durch die Zahl. Der Nenner bleibt gleich.');
+  TIP.rbvon = S('„von“ heißt „mal“. Rechne Zähler mal Zähler und Nenner mal Nenner.');
+  TIP.rbsach2 = S('Mehrmals gleich viel oder ein Teil von einem Teil: mal. Gerecht teilen: geteilt.');
+
+  // ============================================================ Grundlagen der Geometrie II (6. Schuljahr): Kreis, Winkel, Winkelarten, Winkel messen und zeichnen, Achsen- und Punktsymmetrie
+  // Wie im Heft: Punkte als ×, Winkel mit Bogen und griechischem Buchstaben, rechte Winkel mit Viertelkreis und Punkt; Geodreieck vereinfacht (außen 0° rechts, innen 0° links).
+  var G2DF = '#eaf1f8', G2DL = '#7f9bbb';
+  function g2P(S, a, r) { return [S[0] + r * Math.cos(a * Math.PI / 180), S[1] - r * Math.sin(a * Math.PI / 180)]; }
+  function g2Arc(S, a1, a2, r, c, sw) {
+    var d = ((a2 - a1) % 360 + 360) % 360, p1 = g2P(S, a1, r), p2 = g2P(S, a2, r);
+    return '<path d="M' + f1(p1[0]) + ' ' + f1(p1[1]) + ' A' + r + ' ' + r + ' 0 ' + (d > 180 ? 1 : 0) + ' 0 ' + f1(p2[0]) + ' ' + f1(p2[1]) + '" fill="none" stroke="' + (c || INK) + '" stroke-width="' + (sw || 4) + '"/>';
+  }
+  function g2Wink(S, a1, size, L1, L2, c, name, r) {   // Winkel ab S: Schenkel in Richtung a1 und a1 + size
+    c = c || INK; r = r || 40; L2 = L2 || L1;
+    var p1 = g2P(S, a1, L1), p2 = g2P(S, a1 + size, L2);
+    var o = ln(S[0], S[1], p1[0], p1[1], c, 5) + ln(S[0], S[1], p2[0], p2[1], c, 5);
+    if (Math.abs(size - 90) < .01) { var m = g2P(S, a1 + 45, r * .45); o += g2Arc(S, a1, a1 + 90, r, c, 4) + dt(m[0], m[1], 4, c); }
+    else if (size) o += g2Arc(S, a1, a1 + size, r, c, 4);
+    if (name) { var q = g2P(S, a1 + size / 2, r + (size >= 40 ? 30 : 46)); o += tx(q[0], q[1] + 11, name, 32, c, 700, 'middle', true); }
+    return o;
+  }
+  function g2AngSvg(a1, size, L1, L2, c, name, r, maxw) {   // Winkel als SVG, Größe passend
+    var S = [0, 0], pts = [S, g2P(S, a1, L1), g2P(S, a1 + size, L2 || L1)];
+    for (var t = 0; t <= 360; t += 15) if ((((t - a1) % 360) + 360) % 360 <= size) pts.push(g2P(S, t, (r || 40) + 46));
+    var x0 = Math.min.apply(null, pts.map(function (p) { return p[0]; })) - 14, x1 = Math.max.apply(null, pts.map(function (p) { return p[0]; })) + 14;
+    var y0 = Math.min.apply(null, pts.map(function (p) { return p[1]; })) - 14, y1 = Math.max.apply(null, pts.map(function (p) { return p[1]; })) + 14;
+    return '<svg class="gsv" viewBox="' + f1(x0) + ' ' + f1(y0) + ' ' + f1(x1 - x0) + ' ' + f1(y1 - y0) + '" style="max-width:' + (maxw || 360) + 'px">' + g2Wink(S, a1, size, L1, L2, c, name, r) + '</svg>';
+  }
+  function g2Gd(cx, cy, H, read, rcol) {   // Geodreieck mit Nullpunkt (cx, cy)
+    var R = H * .62, R2 = R - H * .1, fs = H * .066, o = '<polygon points="' + f1(cx - H) + ',' + cy + ' ' + f1(cx + H) + ',' + cy + ' ' + cx + ',' + f1(cy - H) + '" fill="' + G2DF + '" fill-opacity=".9" stroke="' + G2DL + '" stroke-width="3" stroke-linejoin="round"/>';
+    o += '<path d="M' + f1(cx - R) + ' ' + cy + ' A' + f1(R) + ' ' + f1(R) + ' 0 0 1 ' + f1(cx + R) + ' ' + cy + '" fill="none" stroke="' + G2DL + '" stroke-width="2"/>';
+    var t = '';
+    for (var d = 0; d <= 180; d += 5) { var a = d * Math.PI / 180, tl = H * (d % 10 ? .045 : .075); t += 'M' + f1(cx + R * Math.cos(a)) + ' ' + f1(cy - R * Math.sin(a)) + 'L' + f1(cx + (R - tl) * Math.cos(a)) + ' ' + f1(cy - (R - tl) * Math.sin(a)); }
+    o += '<path d="' + t + '" stroke="' + INK + '" stroke-width="1.8" fill="none"/>';
+    for (var k = 0; k <= 180; k += 10) {
+      var b = k * Math.PI / 180, ro = R + fs, ri = R2 - fs * .9;
+      o += tx(cx + ro * Math.cos(b), cy - ro * Math.sin(b) + fs * .36, k, fs, INK, 700);
+      o += tx(cx + ri * Math.cos(b), cy - ri * Math.sin(b) + fs * .36, 180 - k, fs * .88, '#444', 500);
+    }
+    o += ln(cx, cy, cx, cy - H * .9, G2DL, 2, '6 5') + '<circle cx="' + cx + '" cy="' + cy + '" r="5" fill="#fff" stroke="' + INK + '" stroke-width="2.5"/>';
+    if (read != null) { var q = g2P([cx, cy], read, R); o += '<circle cx="' + f1(q[0]) + '" cy="' + f1(q[1]) + '" r="10" fill="none" stroke="' + (rcol || AC) + '" stroke-width="5"/>'; }
+    return o;
+  }
+  function g2Lies(v, first, extra) {   // Winkel mit angelegtem Geodreieck; first: 'r' = erster Schenkel nach rechts, 'l' = nach links
+    var W = 640, H = 330, S = [320, 300], G = 270, a2 = first === 'r' ? v : 180 - v;
+    var o = g2Gd(S[0], S[1], G);
+    o += ln(S[0], S[1], S[0] + (first === 'r' ? 300 : -300), S[1], AC, 6);
+    var p = g2P(S, a2, 300); o += ln(S[0], S[1], p[0], p[1], AC, 6);
+    o += g2Arc(S, Math.min(first === 'r' ? 0 : 180, a2), Math.max(first === 'r' ? 0 : 180, a2), 54, AC, 5);
+    return sv(W, H, o + (extra || ''));
+  }
+  function g2Clock(h, r) {
+    r = r || 90; var c = r + 6, o = '<circle cx="' + c + '" cy="' + c + '" r="' + r + '" fill="#fff" stroke="' + INK + '" stroke-width="4"/>';
+    for (var k = 0; k < 60; k++) { var a = (90 - k * 6) * Math.PI / 180, tl = k % 5 ? 6 : 13; o += ln(c + (r - tl) * Math.cos(a), c - (r - tl) * Math.sin(a), c + r * Math.cos(a), c - r * Math.sin(a), INK, k % 5 ? 1.5 : 3); }
+    for (var z = 1; z <= 12; z++) { var b = (90 - z * 30) * Math.PI / 180; o += tx(c + (r - 30) * Math.cos(b), c - (r - 30) * Math.sin(b) + 8, z, 22, INK, 700); }
+    var ah = (90 - (h % 12) * 30) * Math.PI / 180;
+    o += ln(c, c, c + r * .36 * Math.cos(ah), c - r * .36 * Math.sin(ah), INK, 9) + ln(c, c, c, c - r * .54, INK, 5) + dt(c, c, 7, INK);
+    return sv(2 * c, 2 * c, o);
+  }
+  function g2Kreis(r, show, hi, ra, da) {   // Kreis im Feld 300 × 300; show: 'M', 'r', 'd'; hi: farbig
+    var M = [150, 150], o = '<circle cx="150" cy="150" r="' + r + '" fill="#fff" stroke="' + INK + '" stroke-width="4"/>';
+    function col(k) { return hi === k ? AC : INK; }
+    if (show.indexOf('d') >= 0) { var d1 = g2P(M, da, r), d2 = g2P(M, da + 180, r); o += ln(d1[0], d1[1], d2[0], d2[1], col('d'), hi === 'd' ? 7 : 4); }
+    if (show.indexOf('r') >= 0) { var r1 = g2P(M, ra, r); o += ln(150, 150, r1[0], r1[1], col('r'), hi === 'r' ? 7 : 4); }
+    o += cr(150, 150, col('M'), hi === 'M' ? 13 : 9, hi === 'M' ? 6 : 4);
+    return sv(300, 300, o);
+  }
+  var G2LP = { A: 'M1 16 L6 0 L11 16 M3.2 10 H8.8', E: 'M10.5 0 H1.5 V16 H10.5 M1.5 8 H10.5', H: 'M1.5 0 V16 M10.5 0 V16 M1.5 8 H10.5', N: 'M1.5 16 V0 L10.5 16 V0',
+    T: 'M0.5 0 H11.5 M6 0 V16', U: 'M1.5 0 V10.5 Q1.5 16 6 16 Q10.5 16 10.5 10.5 V0', Z: 'M1 0 H11 L1 16 H11', M: 'M1 16 V0 L6 9 L11 0 V16', X: 'M1 0 L11 16 M11 0 L1 16',
+    I: 'M6 0 V16', S: 'M9.06 1.43 A4 4 0 1 0 6 8 A4 4 0 1 1 2.94 14.57', V: 'M1 0 L6 16 L11 0', L: 'M1.5 0 V16 H10.5', F: 'M10.5 0 H1.5 V16 M1.5 8 H8.5', K: 'M1.5 0 V16 M10.5 0 L1.5 9 M4.6 6 L10.5 16' };
+  var G2LS = { A: 'v', E: 'h', H: 'vhp', N: 'p', T: 'v', U: 'v', Z: 'p', M: 'v', X: 'vhp', I: 'vhp', S: 'p', V: 'v', L: '', F: '', K: '', O: 'vhp' };
+  function g2Let(ch) {
+    var g = ch === 'O' ? '<ellipse cx="6" cy="8" rx="5" ry="8" fill="none" stroke="' + INK + '" stroke-width="2.2"/>' : '<path d="' + G2LP[ch] + '" fill="none" stroke="' + INK + '" stroke-width="2.2" stroke-linejoin="round"/>';
+    return '<svg class="gsv" viewBox="-3 -3 18 22" style="max-width:150px">' + g + '</svg>';
+  }
+  var G2FIG = {   // Figuren 300 × 300: punktsymmetrisch?
+    parallelo: { p: [[40, 230], [180, 230], [260, 70], [120, 70]], ps: true }, rechteck: { p: [[40, 90], [260, 90], [260, 210], [40, 210]], ps: true },
+    raute: { p: [[150, 30], [250, 150], [150, 270], [50, 150]], ps: true }, dreieck: { p: [[150, 40], [260, 250], [40, 250]], ps: false },
+    pfeil: { p: [[30, 120], [160, 120], [160, 60], [270, 150], [160, 240], [160, 180], [30, 180]], ps: false },
+    drachen: { p: [[150, 30], [230, 110], [150, 270], [70, 110]], ps: false }, trapez: { p: [[40, 230], [260, 230], [200, 80], [100, 80]], ps: false } };
+  function g2Fig(k) { return sv(300, 300, pg(G2FIG[k].p, INK, 5, ACL)); }
+
+  GEN.g2kreis = function () {
+    var plan = shuffle(['was', 'was', 'was', 'd', 'd', 'r', 'r', 'sach', 'sach', 'jn']);
+    var WAS = [{ v: 'M', h: S('Mittelpunkt') }, { v: 'r', h: S('Radius') }, { v: 'd', h: S('Durchmesser') }];
+    return plan.map(function (t) {
+      if (t === 'was') {
+        var hi = one(['M', 'r', 'd']), ra = R(0, 11) * 30, da = R(0, 5) * 30 + 15;
+        return { head: S('Was ist farbig markiert?'), body: '<div class="card gsw sq">' + g2Kreis(120, hi === 'M' ? '' : hi, hi, ra, da) + '</div>', choices: WAS, cols: 3, ans: hi,
+          why: S(hi === 'M' ? 'Der Punkt in der Mitte ist der Mittelpunkt M.' : (hi === 'r' ? 'Die Strecke geht von M bis zur Kreislinie: Das ist ein Radius.' : 'Die Strecke geht durch M von Kreislinie zu Kreislinie: Das ist ein Durchmesser.')) };
+      }
+      if (t === 'd') { var r = R(2, 15);
+        return { kind: 'inp', head: S('Der Radius ist r = ' + r + ' cm. Wie groß ist der Durchmesser?'), body: '<div class="card cmpq">d = ' + nin(2 * r) + ' cm</div>', ans: 'd' + r,
+          why: S('d = 2 · r = 2 · ' + r + ' cm = ' + 2 * r + ' cm.') }; }
+      if (t === 'r') { var d = 2 * R(2, 15);
+        return { kind: 'inp', head: S('Der Durchmesser ist d = ' + d + ' cm. Wie lang ist der Radius?'), body: '<div class="card cmpq">r = ' + nin(d / 2) + ' cm</div>', ans: 'r' + d,
+          why: S('r = d : 2 = ' + d + ' cm : 2 = ' + d / 2 + ' cm.') }; }
+      if (t === 'sach') {
+        var T = one([['Ein Fahrrad-Rad hat einen Radius von ', 30, 'cm', 'r'], ['Das Riesenrad hat einen Durchmesser von ', 40, 'm', 'd'], ['Eine Pizza hat einen Durchmesser von ', 28, 'cm', 'd'],
+          ['Ein runder Tisch hat einen Radius von ', 60, 'cm', 'r'], ['Ein Teller hat einen Durchmesser von ', 24, 'cm', 'd'], ['Eine Uhr hat einen Radius von ', 15, 'cm', 'r']]);
+        var g = T[3], v = T[1], res = g === 'r' ? 2 * v : v / 2, w = g === 'r' ? 'd' : 'r';
+        return { kind: 'inp', head: S('Lies genau. Rechne.'), body: bStory(S(T[0] + v + ' ' + T[2] + '. Wie ' + (w === 'd' ? 'groß ist der Durchmesser?' : 'lang ist der Radius?'))) + '<div class="card cmpq">' + w + ' = ' + nin(res) + ' ' + T[2] + '</div>',
+          ans: 's' + T[0] + v, why: S(w === 'd' ? 'd = 2 · ' + v + ' ' + T[2] + ' = ' + res + ' ' + T[2] + '.' : 'r = ' + v + ' ' + T[2] + ' : 2 = ' + res + ' ' + T[2] + '.') };
+      }
+      var st = one([['Der Durchmesser ist doppelt so lang wie der Radius.', 1], ['Der Radius ist doppelt so lang wie der Durchmesser.', 0], ['Alle Punkte auf der Kreislinie sind gleich weit von M entfernt.', 1],
+        ['Der Durchmesser geht durch den Mittelpunkt.', 1], ['Ein Kreis mit r = 5 cm hat d = 10 cm.', 1], ['Ein Kreis mit d = 6 cm hat r = 12 cm.', 0]]);
+      return { head: S('Stimmt das?'), body: '<div class="card g2st">' + S(st[0]) + '</div>', choices: JN, cols: 2, ans: st[1] ? 'j' : 'n',
+        why: S(st[1] ? 'Das stimmt.' : 'Das stimmt nicht. Der Durchmesser ist doppelt so lang wie der Radius: d = 2 · r.') };
+    });
+  };
+
+  GEN.g2winkel = function () {
+    var plan = shuffle(['ist', 'ist', 'sch', 'sch', 'gr', 'gr', 'gr', 'zahl', 'zahl', 'buch']), istK = shuffle(['ja', one(['luecke', 'bogen', 'par'])]);
+    return plan.map(function (t) {
+      if (t === 'ist') {
+        var k = istK.pop(), S0 = [60, 230], o;
+        if (k === 'ja') { var a = R(0, 6) * 15, s = R(3, 10) * 10; o = g2Wink([150, 220], a, s, 130, 130, INK); }
+        else if (k === 'luecke') o = ln(40, 240, 260, 240, INK, 5) + ln(70, 200, 230, 60, INK, 5);
+        else if (k === 'bogen') o = ln(40, 240, 260, 240, INK, 5) + '<path d="M40 240 Q 80 80 250 60" fill="none" stroke="' + INK + '" stroke-width="5"/>';
+        else o = ln(40, 100, 260, 100, INK, 5) + ln(40, 200, 260, 200, INK, 5);
+        return { head: S('Ist das ein Winkel?'), body: '<div class="card gsw sq">' + sv(300, 300, o) + '</div>', choices: JN, cols: 2, ans: k === 'ja' ? 'j' : 'n', ansk: k + Math.random(),
+          why: S(k === 'ja' ? 'Zwei gerade Schenkel beginnen im selben Punkt: Das ist ein Winkel.' : 'Ein Winkel hat zwei gerade Schenkel, die im selben Punkt beginnen. Das ist hier nicht so.') };
+      }
+      if (t === 'sch') {
+        var a1 = R(0, 7) * 45, sz = R(4, 12) * 10, Sx = [300, 200], p1 = g2P(Sx, a1, 170), p2 = g2P(Sx, a1 + sz, 170);
+        var cand = shuffle([['S', Sx], ['A', p1], ['B', p2]]), ans = String(cand.map(function (c) { return c[0]; }).indexOf('S'));
+        function pic(res) {
+          var o2 = ln(Sx[0], Sx[1], p1[0], p1[1], INK, 5) + ln(Sx[0], Sx[1], p2[0], p2[1], INK, 5) + g2Arc(Sx, a1, a1 + sz, 40, INK, 4);
+          cand.forEach(function (c, i) { var col = res ? (String(i) === ans ? OKC : (res === String(i) ? NOC : '#9a9a9a')) : AC;
+            o2 += '<g class="tp" data-v="' + i + '"><circle cx="' + f1(c[1][0]) + '" cy="' + f1(c[1][1]) + '" r="30" fill="transparent"/>' + cr(c[1][0], c[1][1], col, 13, 6) + '</g>'; });
+          return sv(600, 400, o2, 'tapk');
+        }
+        var it = { kind: 'tap', head: S('Tippe auf den Scheitelpunkt.'), body: '<div class="card gsw" id="g2s">' + pic(null) + '</div>', ans: ans, ansk: a1 + '/' + sz,
+          why: S('Der Scheitelpunkt ist der Punkt, an dem beide Schenkel beginnen. Dort ist auch der Bogen.') };
+        it.after = function (good, got) { document.getElementById('g2s').innerHTML = pic(got || 'x'); };
+        return it;
+      }
+      if (t === 'gr') {
+        var s1 = R(2, 15) * 10, s2; do { s2 = R(2, 15) * 10; } while (Math.abs(s1 - s2) < 20);
+        var l1 = s1 > s2 ? 70 : 170, l2 = s1 > s2 ? 170 : 70;   // der größere Winkel hat die kürzeren Schenkel
+        return { head: S('Welcher Winkel ist größer?'), body: '<div class="card g2two">' + g2AngSvg(R(0, 2) * 15, s1, l1, l1, INK, 'α', 34, 280) + g2AngSvg(R(0, 2) * 15, s2, l2, l2, INK, 'β', 34, 280) + '</div>',
+          choices: [{ v: 'a', h: 'α' }, { v: 'b', h: 'β' }], cols: 2, ans: s1 > s2 ? 'a' : 'b', ansk: s1 + '/' + s2,
+          why: S('Die Länge der Schenkel ist egal. ' + (s1 > s2 ? 'Bei α' : 'Bei β') + ' gehen die Schenkel weiter auseinander.') };
+      }
+      if (t === 'zahl') {
+        var n = R(3, 6), C0 = [150, 155], rr = 110, ps = [];
+        for (var j = 0; j < n; j++) ps.push(g2P(C0, 90 + 360 * j / n + R(-12, 12), rr * (.8 + Math.random() * .2)));
+        return { head: S('Wie viele Winkel hat die Figur?'), body: '<div class="card gsw sq">' + sv(300, 300, pg(ps, INK, 5, ACL)) + '</div>', choices: nums([3, 4, 5, 6]), cols: 4, ans: n, ansk: n + 'z' + Math.random(),
+          why: S('An jeder Ecke ist ein Winkel. Die Figur hat ' + n + ' Ecken, also ' + n + ' Winkel.') };
+      }
+      var L3 = one([['α', 'al|pha'], ['β', 'be|ta'], ['γ', 'gam|ma']]);
+      return { head: S('Wie heißt dieser Buchstabe?'), body: '<div class="card cmpq"><span class="g2gr">' + L3[0] + '</span></div>',
+        choices: [{ v: 'al|pha', h: S('al|pha') }, { v: 'be|ta', h: S('be|ta') }, { v: 'gam|ma', h: S('gam|ma') }], cols: 3, ans: L3[1], why: S(L3[0] + ' heißt ' + L3[1] + '.') };
+    });
+  };
+
+  var G2ART = ['spitz', 'recht', 'stumpf', 'ge|streckt', 'über|stumpf'];
+  function g2ArtOf(v) { return v < 90 ? 'spitz' : (v === 90 ? 'recht' : (v < 180 ? 'stumpf' : (v === 180 ? 'ge|streckt' : (v < 360 ? 'über|stumpf' : 'Voll|win|kel')))); }
+  function g2ArtCh(list) { return list.map(function (w) { return { v: w, h: S(w) }; }); }
+  GEN.g2arten = function () {
+    var plan = shuffle(['bild', 'bild', 'bild', 'bild', 'grad', 'grad', 'grad', 'grad', 'uhr', 'uhr']);
+    return plan.map(function (t) {
+      if (t === 'bild') {
+        var k = one(['spitz', 'spitz', 'recht', 'stumpf', 'stumpf', 'ge|streckt', 'über|stumpf']);
+        var v = k === 'spitz' ? R(2, 8) * 10 : (k === 'recht' ? 90 : (k === 'stumpf' ? R(10, 17) * 10 : (k === 'ge|streckt' ? 180 : R(20, 33) * 10)));
+        var a1 = v > 180 ? 0 : R(0, 3) * 15;
+        return { head: S('Welche Winkelart ist das?'), body: '<div class="card gsw sq">' + g2AngSvg(a1, v, 160, 160, INK, 'α', 40, 340) + '</div>', choices: g2ArtCh(G2ART), cols: 3, ans: k, ansk: a1 + '/' + v,
+          why: S('Der Winkel ist ' + (k === 'recht' ? 'genau 90° groß: ein rechter Winkel.' : (k === 'ge|streckt' ? 'eine gerade Linie, 180°: ein gestreckter Winkel.' : (k === 'spitz' ? 'kleiner als 90°: ein spitzer Winkel.' : (k === 'stumpf' ? 'größer als 90° und kleiner als 180°: ein stumpfer Winkel.' : 'größer als 180°: ein überstumpfer Winkel.'))))) };
+      }
+      if (t === 'grad') {
+        var g = one([R(1, 17) * 5, R(1, 17) * 5, 90, 180, R(37, 71) * 5, 360]); if (g === 90 && Math.random() < .5) g = R(91, 179);
+        var a = g2ArtOf(g), ch = G2ART.concat(['Voll|win|kel']);
+        return { head: S('Welche Winkelart hat diese Größe?'), body: '<div class="card cmpq">α = ' + g + '°</div>', choices: g2ArtCh(ch), cols: 3, ans: a,
+          why: S('Spitz: kleiner als 90°. Recht: 90°. Stumpf: zwischen 90° und 180°. Gestreckt: 180°. Überstumpf: zwischen 180° und 360°. Vollwinkel: 360°.') };
+      }
+      var h = R(1, 6), w = h * 30;
+      return { head: S('Die Uhrzeiger bilden einen Winkel. Welche Winkelart ist es?'), body: '<div class="card gsw sq">' + g2Clock(h) + '</div>', choices: g2ArtCh(['spitz', 'recht', 'stumpf', 'ge|streckt']), cols: 2, ans: g2ArtOf(w),
+        why: S('Um ' + h + ' Uhr sind es ' + h + ' · 30° = ' + w + '°: ' + (w < 90 ? 'spitz.' : (w === 90 ? 'ein rechter Winkel.' : (w < 180 ? 'stumpf.' : 'gestreckt.')))) };
+    });
+  };
+
+  GEN.g2messen = function () {
+    var plan = shuffle(['lies', 'lies', 'lies', 'lies', 'lies', 'lies', 'ben', 'ben', 'sch', 'sch']);
+    return plan.map(function (t) {
+      var v = R(2, 16) * 10, first = Math.random() < .3 ? 'l' : 'r';
+      if (Math.random() < .3) v += 5;
+      if (t === 'lies') return { kind: 'inp', head: S('Lies am Geodreieck ab. Wie groß ist der Winkel?'), body: '<div class="card gsw">' + g2Lies(v, first) + '</div><div class="card cmpq">α = ' + nin(v) + '°</div>', ans: 'l' + v + first,
+        why: S('Der erste Schenkel zeigt nach ' + (first === 'r' ? 'rechts' : 'links') + '. Dort beginnt die Skala mit 0. Dort liest du ab: ' + v + '°.') };
+      if (t === 'ben') {
+        var ok = Math.random() < .4, said = ok ? v : 180 - v, nm = one(['Ben', 'Mia', 'Ayla', 'Jonas']);
+        if (said === v) ok = true;
+        return { head: S(nm + ' sagt: α = ' + said + '°. Stimmt das?'), body: '<div class="card gsw">' + g2Lies(v, first) + '</div>', choices: JN, cols: 2, ans: ok ? 'j' : 'n', ansk: v + first + said,
+          why: S(ok ? 'Das stimmt.' : 'Das stimmt nicht. ' + nm + ' hat die falsche Skala benutzt. Richtig ist α = ' + v + '°.') };
+      }
+      var vv = R(2, 16) * 10, opts, pool = [];
+      for (var q = 1; q <= 17; q++) pool.push(q * 10);
+      do { opts = [vv]; shuffle(pool).forEach(function (c) { if (opts.length < 4 && opts.every(function (o) { return Math.abs(o - c) >= 40; })) opts.push(c); }); } while (opts.length < 4);
+      return { head: S('Schätze: Wie groß ist der Winkel ungefähr?'), body: '<div class="card gsw sq">' + g2AngSvg(R(0, 2) * 15, vv, 170, 170, INK, 'α', 40, 320) + '</div>',
+        choices: shuffle(opts).map(function (o) { return { v: o, h: o + '°' }; }), cols: 4, ans: vv,
+        why: S('Vergleiche mit einem rechten Winkel (90°). Der Winkel ist etwa ' + vv + '° groß.') };
+    });
+  };
+
+  GEN.g2zeichnen = function () {
+    var plan = shuffle(['mark', 'mark', 'mark', 'mark', 'mark', 'uhr', 'uhr', 'uhr', 'uhr', 'pruef']);
+    return plan.map(function (t) {
+      if (t === 'mark') {
+        var v = R(2, 16) * 10, first = Math.random() < .35 ? 'l' : 'r', S0 = [320, 300], G = 270, Rr = G * .62;
+        var pos = first === 'r' ? v : 180 - v, wrong = 180 - pos, cand = pos === wrong ? [pos] : [pos, wrong];
+        while (cand.length < 4) { var c = R(1, 17) * 10; if (cand.every(function (o) { return Math.abs(o - c) >= 20; })) cand.push(c); }
+        cand = shuffle(cand); var ans = String(cand.indexOf(pos));
+        function pic(res) {
+          var o = g2Gd(S0[0], S0[1], G) + ln(S0[0], S0[1], S0[0] + (first === 'r' ? 300 : -300), S0[1], AC, 6);
+          cand.forEach(function (a, i) { var q = g2P(S0, a, Rr), col = res ? (String(i) === ans ? OKC : (res === String(i) ? NOC : '#b5b5b5')) : AC;
+            o += '<g class="tp" data-v="' + i + '"><circle cx="' + f1(q[0]) + '" cy="' + f1(q[1]) + '" r="24" fill="transparent"/><circle cx="' + f1(q[0]) + '" cy="' + f1(q[1]) + '" r="11" fill="' + col + '"/></g>'; });
+          if (res) { var e = g2P(S0, pos, 300); o += ln(S0[0], S0[1], e[0], e[1], OKC, 5); }
+          return sv(640, 330, o, 'tapk');
+        }
+        var it = { kind: 'tap', head: S('Du willst α = ' + v + '° zeichnen. Wo markierst du den Punkt? Tippe ihn an.'), body: '<div class="card gsw" id="g2m">' + pic(null) + '</div>', ans: ans, ansk: v + first,
+          why: S('Der erste Schenkel zeigt nach ' + (first === 'r' ? 'rechts' : 'links') + '. Die Skala beginnt dort mit 0. Markiere bei ' + v + ' auf dieser Skala.') };
+        it.after = function (good, got) { document.getElementById('g2m').innerHTML = pic(got || 'x'); };
+        return it;
+      }
+      if (t === 'uhr') { var h = R(1, 6);
+        return { kind: 'inp', head: S('Wie groß ist der Winkel zwischen den Uhrzeigern? Von einer Zahl zur nächsten sind es 30°.'), body: '<div class="card gsw sq">' + g2Clock(h) + '</div><div class="card cmpq">α = ' + nin(h * 30) + '°</div>',
+          ans: 'u' + h, why: S(h + ' Schritte · 30° = ' + h * 30 + '°.') }; }
+      var want = R(3, 15) * 10, drawn = Math.random() < .5 ? want : (Math.random() < .5 ? 180 - want : want + 20), nm = one(['Ben', 'Mia', 'Ayla', 'Jonas']);
+      if (drawn === 90 && want !== 90) drawn = want + 20;
+      return { head: S(nm + ' sollte α = ' + want + '° zeichnen. Stimmt die Zeichnung?'), body: '<div class="card gsw">' + g2Lies(drawn, 'r') + '</div>', choices: JN, cols: 2, ans: drawn === want ? 'j' : 'n', ansk: want + '/' + drawn,
+        why: S(drawn === want ? 'Das stimmt: Der Winkel ist ' + want + '° groß.' : 'Das stimmt nicht. Der Winkel ist ' + drawn + '° groß, nicht ' + want + '°.') };
+    });
+  };
+
+  GEN.g2achse = function () {
+    var set = shuffle(GEN.symm()).slice(0, 4).concat(shuffle(GEN.spiegeln()).slice(0, 4));
+    set.forEach(function (it) { if (it.choices && it.choices.length === 2 && it.choices[0].v === 'j') it.choices = JN; });
+    shuffle(['A', 'E', 'H', 'N', 'T', 'U', 'Z', 'S', 'M', 'L', 'F', 'K', 'V']).slice(0, 2).forEach(function (ch) {
+      var s = G2LS[ch].indexOf('v') >= 0 || G2LS[ch].indexOf('h') >= 0;
+      set.push({ head: S('Ist der Buchstabe achsensymmetrisch?'), body: '<div class="card gsw sq">' + g2Let(ch) + '</div>', choices: JN, cols: 2, ans: s ? 'j' : 'n', ansk: ch,
+        why: S(s ? 'Ja. Du kannst den Buchstaben so falten, dass beide Hälften genau aufeinanderpassen.' : 'Nein. Es gibt keine Faltlinie, bei der beide Hälften aufeinanderpassen.') });
+    });
+    return shuffle(set);
+  };
+
+  GEN.g2punkt = function () {
+    var set = [], C = 40, NX = 12, NY = 8, X0 = 20, Y0 = 20, W = X0 * 2 + NX * C, H = Y0 * 2 + NY * C, Z = [6, 4];
+    for (var t = 0; t < 5; t++) {
+      (function () {
+        var dx, dy; do { dx = R(-5, 5); dy = R(-3, 3); } while ((dx === 0 && dy === 0) || Math.abs(dx) + Math.abs(dy) < 2);
+        var P = [Z[0] + dx, Z[1] + dy], M = [Z[0] - dx, Z[1] - dy];
+        function g(p) { return [X0 + p[0] * C, Y0 + p[1] * C]; }
+        function pic(res) {
+          var o = karoJ(X0, Y0, NX, NY, C), z = g(Z), p = g(P);
+          o += cr(z[0], z[1], INK, 13, 7) + tx(z[0] + 24, z[1] - 14, 'Z', 26, INK, 800) + cr(p[0], p[1], INK, 11, 5) + tx(p[0] - 22, p[1] - 14, 'A', 26, INK, 800);
+          if (res) {
+            var m = g(M); o += ln(p[0], p[1], m[0], m[1], OKC, 3, '9 7') + cr(m[0], m[1], OKC, 12, 6) + tx(m[0] + 26, m[1] - 14, 'A′', 26, OKC, 800);
+            if (res !== 'ok') { var r = res.split('|'), rp = g([+r[0], +r[1]]); o += cr(rp[0], rp[1], NOC, 12, 6); }
+          } else {
+            for (var i = 0; i <= NX; i++) for (var j = 0; j <= NY; j++) {
+              if ((i === Z[0] && j === Z[1]) || (i === P[0] && j === P[1])) continue;
+              o += '<g class="tp" data-v="' + i + '|' + j + '"><circle cx="' + (X0 + i * C) + '" cy="' + (Y0 + j * C) + '" r="18" fill="transparent"/></g>';
+            }
+          }
+          return sv(W, H, o, 'tapk');
+        }
+        var it = { kind: 'tap', head: S('Spiegele den Punkt A am Punkt Z. Tippe auf den Bildpunkt A′.'), body: '<div class="card gsw" id="g2p">' + pic(null) + '</div>', ans: M[0] + '|' + M[1], ansk: dx + '/' + dy,
+          why: S('Von A bis Z: ' + Math.abs(dx) + ' Kästchen nach ' + (dx < 0 ? 'rechts' : 'links') + ' und ' + Math.abs(dy) + ' Kästchen nach ' + (dy < 0 ? 'unten' : 'oben') + '. Von Z gehst du genauso weiter.') };
+        it.after = function (good, got) { document.getElementById('g2p').innerHTML = pic(good ? 'ok' : got); };
+        set.push(it);
+      })();
+    }
+    shuffle(Object.keys(G2FIG)).slice(0, 2).forEach(function (k) {
+      var y = G2FIG[k].ps;
+      set.push({ head: S('Ist die Figur punktsymmetrisch?'), body: '<div class="card gsw sq">' + g2Fig(k) + '</div>', choices: JN, cols: 2, ans: y ? 'j' : 'n', ansk: k,
+        why: S(y ? 'Ja. Nach einer halben Drehung sieht die Figur genau gleich aus.' : 'Nein. Nach einer halben Drehung steht die Figur anders da.') });
+    });
+    shuffle(['H', 'N', 'S', 'Z', 'X', 'T', 'A', 'E', 'U', 'O', 'L', 'I']).slice(0, 3).forEach(function (ch) {
+      var s = G2LS[ch], ac = s.indexOf('v') >= 0 || s.indexOf('h') >= 0, pc = s.indexOf('p') >= 0;
+      var ans = ac && pc ? 'b' : (ac ? 'a' : (pc ? 'p' : 'k'));
+      set.push({ head: S('Welche Symmetrie hat der Buchstabe?'), body: '<div class="card gsw sq">' + g2Let(ch) + '</div>',
+        choices: [{ v: 'a', h: '<span class="g2lw">' + S('nur achsensymmetrisch') + '</span>' }, { v: 'p', h: '<span class="g2lw">' + S('nur punktsymmetrisch') + '</span>' }, { v: 'b', h: '<span class="g2lw">' + S('beides') + '</span>' }, { v: 'k', h: '<span class="g2lw">' + S('keins von beiden') + '</span>' }], cols: 1, ans: ans, ansk: ch,
+        why: S('Achsensymmetrisch: falten. Punktsymmetrisch: halb herumdrehen. ' + ch + ' ist ' + (ans === 'b' ? 'beides.' : (ans === 'a' ? 'nur achsensymmetrisch.' : (ans === 'p' ? 'nur punktsymmetrisch.' : 'keins von beiden.')))) });
+    });
+    return shuffle(set);
+  };
+  TIP.g2kreis = S('Der Durchmesser ist doppelt so lang wie der Radius: d = 2 · r. Der Radius ist die Hälfte: r = d : 2.');
+  TIP.g2winkel = S('Ein Winkel hat zwei Schenkel und einen Scheitelpunkt. Die Länge der Schenkel ist egal.');
+  TIP.g2arten = S('Vergleiche mit 90° (rechter Winkel) und mit 180° (gerade Linie).');
+  TIP.g2messen = S('Lies an der Skala ab, die beim ersten Schenkel mit 0 beginnt. Ein spitzer Winkel ist kleiner als 90°.');
+  TIP.g2zeichnen = S('Die Skala muss beim ersten Schenkel mit 0 beginnen. Von einer Zahl zur nächsten auf der Uhr sind es 30°.');
+  TIP.g2achse = S('Falte in Gedanken an der Achse. Zähle die Kästchen bis zur Achse und auf der anderen Seite genauso viele.');
+  TIP.g2punkt = S('Zähle die Kästchen von A bis Z. Gehe von Z genauso weiter. Punktsymmetrisch: halb herumdrehen.');
+
+  // ============================================================ Körper und ihre Eigenschaften (6. Schuljahr): Körper, Ecken/Kanten/Flächen, Würfel und Quader, Netze, Schrägbilder, Oberfläche, Volumen
+  // Wie im Heft: Schrägbild mit Kanten nach hinten unter 45° und halber Länge, verdeckte Kanten gestrichelt.
+  var KPF = '#cddcec', KPT = '#e9f0f8', KPS = '#adc5de', KPH = '#f3c96b', KPD = '12 9';
+  function kpP(o, x, y, z) { return [o[0] + x + z / 2, o[1] - y - z / 2]; }
+  function kpPg(pts, fill, c, sw) { return '<polygon points="' + pts.map(function (p) { return f1(p[0]) + ',' + f1(p[1]); }).join(' ') + '" fill="' + fill + '" stroke="' + (c || 'none') + '" stroke-width="' + (sw || 0) + '" stroke-linejoin="round"/>'; }
+  function kpQuader(o, a, b, c, opt) {   // a nach rechts, b nach hinten, c nach oben; o = vorne unten links
+    opt = opt || {}; var sw = opt.sw || 4, col = opt.col || INK, V = {};
+    [0, 1].forEach(function (i) { [0, 1].forEach(function (j) { [0, 1].forEach(function (k) { V['' + i + j + k] = kpP(o, i * a, k * c, j * b); }); }); });
+    var s = '';
+    if (opt.fill !== false) s += kpPg([V['000'], V['100'], V['101'], V['001']], opt.front || KPF) + kpPg([V['001'], V['101'], V['111'], V['011']], KPT) + kpPg([V['100'], V['110'], V['111'], V['101']], KPS);
+    [['000', '100'], ['100', '101'], ['101', '001'], ['001', '000'], ['001', '011'], ['101', '111'], ['011', '111'], ['100', '110'], ['110', '111']].forEach(function (e) { s += ln(V[e[0]][0], V[e[0]][1], V[e[1]][0], V[e[1]][1], col, sw); });
+    if (opt.hid !== false) [['010', '110'], ['010', '011'], ['010', '000']].forEach(function (e) { s += ln(V[e[0]][0], V[e[0]][1], V[e[1]][0], V[e[1]][1], col, sw * .8, opt.nodash ? null : KPD); });
+    return { s: s, V: V };
+  }
+  function kpHalf(cx, cy, rx, ry, front, sw) {
+    return '<path d="M' + f1(cx - rx) + ' ' + f1(cy) + ' A' + f1(rx) + ' ' + f1(ry) + ' 0 0 ' + (front ? 0 : 1) + ' ' + f1(cx + rx) + ' ' + f1(cy) + '" fill="none" stroke="' + INK + '" stroke-width="' + (front ? sw : sw * .8) + '"' + (front ? '' : ' stroke-dasharray="' + KPD + '"') + '/>';
+  }
+  function kpSolid(kind, cx, by, s) {   // Körper mittig über der Grundlinie by
+    s = s || 1; var o, r, h, ry, a, w, t, F, B, G, S2, out = '';
+    if (kind === 'wuerfel') { a = 100 * s; return kpQuader([cx - .75 * a, by], a, a, a).s; }
+    if (kind === 'quader') { return kpQuader([cx - (150 * s + 35 * s) / 2, by], 150 * s, 70 * s, 70 * s).s; }
+    if (kind === 'quaderh') { return kpQuader([cx - (70 * s + 30 * s) / 2, by], 70 * s, 60 * s, 140 * s).s; }
+    if (kind === 'prisma') {
+      w = 110 * s; t = 110 * s; h = 95 * s; o = [cx - (w + t / 2) / 2, by];
+      F = [kpP(o, 0, 0, 0), kpP(o, w, 0, 0), kpP(o, w / 2, h, 0)]; B = [kpP(o, 0, 0, t), kpP(o, w, 0, t), kpP(o, w / 2, h, t)];
+      out = kpPg(F, KPF) + kpPg([F[1], B[1], B[2], F[2]], KPS);
+      [[F[0], F[1]], [F[1], F[2]], [F[2], F[0]], [F[2], B[2]], [F[1], B[1]], [B[1], B[2]]].forEach(function (e) { out += ln(e[0][0], e[0][1], e[1][0], e[1][1], INK, 4); });
+      [[F[0], B[0]], [B[0], B[1]], [B[0], B[2]]].forEach(function (e) { out += ln(e[0][0], e[0][1], e[1][0], e[1][1], INK, 3.2, KPD); });
+      return out;
+    }
+    if (kind === 'pyramide') {
+      a = 120 * s; h = 125 * s; o = [cx - .75 * a, by];
+      G = [kpP(o, 0, 0, 0), kpP(o, a, 0, 0), kpP(o, a, 0, a), kpP(o, 0, 0, a)]; S2 = kpP(o, a / 2, h, a / 2);
+      out = kpPg([G[0], G[1], S2], KPF) + kpPg([G[1], G[2], S2], KPS);
+      [[G[0], G[1]], [G[1], G[2]], [G[0], S2], [G[1], S2], [G[2], S2]].forEach(function (e) { out += ln(e[0][0], e[0][1], e[1][0], e[1][1], INK, 4); });
+      [[G[2], G[3]], [G[3], G[0]], [G[3], S2]].forEach(function (e) { out += ln(e[0][0], e[0][1], e[1][0], e[1][1], INK, 3.2, KPD); });
+      return out;
+    }
+    if (kind === 'zylinder') {
+      r = 55 * s; ry = r * .32; h = 120 * s; var cy = by - ry, ty = cy - h;
+      out = '<path d="M' + f1(cx - r) + ' ' + f1(ty) + ' L' + f1(cx - r) + ' ' + f1(cy) + ' A' + f1(r) + ' ' + f1(ry) + ' 0 0 0 ' + f1(cx + r) + ' ' + f1(cy) + ' L' + f1(cx + r) + ' ' + f1(ty) + ' Z" fill="' + KPF + '"/>';
+      out += '<ellipse cx="' + f1(cx) + '" cy="' + f1(ty) + '" rx="' + f1(r) + '" ry="' + f1(ry) + '" fill="' + KPT + '" stroke="' + INK + '" stroke-width="4"/>';
+      return out + kpHalf(cx, cy, r, ry, true, 4) + kpHalf(cx, cy, r, ry, false, 4) + ln(cx - r, ty, cx - r, cy, INK, 4) + ln(cx + r, ty, cx + r, cy, INK, 4);
+    }
+    if (kind === 'kegel') {
+      r = 60 * s; ry = r * .32; h = 130 * s; var cy2 = by - ry, tt = Math.asin(Math.min(1, ry / h)), px = r * Math.cos(tt), py = cy2 + ry * Math.sin(tt);
+      out = '<path d="M' + f1(cx) + ' ' + f1(cy2 - h) + ' L' + f1(cx - px) + ' ' + f1(py) + ' A' + f1(r) + ' ' + f1(ry) + ' 0 0 0 ' + f1(cx + px) + ' ' + f1(py) + ' Z" fill="' + KPF + '"/>';
+      out += '<path d="M' + f1(cx - px) + ' ' + f1(py) + ' A' + f1(r) + ' ' + f1(ry) + ' 0 0 0 ' + f1(cx + px) + ' ' + f1(py) + '" fill="none" stroke="' + INK + '" stroke-width="4"/>';
+      out += '<path d="M' + f1(cx - px) + ' ' + f1(py) + ' A' + f1(r) + ' ' + f1(ry) + ' 0 1 1 ' + f1(cx + px) + ' ' + f1(py) + '" fill="none" stroke="' + INK + '" stroke-width="3.2" stroke-dasharray="' + KPD + '"/>';
+      return out + ln(cx, cy2 - h, cx - px, py, INK, 4) + ln(cx, cy2 - h, cx + px, py, INK, 4);
+    }
+    if (kind === 'kugel') {
+      r = 65 * s; ry = r * .32; var cy3 = by - r;
+      out = '<circle cx="' + f1(cx) + '" cy="' + f1(cy3) + '" r="' + f1(r) + '" fill="' + KPF + '" stroke="' + INK + '" stroke-width="4"/>';
+      return out + kpHalf(cx, cy3, r, ry, true, 3.2) + kpHalf(cx, cy3, r, ry, false, 3.2);
+    }
+    return '';
+  }
+  function kpCubes(o, cells, u) {
+    var key = {}; cells.forEach(function (c) { key[c.join(',')] = 1; });
+    var has = function (x, y, z) { return key[x + ',' + y + ',' + z]; }, s = '';
+    cells.slice().sort(function (p, q) { return (q[2] - p[2]) || (p[1] - q[1]) || (p[0] - q[0]); }).forEach(function (c) {
+      var x = c[0], y = c[1], z = c[2], P = function (i, j, k) { return kpP(o, (x + i) * u, (y + k) * u, (z + j) * u); };
+      if (!has(x, y, z - 1)) s += kpPg([P(0, 0, 0), P(1, 0, 0), P(1, 0, 1), P(0, 0, 1)], KPF, INK, 3);
+      if (!has(x, y + 1, z)) s += kpPg([P(0, 0, 1), P(1, 0, 1), P(1, 1, 1), P(0, 1, 1)], KPT, INK, 3);
+      if (!has(x + 1, y, z)) s += kpPg([P(1, 0, 0), P(1, 1, 0), P(1, 1, 1), P(1, 0, 1)], KPS, INK, 3);
+    });
+    return s;
+  }
+  function kpCubesC(cells, u, W, H) {   // Würfelbau mittig in W × H
+    var mx = 0, my = 0, mz = 0; cells.forEach(function (c) { mx = Math.max(mx, c[0]); my = Math.max(my, c[1]); mz = Math.max(mz, c[2]); });
+    var w = (mx + 1) * u + (mz + 1) * u / 2, h = (my + 1) * u + (mz + 1) * u / 2;
+    return kpCubes([W / 2 - w / 2, H / 2 + h / 2], cells, u);
+  }
+  function kpGridQ(o, a, b, c, u) {   // Quader aus a × b × c Würfeln (nur sichtbare Seiten mit Gitter)
+    var s = kpQuader(o, a * u, b * u, c * u, { hid: false, sw: 4 }).s, g = '#4a6a90', i, p, q;
+    for (i = 1; i < a; i++) { p = kpP(o, i * u, 0, 0); q = kpP(o, i * u, c * u, 0); s += ln(p[0], p[1], q[0], q[1], g, 2); p = kpP(o, i * u, c * u, b * u); s += ln(q[0], q[1], p[0], p[1], g, 2); }
+    for (i = 1; i < c; i++) { p = kpP(o, 0, i * u, 0); q = kpP(o, a * u, i * u, 0); s += ln(p[0], p[1], q[0], q[1], g, 2); p = kpP(o, a * u, i * u, b * u); s += ln(q[0], q[1], p[0], p[1], g, 2); }
+    for (i = 1; i < b; i++) { p = kpP(o, 0, c * u, i * u); q = kpP(o, a * u, c * u, i * u); s += ln(p[0], p[1], q[0], q[1], g, 2); p = kpP(o, a * u, 0, i * u); s += ln(q[0], q[1], p[0], p[1], g, 2); }
+    return s;
+  }
+  function kpNet(o, cells, u, fills) {
+    fills = fills || {}; var s = '';
+    cells.forEach(function (c) { var x = o[0] + c[0] * u, y = o[1] + c[1] * u; s += kpPg([[x, y], [x + u, y], [x + u, y + u], [x, y + u]], fills[c.join(',')] || KPF, INK, 4); });
+    return s;
+  }
+  function kpFold(cells) {   // Würfel über das Netz abrollen: Quadrat -> Würfelseite (0..5) oder null
+    var S = {}; cells.forEach(function (c) { S[c.join(',')] = c; });
+    var st0 = { d: 0, u: 1, n: 2, s: 3, w: 4, e: 5 }, seen = {}, st = [[cells[0], st0]];
+    seen[cells[0].join(',')] = 0;
+    function roll(t, dir) {
+      var r = { d: t.d, u: t.u, n: t.n, s: t.s, w: t.w, e: t.e };
+      if (dir === 'e') { r.d = t.e; r.e = t.u; r.u = t.w; r.w = t.d; }
+      if (dir === 'w') { r.d = t.w; r.w = t.u; r.u = t.e; r.e = t.d; }
+      if (dir === 's') { r.d = t.s; r.s = t.u; r.u = t.n; r.n = t.d; }
+      if (dir === 'n') { r.d = t.n; r.n = t.u; r.u = t.s; r.s = t.d; }
+      return r;
+    }
+    while (st.length) {
+      var cur = st.pop(), c = cur[0], t = cur[1];
+      [['e', 1, 0], ['w', -1, 0], ['s', 0, 1], ['n', 0, -1]].forEach(function (m) {
+        var k = (c[0] + m[1]) + ',' + (c[1] + m[2]);
+        if (S[k] && seen[k] === undefined) { var ns = roll(t, m[0]); seen[k] = ns.d; st.push([S[k], ns]); }
+      });
+    }
+    var vals = Object.keys(seen).map(function (k) { return seen[k]; });
+    if (vals.length !== 6 || cells.length !== 6) return null;
+    var u = {}; vals.forEach(function (v) { u[v] = 1; });
+    return Object.keys(u).length === 6 ? seen : null;
+  }
+  function kpOpp(cells, c) {
+    var m = kpFold(cells), op = { 0: 1, 1: 0, 2: 3, 3: 2, 4: 5, 5: 4 }; if (!m) return null;
+    var t = op[m[c.join(',')]], r = null; Object.keys(m).forEach(function (k) { if (m[k] === t) r = k; }); return r;
+  }
+  function kpPips(x, y, u, n, c) {
+    var q = .26, P = { c: [.5, .5], tl: [.5 - q, .5 - q], tr: [.5 + q, .5 - q], bl: [.5 - q, .5 + q], br: [.5 + q, .5 + q], ml: [.5 - q, .5], mr: [.5 + q, .5] };
+    var Lk = { 1: ['c'], 2: ['tr', 'bl'], 3: ['tr', 'c', 'bl'], 4: ['tl', 'tr', 'bl', 'br'], 5: ['tl', 'tr', 'c', 'bl', 'br'], 6: ['tl', 'tr', 'ml', 'mr', 'bl', 'br'] }[n];
+    return Lk.map(function (k) { return dt(x + P[k][0] * u, y + P[k][1] * u, u * .09, c || INK); }).join('');
+  }
+  function kpNorm(cells) { var mx = Math.min.apply(null, cells.map(function (c) { return c[0]; })), my = Math.min.apply(null, cells.map(function (c) { return c[1]; })); return cells.map(function (c) { return [c[0] - mx, c[1] - my]; }); }
+  function kpVar(cells) {   // zufällig drehen / spiegeln
+    var f = R(0, 7);
+    return kpNorm(cells.map(function (c) { var x = c[0], y = c[1], t; if (f & 4) { t = x; x = y; y = t; } if (f & 1) x = -x; if (f & 2) y = -y; return [x, y]; })).sort(function (p, q) { return (p[1] - q[1]) || (p[0] - q[0]); });
+  }
+  function kpBox(cells) { return [Math.max.apply(null, cells.map(function (c) { return c[0]; })) + 1, Math.max.apply(null, cells.map(function (c) { return c[1]; })) + 1]; }
+  var KP_NETS = [[[1, 0], [0, 1], [1, 1], [2, 1], [3, 1], [1, 2]], [[0, 0], [0, 1], [1, 1], [2, 1], [3, 1], [3, 2]], [[0, 0], [1, 0], [1, 1], [2, 1], [2, 2], [3, 2]],
+    [[0, 0], [0, 1], [1, 1], [2, 1], [3, 1], [1, 2]], [[0, 0], [0, 1], [1, 1], [2, 1], [3, 1], [2, 2]], [[1, 0], [0, 1], [1, 1], [2, 1], [3, 1], [0, 2]],
+    [[0, 0], [1, 0], [1, 1], [2, 1], [3, 1], [3, 2]].slice(0), [[0, 0], [1, 0], [1, 1], [2, 1], [3, 1], [2, 2]], [[0, 0], [1, 0], [2, 0], [2, 1], [3, 1], [4, 1]],
+    [[1, 0], [0, 1], [1, 1], [2, 1], [3, 1], [2, 2]], [[1, 0], [2, 0], [0, 1], [1, 1], [1, 2], [1, 3]]];
+  var KP_BAD = [[[0, 0], [1, 0], [2, 0], [3, 0], [4, 0], [2, 1]], [[0, 0], [1, 0], [0, 1], [1, 1], [2, 1], [3, 1]], [[0, 0], [1, 0], [2, 0], [0, 1], [1, 1], [2, 1]],
+    [[1, 0], [0, 1], [1, 1], [2, 1], [1, 2], [2, 2]], [[0, 0], [1, 0], [2, 0], [3, 0], [0, 1], [3, 1]], [[0, 0], [1, 0], [1, 1], [2, 1], [1, 2], [2, 2]], [[0, 1], [1, 1], [2, 1], [3, 1], [4, 1], [5, 1]]];
+  var KP_NM = { wuerfel: 'Würfel', quader: 'Quader', quaderh: 'Quader', prisma: 'Prisma', pyramide: 'Pyramide', zylinder: 'Zylinder', kegel: 'Kegel', kugel: 'Kugel' };
+  var KP_EKF = { 'Würfel': [8, 12, 6], 'Quader': [8, 12, 6], 'Prisma': [6, 9, 5], 'Pyramide': [5, 8, 5], 'Zylinder': [0, 2, 3], 'Kegel': [0, 1, 2], 'Kugel': [0, 0, 1] };
+  var KP_ALL7 = ['Würfel', 'Quader', 'Kugel', 'Zylinder', 'Kegel', 'Pyramide', 'Prisma'];
+  var KP_ART = { 'Würfel': 'der', 'Quader': 'der', 'Kugel': 'die', 'Zylinder': 'der', 'Kegel': 'der', 'Pyramide': 'die', 'Prisma': 'das' };
+  function kpDer(n, cap) { var a = KP_ART[n]; return (cap ? a.charAt(0).toUpperCase() + a.slice(1) : a) + ' ' + n; }
+  function kpEin(n) { return (KP_ART[n] === 'die' ? 'eine ' : 'ein ') + n; }
+  function kpPic(kind, s) { return sv(400, 300, kpSolid(kind, 200, 270, s || 1.25)); }
+  var KP_DIS = { 'Würfel': ['Quader', 'Prisma'], 'Quader': ['Würfel', 'Zylinder'], 'Kugel': ['Zylinder', 'Kegel'], 'Zylinder': ['Kegel', 'Quader'], 'Kegel': ['Pyramide', 'Zylinder'], 'Pyramide': ['Prisma', 'Kegel'], 'Prisma': ['Pyramide', 'Quader'] };
+  function kpNameCh(right) { return shuffle(KP_DIS[right].concat([right])).map(function (n) { return { v: n, h: S(n) }; }); }
+
+  GEN.kpkoerper = function () {
+    var kinds = ['wuerfel', 'quader', 'quaderh', 'prisma', 'pyramide', 'zylinder', 'kegel', 'kugel'];
+    var ALLT = [['eine Dose', 'Zylinder'], ['ein Fußball', 'Kugel'], ['ein Spielwürfel', 'Würfel'], ['ein Schuhkarton', 'Quader'], ['ein Partyhut', 'Kegel'],
+      ['ein Zelt', 'Prisma'], ['eine Eistüte', 'Kegel'], ['ein Baumstamm', 'Zylinder'], ['ein Ziegelstein', 'Quader'], ['eine Murmel', 'Kugel'],
+      ['ein Zuckerwürfel', 'Würfel'], ['die Pyramiden in Ägypten', 'Pyramide'], ['eine Milchtüte', 'Quader'], ['ein Verkehrshütchen', 'Kegel'], ['eine Kerze', 'Zylinder']];
+    var RAE = [['Ich habe keine Ecken und keine Kanten. Ich rolle in alle Richtungen.', 'Kugel'], ['Ich habe 6 Flächen. Alle sind gleich große Quadrate.', 'Würfel'],
+      ['Ich habe eine Spitze und unten einen Kreis.', 'Kegel'], ['Unten habe ich ein Quadrat. Oben treffen sich 4 Dreiecke in einer Spitze.', 'Pyramide'],
+      ['Oben und unten habe ich einen Kreis. Ich kann geradeaus rollen.', 'Zylinder'], ['Vorne und hinten habe ich ein Dreieck. Dazwischen sind 3 Rechtecke.', 'Prisma'],
+      ['Ich habe 6 Rechtecke. Gegenüber liegen immer gleich große Rechtecke.', 'Quader']];
+    var plan = shuffle(['name', 'name', 'name', 'name', 'allt', 'allt', 'allt', 'roll', 'roll', 'rae', 'rae']);
+    return plan.map(function (t) {
+      if (t === 'name') { var k = one(kinds), n = KP_NM[k]; return { head: S('Welcher Körper ist das?'), body: '<div class="card gsw">' + kpPic(k, one([1, 1.25])) + '</div>', choices: kpNameCh(n), cols: 3, ans: n, ansk: k + Math.random().toFixed(1),
+        why: S('Das ist ' + kpEin(n) + '.') }; }
+      if (t === 'allt') { var a = one(ALLT); return { head: S('Welchem Körper sieht der Gegenstand ähnlich?'), body: '<div class="card g2st">' + S(a[0].charAt(0).toUpperCase() + a[0].slice(1)) + '</div>', choices: kpNameCh(a[1]), cols: 3, ans: a[1], ansk: a[0],
+        why: S(a[0].charAt(0).toUpperCase() + a[0].slice(1) + ' sieht aus wie ' + kpEin(a[1]) + '.') }; }
+      if (t === 'roll') { var k2 = one(kinds), n2 = KP_NM[k2], ok = ['Kugel', 'Zylinder', 'Kegel'].indexOf(n2) >= 0;
+        return { head: S('Kann dieser Körper rollen?'), body: '<div class="card gsw">' + kpPic(k2, 1.1) + '</div>', choices: JN, cols: 2, ans: ok ? 'j' : 'n', ansk: k2,
+          why: S(ok ? 'Ja. ' + kpDer(n2, true) + ' hat eine gebogene Fläche.' : 'Nein. ' + kpDer(n2, true) + ' hat nur ebene Flächen.') }; }
+      var r = one(RAE);
+      return { head: S('Wer bin ich?'), body: '<div class="card g2st">' + S(r[0]) + '</div>', choices: kpNameCh(r[1]), cols: 3, ans: r[1], ansk: r[0], why: S('Das ist ' + kpDer(r[1]) + '.') };
+    });
+  };
+
+  GEN.kpekf = function () {
+    var kinds = ['wuerfel', 'quader', 'quaderh', 'prisma', 'pyramide', 'zylinder', 'kegel', 'kugel'], W = ['Ecken', 'Kanten', 'Flächen'];
+    var plan = shuffle(['z', 'z', 'z', 'z', 'z', 'z', 'z', 'f', 'f', 's']);
+    return plan.map(function (t) {
+      var k = one(kinds), n = KP_NM[k], e = KP_EKF[n];
+      if (t === 'z') { var w = R(0, 2), v = e[w];
+        return { kind: 'inp', head: S('Wie viele ' + W[w] + ' hat ' + kpDer(n) + '?'), body: '<div class="card gsw">' + kpPic(k, 1.15) + '</div><div class="card cmpq">' + nin(v) + ' ' + S(W[w]) + '</div>', ans: k + w,
+          why: S(kpDer(n, true) + ' hat ' + e[0] + (e[0] === 1 ? ' Ecke, ' : ' Ecken, ') + e[1] + (e[1] === 1 ? ' Kante und ' : ' Kanten und ') + e[2] + (e[2] === 1 ? ' Fläche.' : ' Flächen.')) }; }
+      if (t === 'f') { var FF = { 'Würfel': 'Quadrate', 'Quader': 'Rechtecke', 'Prisma': 'Dreiecke und Rechtecke', 'Pyramide': 'ein Quadrat und Dreiecke', 'Zylinder': 'Kreise und eine gebogene Fläche', 'Kegel': 'ein Kreis und eine gebogene Fläche', 'Kugel': 'nur eine gebogene Fläche' };
+        var right = FF[n], opts = shuffle(Object.keys(FF).filter(function (x) { return FF[x] !== right; }).map(function (x) { return FF[x]; })).filter(function (v, i, a) { return a.indexOf(v) === i; }).slice(0, 2).concat([right]);
+        return { head: S('Welche Flächen hat ' + kpDer(n) + '?'), body: '<div class="card gsw">' + kpPic(k, 1.1) + '</div>', choices: shuffle(opts).map(function (x) { return { v: x, h: S(x) }; }), cols: 1, ans: right, ansk: 'f' + n,
+          why: S(kpDer(n, true) + ' hat ' + right + '.') }; }
+      var st = one([['Ein Würfel hat 8 Ecken.', true], ['Eine Kugel hat eine Ecke.', false], ['Ein Quader hat 12 Kanten.', true], ['Die Spitze vom Kegel ist eine Ecke.', false],
+        ['Ein Zylinder hat 3 Flächen.', true], ['Eine Pyramide hat 4 Flächen.', false], ['Ein Würfel hat 6 Flächen.', true], ['Ein Prisma hat 8 Ecken.', false]]);
+      return { head: S('Stimmt das?'), body: '<div class="card g2st">' + S(st[0]) + '</div>', choices: JN, cols: 2, ans: st[1] ? 'j' : 'n', ansk: st[0], why: S(st[1] ? 'Das stimmt.' : 'Das stimmt nicht.') };
+    });
+  };
+
+  function kpLab(V, la, lb, lc) {   // Kantenlängen an einen Quader schreiben
+    var a0 = V['000'], a1 = V['100'], b1 = V['110'], c1 = V['001'];
+    return tx((a0[0] + a1[0]) / 2, a0[1] + 40, la, 30, INK, 700) + tx((a1[0] + b1[0]) / 2 + 14, (a1[1] + b1[1]) / 2 + 26, lb, 30, INK, 700, 'start') + tx(a0[0] - 12, (a0[1] + c1[1]) / 2 + 10, lc, 30, INK, 700, 'end');
+  }
+  function kpWall() {   // Mauer: Spalten mit Höhen 1–3, Tiefe 1 (alle Würfel sichtbar)
+    var n = R(2, 5), cells = [];
+    for (var x = 0; x < n; x++) { var h = R(1, 3); for (var y = 0; y < h; y++) cells.push([x, y, 0]); }
+    return cells;
+  }
+  GEN.kpwq = function () {
+    var plan = shuffle(['w', 'w', 'w', 'k', 'k', 'n', 'n', 'b', 'b', 'b']);
+    return plan.map(function (t) {
+      if (t === 'w') {
+        var cube = Math.random() < .45, a = R(2, 6), b = cube ? a : R(2, 6), c = cube ? a : R(2, 6);
+        if (!cube && a === b && b === c) c = a + 1;
+        var u = 30, q = kpQuader([120, 250], a * u * .9, b * u * .9, c * u * .9), ok = a === b && b === c;
+        return { head: S('Ist dieser Quader ein Würfel?'), body: '<div class="card gsw">' + sv(460, 300, q.s + kpLab(q.V, a + ' cm', b + ' cm', c + ' cm')) + '</div>', choices: JN, cols: 2, ans: ok ? 'j' : 'n', ansk: a + '/' + b + '/' + c,
+          why: S(ok ? 'Ja. Alle Kanten sind gleich lang.' : 'Nein. Beim Würfel sind alle Kanten gleich lang.') };
+      }
+      if (t === 'k') { var a2 = R(2, 10);
+        return { kind: 'inp', head: S('Ben baut ein Kantenmodell von einem Würfel mit a = ' + a2 + ' cm. Wie viel Trinkhalm braucht er insgesamt?'), body: '<div class="card cmpq">12 · ' + a2 + ' cm = ' + nin(12 * a2) + ' cm</div>', ans: 'k' + a2,
+          why: S('Ein Würfel hat 12 gleich lange Kanten: 12 · ' + a2 + ' = ' + 12 * a2 + '.') }; }
+      if (t === 'n') { var dims = shuffle([R(2, 3), R(4, 5), R(6, 8)]), w = R(0, 2), L3 = ['a', 'b', 'c'];
+        var q2 = kpQuader([110, 250], dims[0] * 22, dims[1] * 22, dims[2] * 22);
+        return { kind: 'inp', head: S('Wie viele Kanten vom Quader sind ' + dims[w] + ' cm lang?'), body: '<div class="card gsw">' + sv(460, 300, q2.s + kpLab(q2.V, dims[0] + ' cm', dims[1] + ' cm', dims[2] + ' cm')) + '</div><div class="card cmpq">' + nin(4) + ' ' + S('Kanten') + '</div>', ans: 'n' + dims.join('') + w,
+          why: S('Beim Quader sind immer 4 Kanten gleich lang.') }; }
+      var cells = kpWall();
+      return { kind: 'inp', head: S('Aus wie vielen Würfeln besteht die Mauer?'), body: '<div class="card gsw">' + sv(460, 300, kpCubesC(cells, 60, 460, 300)) + '</div><div class="card cmpq">' + nin(cells.length) + ' ' + S('Würfel') + '</div>', ans: 'b' + cells.join(';'),
+        why: S('Zähle Spalte für Spalte. Es sind ' + cells.length + ' Würfel.') };
+    });
+  };
+
+  GEN.kpwnetz = function () {
+    var plan = shuffle(['ist', 'ist', 'ist', 'ist', 'geg', 'geg', 'geg', 'aug', 'aug', 'aug']);
+    return plan.map(function (t) {
+      if (t === 'ist') {
+        var good = Math.random() < .5, cells = kpVar(good ? one(KP_NETS) : one(KP_BAD)), bx = kpBox(cells), u = Math.min(56, 400 / bx[0], 260 / bx[1]);
+        var ok = !!kpFold(cells);
+        return { head: S('Ist das ein Würfelnetz?'), body: '<div class="card gsw">' + sv(460, 300, kpNet([230 - bx[0] * u / 2, 150 - bx[1] * u / 2], cells, u)) + '</div>', choices: JN, cols: 2, ans: ok ? 'j' : 'n', ansk: JSON.stringify(cells),
+          why: S(ok ? 'Ja. Beim Falten liegt jedes Quadrat auf einer anderen Seite.' : 'Nein. Beim Falten liegen zwei Quadrate übereinander.') };
+      }
+      var net = kpVar(one(KP_NETS)), b2 = kpBox(net), u2 = Math.min(60, 400 / b2[0], 260 / b2[1]), o = [230 - b2[0] * u2 / 2, 150 - b2[1] * u2 / 2];
+      if (t === 'geg') {
+        var g = one(net), opp = kpOpp(net, g), ans = String(net.map(function (c) { return c.join(','); }).indexOf(opp));
+        function pic(res) {
+          var f = {}; f[g.join(',')] = '#8a8a8a';
+          if (res) { f[opp] = OKC; if (res !== ans && net[+res]) f[net[+res].join(',')] = NOC; }
+          var s = kpNet(o, net, u2, f);
+          net.forEach(function (c, i) { if (c.join(',') === g.join(',')) return; s += '<g class="tp" data-v="' + i + '"><rect x="' + f1(o[0] + c[0] * u2) + '" y="' + f1(o[1] + c[1] * u2) + '" width="' + f1(u2) + '" height="' + f1(u2) + '" fill="transparent"/></g>'; });
+          return sv(460, 300, s, 'tapk');
+        }
+        var it = { kind: 'tap', head: S('Falte in Gedanken. Tippe auf das Quadrat, das beim Würfel gegenüber vom grauen Quadrat liegt.'), body: '<div class="card gsw" id="kpg">' + pic(null) + '</div>', ans: ans, ansk: JSON.stringify(net) + g,
+          why: S('Gegenüberliegende Quadrate berühren sich im Netz nie. Das grüne Quadrat liegt gegenüber.') };
+        it.after = function (good, got) { document.getElementById('kpg').innerHTML = pic(got || 'x'); };
+        return it;
+      }
+      var vals = {}, fold = kpFold(net), facev = shuffle([1, 2, 3, 4, 5, 6]);   // Seiten 0/1, 2/3, 4/5 gegenüber
+      var pairs = [[0, 1], [2, 3], [4, 5]], nums = shuffle([[1, 6], [2, 5], [3, 4]]);
+      pairs.forEach(function (p, k) { var flip = Math.random() < .5; Object.keys(fold).forEach(function (key) { if (fold[key] === p[0]) vals[key] = nums[k][flip ? 1 : 0]; if (fold[key] === p[1]) vals[key] = nums[k][flip ? 0 : 1]; }); });
+      var keys = net.map(function (c) { return c.join(','); }), q = one(keys), qv = vals[q], oq = kpOpp(net, net[keys.indexOf(q)]);
+      var s2 = kpNet(o, net, u2, (function () { var f = {}; keys.forEach(function (k) { f[k] = '#fff'; }); f[q] = KPH; return f; })());
+      keys.forEach(function (k, i) { if (k !== q && k !== oq) s2 += kpPips(o[0] + net[i][0] * u2, o[1] + net[i][1] * u2, u2, vals[k]); });
+      s2 += kpPips(o[0] + net[keys.indexOf(oq)][0] * u2, o[1] + net[keys.indexOf(oq)][1] * u2, u2, vals[oq]);
+      return { head: S('Spielwürfel: Gegenüberliegende Augen ergeben zusammen 7. Wie viele Augen gehören auf das gelbe Feld?'), body: '<div class="card gsw">' + sv(460, 300, s2) + '</div>',
+        choices: [1, 2, 3, 4, 5, 6].map(function (v) { return { v: String(v), h: String(v) }; }), cols: 6, ans: String(qv), ansk: JSON.stringify(net) + q,
+        why: S('Gegenüber vom gelben Feld liegen ' + vals[oq] + ' Augen. 7 – ' + vals[oq] + ' = ' + qv + '.') };
+    });
+  };
+
+  function kpQRects(a, b, c) { var x0 = b; return [[x0, 0, a, b, 0], [x0, b, a, c, 1], [x0, b + c, a, b, 0], [x0, 2 * b + c, a, c, 1], [0, b, b, c, 2], [x0 + a, b, b, c, 2]]; }
+  function kpRectSvg(rs, u, o, fills, skip) {
+    var s = '';
+    rs.forEach(function (r, k) { if (skip && skip.indexOf(k) >= 0) return; var x = o[0] + r[0] * u, y = o[1] + r[1] * u; s += kpPg([[x, y], [x + r[2] * u, y], [x + r[2] * u, y + r[3] * u], [x, y + r[3] * u]], (fills && fills[k]) || KPF, INK, 4); });
+    return s;
+  }
+  GEN.kpqnetz = function () {
+    var plan = shuffle(['ist', 'ist', 'ist', 'ist', 'paar', 'paar', 'paar', 'fehlt', 'fehlt', 'fehlt']);
+    return plan.map(function (t) {
+      var a = R(2, 4), b = R(1, 2), c = R(1, 3); if (a === b) a++;
+      var rs = kpQRects(a, b, c), W = a + 2 * b, H = 2 * b + 2 * c, u = Math.min(50, 400 / W, 270 / H), o = [230 - W * u / 2, 150 - H * u / 2];
+      if (t === 'ist') {
+        var kind = one(['ok', 'ok', 'gross', 'lage', 'fuenf']), r2 = rs.map(function (r) { return r.slice(); });
+        if (kind === 'gross') { r2[5][3] = c + 1; }
+        if (kind === 'lage') { r2[4] = [b + a, b + c, b, c, 2]; }
+        if (kind === 'fuenf') { r2 = r2.slice(0, 5); }
+        var ok = kind === 'ok';
+        return { head: S('Ist das ein Quadernetz?'), body: '<div class="card gsw">' + sv(460, 320, kpRectSvg(r2, u, [o[0], o[1] + 5])) + '</div>', choices: JN, cols: 2, ans: ok ? 'j' : 'n', ansk: kind + a + b + c,
+          why: S(ok ? 'Ja. Es sind 6 Rechtecke, immer zwei sind gleich groß.' : (kind === 'fuenf' ? 'Nein. Es sind nur 5 Rechtecke.' : (kind === 'gross' ? 'Nein. Ein Rechteck ist zu groß.' : 'Nein. Beim Falten liegen zwei Rechtecke übereinander.'))) };
+      }
+      if (t === 'paar') {
+        var g = R(0, 5), pr = rs[g][4], partner = rs.map(function (r, k) { return k; }).filter(function (k) { return k !== g && rs[k][4] === pr; })[0], ans = String(partner);
+        function pic(res) {
+          var f = {}; f[g] = '#8a8a8a';
+          if (res) { f[partner] = OKC; if (res !== ans && rs[+res]) f[+res] = NOC; }
+          var s = kpRectSvg(rs, u, o, f);
+          rs.forEach(function (r, k) { if (k === g) return; s += '<g class="tp" data-v="' + k + '"><rect x="' + f1(o[0] + r[0] * u) + '" y="' + f1(o[1] + r[1] * u) + '" width="' + f1(r[2] * u) + '" height="' + f1(r[3] * u) + '" fill="transparent"/></g>'; });
+          return sv(460, 300, s, 'tapk');
+        }
+        var it = { kind: 'tap', head: S('Tippe auf das Rechteck, das beim Quader gegenüber vom grauen Rechteck liegt.'), body: '<div class="card gsw" id="kpq">' + pic(null) + '</div>', ans: ans, ansk: 'p' + a + b + c + g,
+          why: S('Gegenüberliegende Rechtecke sind gleich groß. Im Netz liegt eins dazwischen.') };
+        it.after = function (good, got) { document.getElementById('kpq').innerHTML = pic(got || 'x'); };
+        return it;
+      }
+      var miss = R(0, 5), mr = rs[miss], w0 = mr[2], h0 = mr[3], cand = [[w0, h0]];   // Ablenker mit deutlich anderer Form (nicht nur andere Größe)
+      var far = function (p, q) { var r1 = p[0] / p[1], r2 = q[0] / q[1]; return Math.max(r1 / r2, r2 / r1) >= 1.4; };
+      shuffle([[w0 * 2, h0], [w0, h0 * 2], [w0 + 1, h0], [w0, h0 + 1], [w0 + 2, h0], [w0, h0 + 2], [w0 * 3, h0], [w0, h0 * 3], [h0 + 1, h0 + 1], [w0 + 1, w0 + 1]]).forEach(function (p) {
+        if (cand.length < 3 && p[0] <= 7 && p[1] <= 7 && cand.every(function (q) { return far(p, q); })) cand.push(p); });
+      var VW = Math.max.apply(null, cand.map(function (r) { return r[0]; })) * 30 + 8, VH = Math.max.apply(null, cand.map(function (r) { return r[1]; })) * 30 + 8;
+      var sh = shuffle([0, 1, 2]), chs = sh.map(function (k) { var r = cand[k], X = (VW - r[0] * 30) / 2, Y = (VH - r[1] * 30) / 2; return { v: String(k), h: '<svg class="gsv" viewBox="0 0 ' + VW + ' ' + VH + '" style="width:100%;max-width:' + VW + 'px;height:auto">' + kpPg([[X, Y], [X + r[0] * 30, Y], [X + r[0] * 30, Y + r[1] * 30], [X, Y + r[1] * 30]], KPF, INK, 3) + '</svg>' }; });
+      return { head: S('Ein Rechteck fehlt im Quadernetz. Welches Rechteck passt?'), body: '<div class="card gsw">' + sv(460, 300, kpRectSvg(rs, u, o, null, [miss]) + '<rect x="' + f1(o[0] + mr[0] * u) + '" y="' + f1(o[1] + mr[1] * u) + '" width="' + f1(mr[2] * u) + '" height="' + f1(mr[3] * u) + '" fill="none" stroke="' + AC + '" stroke-width="3" stroke-dasharray="10 7"/>') + '</div>',
+        choices: chs, cols: 3, ans: '0', ansk: 'f' + a + b + c + miss,
+        why: S('Das fehlende Rechteck ist so groß wie das gegenüberliegende Rechteck.') };
+    });
+  };
+
+  function kpKaro(x0, y0, nx, ny, c) {
+    var p = ''; for (var i = 0; i <= nx; i++) p += 'M' + (x0 + i * c) + ' ' + y0 + 'v' + ny * c; for (var j = 0; j <= ny; j++) p += 'M' + x0 + ' ' + (y0 + j * c) + 'h' + nx * c;
+    return '<rect x="' + x0 + '" y="' + y0 + '" width="' + nx * c + '" height="' + ny * c + '" fill="#fff"/><path d="' + p + '" stroke="#c9d6e4" stroke-width="1.5" fill="none"/>';
+  }
+  function kpSB(o, a, t, nodash, col) {   // Schrägbild Würfel: Kante a (px), Tiefe t (px)
+    col = col || INK;
+    var F = [[o[0], o[1]], [o[0] + a, o[1]], [o[0] + a, o[1] - a], [o[0], o[1] - a]], B = F.map(function (p) { return [p[0] + t, p[1] - t]; }), s = '';
+    for (var k = 0; k < 4; k++) s += ln(F[k][0], F[k][1], F[(k + 1) % 4][0], F[(k + 1) % 4][1], col, 4);
+    [1, 2, 3].forEach(function (k) { s += ln(F[k][0], F[k][1], B[k][0], B[k][1], col, 4); });
+    s += ln(B[1][0], B[1][1], B[2][0], B[2][1], col, 4) + ln(B[2][0], B[2][1], B[3][0], B[3][1], col, 4);
+    [[F[0], B[0]], [B[0], B[1]], [B[0], B[3]]].forEach(function (e) { s += ln(e[0][0], e[0][1], e[1][0], e[1][1], col, 3.2, nodash ? null : '10 8'); });
+    return s;
+  }
+  GEN.kpschraeg = function () {
+    var plan = shuffle(['rf', 'rf', 'rf', 'rf', 'rf', 'k', 'k', 'k', 'v', 'v']);
+    return plan.map(function (t) {
+      if (t === 'rf') {
+        var kind = one(['ok', 'ok', 'lang', 'dash']), n = 2 * R(1, 3), c = 28, dx = R(0, 2);
+        var depth = kind === 'lang' ? n * c : n * c / 2;
+        if (kind === 'lang' && n === 6) { n = 4; depth = n * c; }
+        var s = kpKaro(40, 20, 13, 10, c) + kpSB([40 + (1 + dx) * c, 20 + 9 * c], n * c, depth, kind === 'dash');
+        var ok = kind === 'ok';
+        return { head: S('Ist das Schrägbild vom Würfel richtig gezeichnet?'), body: '<div class="card gsw">' + sv(460, 320, s) + '</div>', choices: [{ v: 'r', h: S('richtig') }, { v: 'f', h: S('falsch') }], cols: 2, ans: ok ? 'r' : 'f', ansk: kind + n + dx,
+          why: S(ok ? 'Richtig: schräge Kanten halb so lang, verdeckte Kanten gestrichelt.' : (kind === 'lang' ? 'Falsch: Die schrägen Kanten müssen halb so lang sein.' : 'Falsch: Die verdeckten Kanten müssen gestrichelt sein.')) };
+      }
+      if (t === 'k') { var cm = R(1, 6);
+        return { kind: 'inp', head: S('Eine Kante nach hinten ist ' + cm + ' cm lang. Wie viele Kästchen zeichnest du im Schrägbild schräg?'), body: '<div class="card cmpq">' + nin(cm) + ' ' + S('Kästchen') + '</div>', ans: 'k' + cm,
+          why: S(cm + ' cm sind ' + 2 * cm + ' Kästchen. Nach hinten nur halb so lang: ' + cm + ' Kästchen schräg.') }; }
+      var w = one([['Wie viele Kanten zeichnest du beim Würfel gestrichelt?', 3, 'Es sind 3 verdeckte Kanten. Sie beginnen an der Ecke hinten unten links.', 'Kanten', 1],
+        ['Wie viele Kanten siehst du im Schrägbild vom Würfel (durchgezogen)?', 9, '12 Kanten hat der Würfel. 3 sind verdeckt: 12 – 3 = 9.', 'Kanten', 1],
+        ['Die Kanten von einem Würfel sind 2 cm lang. Wie viele Kästchen lang zeichnest du die vordere Kante?', 4, '1 cm sind 2 Kästchen. 2 cm sind 4 Kästchen.', 'Kästchen', 0],
+        ['Ein Quader ist 3 cm lang. Wie viele Kästchen lang zeichnest du die vordere Kante?', 6, '1 cm sind 2 Kästchen. 3 cm sind 6 Kästchen.', 'Kästchen', 0]]);
+      return { kind: 'inp', head: S(w[0]), body: (w[4] ? '<div class="card gsw">' + sv(460, 300, kpKaro(40, 15, 13, 10, 28) + kpSB([40 + 3 * 28, 15 + 9 * 28], 4 * 28, 2 * 28)) + '</div>' : '') + '<div class="card cmpq">' + nin(w[1]) + ' ' + S(w[3]) + '</div>', ans: w[0],
+        why: S(w[2]) };
+    });
+  };
+
+  GEN.kpober = function () {
+    var plan = shuffle(['w', 'w', 'w', 'wf', 'wf', 'q', 'q', 'q', 'qn', 'qn']);
+    return plan.map(function (t) {
+      if (t === 'w') { var a = one([1, 2, 3, 4, 5, 6, 10]);
+        return { kind: 'inp', head: S('Ein Würfel hat a = ' + a + ' cm. Wie groß ist seine Oberfläche?'), body: '<div class="card gsw">' + sv(460, 280, kpQuader([150, 250], 140, 140, 140).s) + '</div><div class="card cmpq">O = ' + nin(6 * a * a) + ' cm²</div>', ans: 'w' + a,
+          why: S('Eine Fläche: ' + a + ' · ' + a + ' = ' + a * a + ' cm². O = 6 · ' + a * a + ' = ' + 6 * a * a + ' cm².') }; }
+      if (t === 'wf') { var f = one([4, 9, 16, 25, 36]);
+        return { kind: 'inp', head: S('Eine Fläche von einem Würfel ist ' + f + ' cm² groß. Wie groß ist die Oberfläche?'), body: '<div class="card cmpq">O = ' + nin(6 * f) + ' cm²</div>', ans: 'f' + f,
+          why: S('Der Würfel hat 6 gleich große Flächen: 6 · ' + f + ' = ' + 6 * f + ' cm².') }; }
+      var a2 = R(2, 5), b = R(1, 4), c = R(1, 3), O = 2 * (a2 * b + a2 * c + b * c);
+      if (t === 'q') {
+        var q = kpQuader([110, 250], a2 * 40, b * 40, c * 40);
+        return { kind: 'inp', head: S('Rechne die Oberfläche vom Quader aus.'), body: '<div class="card gsw">' + sv(460, 300, q.s + kpLab(q.V, a2 + ' cm', b + ' cm', c + ' cm')) + '</div><div class="card cmpq">O = ' + nin(O) + ' cm²</div>', ans: 'q' + a2 + b + c,
+          why: S('2 · ' + a2 + ' · ' + b + ' + 2 · ' + a2 + ' · ' + c + ' + 2 · ' + b + ' · ' + c + ' = ' + 2 * a2 * b + ' + ' + 2 * a2 * c + ' + ' + 2 * b * c + ' = ' + O + ' cm².') };
+      }
+      var rs = kpQRects(a2, b, c), W = a2 + 2 * b, H = 2 * b + 2 * c, u = Math.min(56, 400 / W, 280 / H), o = [230 - W * u / 2, 150 - H * u / 2];
+      var s = kpRectSvg(rs, u, o);
+      var fit = function (t, wd, ht) { var f = Math.min(22, ht * .7); while (f > 14 && t.length * f * .62 > wd - 8) f--; return t.length * f * .62 > wd - 8 ? 0 : f; };
+      var unit = rs.every(function (r) { return fit(r[2] * r[3] + ' cm²', r[2] * u, r[3] * u) >= 17; });
+      rs.forEach(function (r) { var cx = o[0] + (r[0] + r[2] / 2) * u, cy = o[1] + (r[1] + r[3] / 2) * u, lb = r[2] * r[3] + (unit ? ' cm²' : ''), fs = fit(lb, r[2] * u, r[3] * u) || 14; s += tx(cx, cy + fs * .36, lb, fs, INK, 700); });
+      return { kind: 'inp', head: S(unit ? 'Die Flächen im Netz sind schon ausgerechnet. Wie groß ist die Oberfläche?' : 'Die Flächen im Netz sind schon ausgerechnet (in cm²). Wie groß ist die Oberfläche?'), body: '<div class="card gsw">' + sv(460, 300, s) + '</div><div class="card cmpq">O = ' + nin(O) + ' cm²</div>', ans: 'n' + a2 + b + c,
+        why: S('Addiere alle 6 Flächen: O = ' + O + ' cm².') };
+    });
+  };
+
+  GEN.kpvol = function () {
+    var plan = shuffle(['z', 'z', 'z', 's', 's', 'v', 'v', 'v', 'w', 'w', 'g']);
+    return plan.map(function (t) {
+      if (t === 'z') { var cells = kpWall();
+        return { kind: 'inp', head: S('Jeder Würfel ist 1 cm³ groß. Wie groß ist das Volumen?'), body: '<div class="card gsw">' + sv(460, 300, kpCubesC(cells, 60, 460, 300)) + '</div><div class="card cmpq">V = ' + nin(cells.length) + ' cm³</div>', ans: 'z' + cells.join(';'),
+          why: S('Zähle die Würfel: ' + cells.length + ' Würfel, also ' + cells.length + ' cm³.') }; }
+      var a = R(2, 5), b = R(1, 3), c = R(1, 3);
+      if (t === 's') {
+        var u = Math.min(56, 300 / (a + b / 2), 230 / (c + b / 2));
+        return { kind: 'inp', head: S('Der Quader besteht aus Würfeln mit 1 cm³. Rechne Schicht für Schicht. Wie groß ist das Volumen?'), body: '<div class="card gsw">' + sv(460, 300, kpGridQ([230 - (a * u + b * u / 2) / 2, 150 + (c * u + b * u / 2) / 2], a, b, c, u)) + '</div><div class="card cmpq">V = ' + nin(a * b * c) + ' cm³</div>', ans: 's' + a + b + c,
+          why: S('Eine Schicht: ' + a + ' · ' + b + ' = ' + a * b + ' Würfel. ' + c + ' Schichten: ' + a * b + ' · ' + c + ' = ' + a * b * c + '.') };
+      }
+      if (t === 'v') { var A = R(2, 10), Bq = R(2, 6), Cq = R(1, 5);
+        return { kind: 'inp', head: S('Ein Quader ist ' + A + ' cm lang, ' + Bq + ' cm breit und ' + Cq + ' cm hoch. Wie groß ist das Volumen?'), body: '<div class="card cmpq">V = ' + nin(A * Bq * Cq) + ' cm³</div>', ans: 'v' + A + Bq + Cq,
+          why: S('V = a · b · c = ' + A + ' · ' + Bq + ' · ' + Cq + ' = ' + A * Bq * Cq + ' cm³.') }; }
+      if (t === 'w') { var w = one([1, 2, 3, 4, 5, 10]);
+        return { kind: 'inp', head: S('Ein Würfel hat a = ' + w + ' cm. Wie groß ist sein Volumen?'), body: '<div class="card cmpq">V = ' + nin(w * w * w) + ' cm³</div>', ans: 'w' + w,
+          why: S('V = a · a · a = ' + w + ' · ' + w + ' · ' + w + ' = ' + w * w * w + ' cm³.') }; }
+      var P1 = [R(2, 6), R(2, 4), R(1, 3)], P2 = [R(2, 6), R(2, 4), R(1, 3)], v1 = P1[0] * P1[1] * P1[2], v2 = P2[0] * P2[1] * P2[2];
+      return { head: S('Welche Schachtel hat das größere Volumen?'), body: '<div class="card g2st">A: ' + P1.join(' cm · ') + ' cm<br>B: ' + P2.join(' cm · ') + ' cm</div>',
+        choices: [{ v: 'A', h: 'A' }, { v: 'B', h: 'B' }, { v: 'g', h: S('gleich') }], cols: 3, ans: v1 > v2 ? 'A' : (v2 > v1 ? 'B' : 'g'), ansk: P1.join('') + P2.join(''),
+        why: S('A: ' + v1 + ' cm³, B: ' + v2 + ' cm³.') };
+    });
+  };
+  TIP.kpkoerper = S('Würfel und Quader haben Ecken. Kugel, Zylinder und Kegel haben eine gebogene Fläche und können rollen.');
+  TIP.kpekf = S('Mache in Gedanken an jede Ecke einen Punkt. Zähle die gestrichelten Kanten hinten mit.');
+  TIP.kpwq = S('Beim Würfel sind alle Kanten gleich lang. Beim Quader sind immer 4 Kanten gleich lang.');
+  TIP.kpwnetz = S('Ein Würfelnetz hat 6 Quadrate. Gegenüberliegende Quadrate berühren sich nie. Gegenüberliegende Augen ergeben 7.');
+  TIP.kpqnetz = S('Ein Quadernetz hat 6 Rechtecke. Immer zwei gegenüberliegende Rechtecke sind gleich groß.');
+  TIP.kpschraeg = S('Kanten nach hinten: schräg durch die Kästchen und halb so lang. Verdeckte Kanten: gestrichelt.');
+  TIP.kpober = S('Würfel: O = 6 · a · a. Quader: O = 2 · a · b + 2 · a · c + 2 · b · c.');
+  TIP.kpvol = S('V = a · b · c (Länge mal Breite mal Höhe). Beim Würfel: V = a · a · a.');
+
   // ------------------------------------------------------------ Tipps (Glühbirne): für jede Übung ein Tipp, einzelne Aufgaben haben eigene
-  TIP = {
+  TIP = Object.assign({
     runden: S('Schaue auf die Ziffer rechts neben dem Punkt. Bei 0, 1, 2, 3, 4 rundest du ab. Bei 5, 6, 7, 8, 9 rundest du auf.'),
     zahlwort: S('Suche zuerst das Wort „tausend“. Was davor steht, sind die Tausender. Was danach steht, sind H, Z und E.'),
     wert: S('Lege die Zahl in Gedanken in die Stellenwerttafel: E, Z, H, T, ZT, HT. Von rechts nach links.'),
@@ -2970,7 +4467,7 @@
     grzeit: S('1 h = 60 min. 1 min = 60 s. 1 Tag = 24 h.'),
     grsach: S('Lies genau: Was kostet alles zusammen? Wie viel Geld bekommst du zurück?'),
     vok: 'Tippe auf „Anhören“. Dann hörst du das Wort noch einmal.'
-  };
+  }, TIP);
   if (D.tip) TIP.bank = D.tip;
   TIP.tvviel = S('Die Vielfachen einer Zahl sind die Ergebnisse ihrer Einmaleinsreihe: 1-mal, 2-mal, 3-mal … die Zahl.');
   TIP.tvteiler = S('Suche Malaufgaben mit dem Ergebnis. Jede Zahl aus einer Malaufgabe ist ein Teiler.');
@@ -2980,6 +4477,12 @@
   TIP.tvggt = S('Schreibe die Teiler beider Zahlen auf. Der ggT ist die größte Zahl, die in beiden Listen vorkommt.');
   TIP.tv1x1 = S('Sage die Einmaleinsreihe leise auf, bis du beim Ergebnis bist.');
   TIP.tv1x1b = S('Denke an die Malaufgabe: 42 : 7 = 6, denn 6 · 7 = 42.');
+  TIP.brerkennen = S('Zähle die gefärbten Teile: Das ist der Zähler. Zähle alle gleich großen Teile: Das ist der Nenner.');
+  TIP.brdarst = S('Der Nenner sagt, in wie viele gleich große Teile das Ganze geteilt ist. Der Zähler sagt, wie viele Teile du färbst.');
+  TIP.brzstrahl = S('Zähle die Teile von 0 bis 1: Das ist der Nenner. Zähle dann ab der 0 bis zum Strich: Das ist der Zähler.');
+  TIP.brteile = S('Erst durch den Nenner, dann mal den Zähler. ') + FR(3, 4) + S(' von 12: 12 : 4 = 3 und 3 · 3 = 9.');
+  TIP.brerw = S('Erweitern: Nimm den Zähler und den Nenner mal dieselbe Zahl.');
+  TIP.brkurz = S('Kürzen: Teile den Zähler und den Nenner durch dieselbe Zahl.');
 
   // ------------------------------------------------------------ Ablauf
   var set, i, ok, rep = false, wrongs = [], tipOpen = false;
@@ -3003,6 +4506,7 @@
     if (it.kind === 'sort') return sortTask(it);
     if (it.kind === 'match') return matchTask(it);
     if (it.kind === 'pick') return pickTask(it);
+    if (it.kind === 'paint') return paintTask(it);
     app.innerHTML = head(it) + (it.body || '') +
       (it.kind === 'tap' ? '' : '<div class="rch c' + (it.cols || it.choices.length) + (it.imgc ? ' imgc' : '') + '">' + it.choices.map(function (c) {
         return '<button class="ch rc" type="button" data-v="' + c.v + '">' + c.h + '</button>';
