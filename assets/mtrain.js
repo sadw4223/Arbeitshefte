@@ -4,7 +4,8 @@
    mdbegriffe, einmaleins, mdluecke, regeln, mdueb, halb, mul1, mul2, div, mdsach (Multiplikation und Division);
    linien, messen, senkpar, koord, symm, spiegeln, schatz (Grundlagen der Geometrie: auch Ziehen, Zuordnen, Verbinden und Antippen in der Zeichnung);
    ufrechteck, ufumfang, ufurechnen, ufflaeche, ufeinheiten, ufarechnen, ufunterschied, ufsach (Umfang und Flächeninhalt);
-   grgeld, grlaengen, grlumrechnen, grlrechnen, grmassen, gruhr, grzeit, grsach (Größen).
+   grgeld, grlaengen, grlumrechnen, grlrechnen, grmassen, gruhr, grzeit, grsach (Größen);
+   tvviel, tvteiler, tvregeln, tvprim, tvkgv, tvggt (Teiler und Vielfache, 6. Schuljahr; auch Mehrfachauswahl im Zahlenfeld).
    Schreibweise wie im Heft. */
 (function () {
   var D = JSON.parse(document.getElementById('data').textContent), L = D.labels;
@@ -2668,6 +2669,208 @@
       return null;
     }).filter(Boolean);
   };
+  // ============================================================ Teiler und Vielfache (6. Schuljahr): Vielfache, Teiler, Teilbarkeitsregeln, Primzahlen, kgV, ggT
+  // Mehrfachauswahl: Zahlenfeld, alle passenden Zahlen antippen, dann „Prüfen“
+  function pickTask(it) {
+    var sel = {}, fin = false;
+    function any() { return Object.keys(sel).some(function (k) { return sel[k]; }); }
+    function draw() {
+      app.innerHTML = head(it) + (it.body || '') + '<div class="pkg c' + (it.cols || 5) + '">' + it.nums.map(function (n) {
+        var c = 'pkb' + (sel[n] ? ' on' : '');
+        if (fin) c += it.ans.indexOf(n) >= 0 ? (sel[n] ? ' pok' : ' pmiss') : (sel[n] ? ' pno' : '');
+        return '<button class="' + c + '" type="button" data-n="' + n + '"' + (fin ? ' disabled' : '') + '>' + fmt(n) + '</button>';
+      }).join('') + '</div><button class="btn pri gok" id="gok" type="button"' + (fin || !any() ? ' disabled' : '') + '>' + L.icOk + '<span>' + L.check + '</span></button><div id="fb"></div>';
+      if (fin) return;
+      [].slice.call(app.querySelectorAll('.pkb')).forEach(function (b) { b.onclick = function () { var n = +b.getAttribute('data-n'); sel[n] = !sel[n]; draw(); }; });
+      document.getElementById('gok').onclick = check;
+    }
+    function check() {
+      fin = true;
+      var good = it.nums.every(function (n) { return !!sel[n] === (it.ans.indexOf(n) >= 0); });
+      draw(); feedback(good, it.why);
+    }
+    it.auto = function (good) { sel = {}; it.ans.forEach(function (n) { sel[n] = true; }); if (!good) sel[it.ans[0]] = false; check(); };
+    draw(); top();
+  }
+  function tvMul(n, k) { var o = []; for (var j = 1; j <= (k || 6); j++) o.push(n * j); return o; }
+  function tvDiv(n) { var o = []; for (var d = 1; d <= n; d++) if (n % d === 0) o.push(d); return o; }
+  function tvPrime(n) { return tvDiv(n).length === 2; }
+  function tvKgv(a, b) { for (var m = Math.max(a, b); ; m++) if (m % a === 0 && m % b === 0) return m; }
+  function tvGgt(a, b) { while (b) { var t = a % b; a = b; b = t; } return a; }
+  function tvL(vals, dots) { return vals.map(fmt).join('; ') + (dots ? ' …' : ''); }
+  function tvList(lab, vals, dots, ring) {
+    return '<p class="tvr"><b>' + S(lab) + '</b> ' + vals.map(function (v) { return ring && ring.indexOf(v) >= 0 ? '<b class="tvg">' + fmt(v) + '</b>' : fmt(v); }).join('; ') + (dots ? ' …' : '') + '</p>';
+  }
+  var JN = [{ v: 'j', h: S('Ja') }, { v: 'n', h: S('Nein') }];
+  function jn(head, body, yes, why) { return { head: S(head), body: body || '', choices: JN, cols: 2, ans: yes ? 'j' : 'n', why: S(why) }; }
+  function ldig(n) { var s = String(n); return '<div class="card cmpq"><span>' + fmt(n).slice(0, -1) + '<b class="nx">' + s.slice(-1) + '</b></span></div>'; }
+
+  GEN.tvviel = function () {
+    var plan = shuffle(['p', 'f', 'q', 'k', 'p', 'f', 'q', 'k', 'f', 'q']);
+    return mix(plan.map(function (t) {
+      var n = R(3, 9);
+      if (t === 'p') {
+        var m = shuffle(tvMul(n, Math.floor(60 / n))).slice(0, 4), pool = [];
+        while (pool.length < 6) { var z = R(2, 60); if (z % n && pool.indexOf(z) < 0) pool.push(z); }
+        var all = m.concat(pool).sort(function (a, b) { return a - b; });
+        return { kind: 'pick', head: S('Tippe alle Vielfachen von ' + n + ' an.'), nums: all, ans: m, cols: 5,
+          why: S('Vielfache von ' + n + ' hier: ' + tvL(m.sort(function (a, b) { return a - b; })) + '. Sie kommen in der Einmaleinsreihe von ' + n + ' vor.') };
+      }
+      if (t === 'f') {
+        var g = R(2, 4), v = tvMul(n, g + 1), ans = v[g];
+        return { head: S('Wie geht die Reihe weiter?'), body: '<div class="card cmpq"><span>' + tvL(v.slice(0, g)) + '; ?</span></div>', choices: nums(three(ans, [ans + 1, ans + n, ans - 1])), ans: ans, cols: 3,
+          why: S('Du rechnest immer ' + n + ' dazu: ' + v[g - 1] + ' + ' + n + ' = ' + ans + '.') };
+      }
+      if (t === 'q') {
+        var yes = Math.random() < .5, k = R(3, 9), a = yes ? n * k : n * k + R(1, n - 1);
+        return jn('Ist ' + a + ' ein Vielfaches von ' + n + '?', '', yes, yes ? k + ' · ' + n + ' = ' + a + '. Also ist ' + a + ' ein Vielfaches von ' + n + '.'
+          : a + ' kommt in der Einmaleinsreihe von ' + n + ' nicht vor: ' + Math.floor(a / n) * n + ' und ' + (Math.floor(a / n) + 1) * n + ' liegen daneben.');
+      }
+      var j = R(3, 8), an = n * j;
+      return { head: S('Was ist das ' + j + '. Vielfache von ' + n + '?'), body: '', choices: nums(three(an, [n + j, an - n, an + n])), ans: an, cols: 3,
+        why: S('Das ' + j + '. Vielfache: ' + j + ' · ' + n + ' = ' + an + '.') };
+    }));
+  };
+
+  GEN.tvteiler = function () {
+    var plan = shuffle(['p', 'q', 'm', 'c', 'p', 'q', 'm', 'q', 'm', 'c']);
+    return mix(plan.map(function (t) {
+      var n = one([12, 15, 16, 18, 20, 24]), d = tvDiv(n);
+      if (t === 'p') {
+        var all = []; for (var k = 1; k <= n; k++) all.push(k);
+        return { kind: 'pick', head: S('Tippe alle Teiler von ' + n + ' an.'), nums: all, ans: d, cols: 6, why: S('Teiler von ' + n + ': ' + tvL(d) + '.') };
+      }
+      if (t === 'q') {
+        var b = R(2, 9), yes = n % b === 0;
+        return jn('Ist ' + b + ' ein Teiler von ' + n + '?', '', yes, yes ? n + ' : ' + b + ' = ' + n / b + '. Das geht ohne Rest auf.'
+          : n + ' : ' + b + ' geht nicht ohne Rest auf. ' + b + ' ist kein Teiler von ' + n + '.');
+      }
+      if (t === 'm') {
+        var a = one(d.filter(function (x) { return x > 1 && x < n && x * x !== n; })), Q = '<b class="qb" id="qb">?</b>', ans = n / a;
+        var it = { head: S('Welche Zahl fehlt?'), body: eqCard([a, '·', Q, '=', n]), choices: nums(three(ans, [ans + 1, ans - 1, n - a])), ans: ans, cols: 3,
+          why: S(a + ' · ' + ans + ' = ' + n + '. Also sind ' + a + ' und ' + ans + ' Teiler von ' + n + '.') };
+        it.after = function () { var q = document.getElementById('qb'); q.textContent = ans; q.classList.add('set'); };
+        return it;
+      }
+      return { head: S('Wie viele Teiler hat ' + n + '?'), body: '', choices: nums(three(d.length, [d.length - 1, d.length + 1, d.length - 2])), ans: d.length, cols: 3,
+        why: S('Teiler von ' + n + ': ' + tvL(d) + '. Das sind ' + d.length + ' Teiler.') };
+    }));
+  };
+
+  GEN.tvregeln = function () {
+    var plan = shuffle(['d2', 'd5', 'd10', 'w', 'p', 'g', 'd2', 'd5', 'd10', 'w']);
+    return plan.map(function (t) {
+      if (t[0] === 'd') {
+        var dv = +t.slice(1), yes = Math.random() < .5, n;
+        do { n = R(12, 999); } while ((n % dv === 0) !== yes);
+        var e = n % 10, rule = dv === 2 ? '0, 2, 4, 6 oder 8' : dv === 5 ? '0 oder 5' : '0';
+        return jn('Ist die Zahl durch ' + dv + ' teilbar?', ldig(n), yes, 'Die letzte Ziffer ist ' + e + '. Durch ' + dv + ' teilbar: letzte Ziffer ' + rule + '.');
+      }
+      if (t === 'w') {
+        var dv2 = one([2, 5, 10]), good, bad = [];
+        do { good = R(20, 999); } while (good % dv2);
+        while (bad.length < 2) { var z = R(20, 999); if (z % dv2 && bad.indexOf(z) < 0) bad.push(z); }
+        return { head: S('Welche Zahl ist durch ' + dv2 + ' teilbar?'), body: '', choices: nums(shuffle([good].concat(bad))), ans: good, cols: 3,
+          why: S(good + ' endet mit ' + good % 10 + '. Durch ' + dv2 + ' teilbar: letzte Ziffer ' + (dv2 === 2 ? '0, 2, 4, 6 oder 8' : dv2 === 5 ? '0 oder 5' : '0') + '.') };
+      }
+      if (t === 'p') {
+        var dv3 = one([2, 5]), all = [];
+        while (all.length < 10) { var y = R(10, 199); if (all.indexOf(y) < 0) all.push(y); }
+        var ans = all.filter(function (x) { return x % dv3 === 0; });
+        if (!ans.length) { all[0] = dv3 * R(5, 30); ans = [all[0]]; }
+        all.sort(function (a, b) { return a - b; });
+        return { kind: 'pick', head: S('Tippe alle Zahlen an, die durch ' + dv3 + ' teilbar sind.'), nums: all, ans: ans, cols: 5,
+          why: S(dv3 === 2 ? 'Durch 2 teilbar: Die letzte Ziffer ist 0, 2, 4, 6 oder 8.' : 'Durch 5 teilbar: Die letzte Ziffer ist 0 oder 5.') };
+      }
+      var e2 = one([0, 5, 4, 3]), n2 = R(2, 49) * 10 + e2;
+      var lab = e2 === 0 ? 'a' : e2 === 5 ? 'b' : e2 === 4 ? 'c' : 'd';
+      return { head: S('Durch welche Zahlen ist die Zahl teilbar?'), body: ldig(n2), cols: 1, ans: lab,
+        choices: [{ v: 'a', h: S('durch 2, durch 5 und durch 10') }, { v: 'b', h: S('nur durch 5') }, { v: 'c', h: S('nur durch 2') }, { v: 'd', h: S('durch keine davon') }],
+        why: S('Die letzte Ziffer ist ' + e2 + '.' + (e2 === 0 ? ' Bei 0 ist die Zahl durch 2, 5 und 10 teilbar.' : '')) };
+    });
+  };
+
+  GEN.tvprim = function () {
+    var plan = shuffle(['y', 'y', 'y', 'p', 'w', 'w', 'n', 'y', 'p', 'w']);
+    return mix(plan.map(function (t) {
+      if (t === 'y') {
+        var n = one([2, 3, 4, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 31, 33, 35, 37, 39, 41, 43, 45, 47, 49]), d = tvDiv(n), yes = d.length === 2;
+        return jn('Ist ' + n + ' eine Primzahl?', '', yes, 'Teiler von ' + n + ': ' + tvL(d) + '. ' + (yes ? 'Genau zwei Teiler: eine Primzahl.' : 'Mehr als zwei Teiler: keine Primzahl.'));
+      }
+      if (t === 'p') {
+        var s = one([1, 11, 21, 31, 41]), all = []; for (var k = s; k < s + 10; k++) all.push(k);
+        var ans = all.filter(tvPrime);
+        return { kind: 'pick', head: S('Tippe alle Primzahlen an.'), nums: all, ans: ans, cols: 5, why: S('Primzahlen hier: ' + tvL(ans) + '.') };
+      }
+      if (t === 'w') {
+        var p = one([7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47]), bad = [];
+        while (bad.length < 2) { var z = R(4, 50); if (!tvPrime(z) && z > 1 && bad.indexOf(z) < 0) bad.push(z); }
+        return { head: S('Welche Zahl ist eine Primzahl?'), body: '', choices: shuffle([p].concat(bad)).map(function (v) { return { v: 'x' + v, h: fmt(v) }; }), ans: 'x' + p, cols: 3,   // nicht zum Eintippen (mehrere Primzahlen möglich)
+          why: S(p + ' hat nur die Teiler 1 und ' + p + '. ' + bad.map(function (b) { var d2 = tvDiv(b); return b + ' hat auch den Teiler ' + d2[1] + '.'; }).join(' ')) };
+      }
+      var q = one([3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41]), nx = q + 1; while (!tvPrime(nx)) nx++;
+      return { head: S('Welche Primzahl kommt nach ' + q + '?'), body: '', choices: nums(three(nx, [q + 1, q + 2, nx + 2].filter(function (x) { return x !== nx; }))), ans: nx, cols: 3,
+        why: S('Nach ' + q + ' kommt die Primzahl ' + nx + '.') };
+    }));
+  };
+
+  var KGP = [[2, 3], [2, 5], [3, 4], [4, 6], [3, 5], [4, 5], [6, 8], [5, 10], [6, 9], [2, 7], [3, 6], [4, 10]];
+  GEN.tvkgv = function () {
+    var plan = shuffle(['k', 'k', 'k', 'c', 'c', 's', 's', 'k', 'c', 's']);
+    var SK = [
+      function (a, b) { return 'Ein roter Bus fährt alle ' + a + ' Minuten ab, ein grüner Bus alle ' + b + ' Minuten. Gerade fahren beide zusammen ab. Nach wie vielen Minuten fahren sie wieder zusammen ab?'; },
+      function (a, b) { return 'Zwei Lampen blinken: die eine alle ' + a + ' Sekunden, die andere alle ' + b + ' Sekunden. Jetzt blinken beide. Nach wie vielen Sekunden blinken sie wieder gleichzeitig?'; },
+      function (a, b) { return 'Mia braucht für eine Runde ' + a + ' Minuten, Ben ' + b + ' Minuten. Sie starten zusammen. Nach wie vielen Minuten sind beide wieder zusammen am Start?'; }];
+    return mix(plan.map(function (t) {
+      var pr = one(KGP), a = pr[0], b = pr[1], k = tvKgv(a, b), va = tvMul(a, Math.max(6, Math.ceil(k / a))), vb = tvMul(b, Math.max(6, Math.ceil(k / b)));
+      if (t === 'k') {
+        return { head: S('Was ist das kgV von ' + a + ' und ' + b + '?'), body: '<div class="card tvc">' + tvList('Vielfache von ' + a + ':', va, true) + tvList('Vielfache von ' + b + ':', vb, true) + '</div>',
+          choices: nums(three(k, [a * b === k ? k + a : a * b, k + a * b, Math.max(a, b)])), ans: k, cols: 3,
+          why: S('Die kleinste Zahl in beiden Reihen ist ' + k + '. Das kgV von ' + a + ' und ' + b + ' ist ' + k + '.') };
+      }
+      if (t === 'c') {
+        var m = tvMul(a, 8), com = m.filter(function (x) { return x % b === 0; });
+        return { kind: 'pick', head: S('Tippe die gemeinsamen Vielfachen von ' + a + ' und ' + b + ' an.'),
+          body: '<div class="card tvc">' + tvList('Vielfache von ' + b + ':', tvMul(b, Math.ceil(8 * a / b)), true) + '</div>', nums: m, ans: com, cols: 4,
+          why: S('Diese Zahlen kommen in beiden Reihen vor: ' + tvL(com) + '. Das kleinste gemeinsame Vielfache ist ' + com[0] + '.') };
+      }
+      return { head: S('Lies genau. Rechne. Was ist die Antwort?'), body: story(one(SK)(a, b)), choices: nums(three(k, [a * b === k ? k + Math.max(a, b) : a * b, a + b, Math.max(a, b)])), ans: k, cols: 3,
+        why: S('Gesucht ist das kgV: Vielfache von ' + a + ': ' + tvL(va.slice(0, 6), true) + ' Vielfache von ' + b + ': ' + tvL(vb.slice(0, 6), true) + ' Das kgV ist ' + k + '.') };
+    }));
+  };
+
+  var GGP = [[8, 12], [12, 18], [10, 15], [9, 12], [16, 24], [12, 16], [6, 9], [20, 30], [14, 21], [15, 20], [18, 24], [6, 15]];
+  GEN.tvggt = function () {
+    var plan = shuffle(['g', 'g', 'g', 'c', 'c', 's', 's', 'w', 'w', 'g']);
+    var SG = [
+      function (a, b) { return 'Ayla und Mia haben ' + a + ' Äpfel und ' + b + ' Birnen. In jede Tüte kommen gleich viele Äpfel und gleich viele Birnen. Nichts bleibt übrig. Wie viele Tüten können sie höchstens packen?'; },
+      function (a, b) { return 'In einer Klasse sind ' + a + ' Mädchen und ' + b + ' Jungen. Die Lehrerin bildet gleich große Gruppen mit gleich vielen Mädchen und gleich vielen Jungen. Wie viele Gruppen kann sie höchstens bilden?'; }];
+    var WK = [['Zwei Busse fahren zusammen ab. Wann fahren sie wieder zusammen ab?', 'kgV'], ['Äpfel und Birnen sollen gleich auf Tüten verteilt werden. Wie viele Tüten gibt es höchstens?', 'ggT'],
+      ['Zwei Lampen blinken unterschiedlich schnell. Wann blinken sie wieder gleichzeitig?', 'kgV'], ['Zwei Bänder sollen in gleich lange Stücke geschnitten werden, so lang wie möglich. Wie lang ist ein Stück?', 'ggT'],
+      ['Mia und Jonas gehen an verschiedenen Tagen schwimmen. Wann sind sie wieder zusammen im Schwimmbad?', 'kgV'], ['Mädchen und Jungen sollen in gleich große Gruppen. Wie viele Gruppen gibt es höchstens?', 'ggT']];
+    var wks = shuffle(WK.slice());
+    return mix(plan.map(function (t) {
+      var pr = one(GGP), a = pr[0], b = pr[1], g = tvGgt(a, b), da = tvDiv(a), db = tvDiv(b);
+      if (t === 'g') {
+        return { head: S('Was ist der ggT von ' + a + ' und ' + b + '?'), body: '<div class="card tvc">' + tvList('Teiler von ' + a + ':', da) + tvList('Teiler von ' + b + ':', db) + '</div>',
+          choices: nums(three(g, [1, g * 2 <= Math.min(a, b) && Math.min(a, b) % (g * 2) ? g * 2 : Math.min(a, b), da.filter(function (x) { return x < g && b % x === 0; }).pop() || g + 1])), ans: g, cols: 3,
+          why: S('Gemeinsame Teiler: ' + tvL(da.filter(function (x) { return b % x === 0; })) + '. Der größte ist ' + g + '.') };
+      }
+      if (t === 'c') {
+        var com = da.filter(function (x) { return b % x === 0; });
+        return { kind: 'pick', head: S('Tippe die gemeinsamen Teiler von ' + a + ' und ' + b + ' an.'), body: '<div class="card tvc">' + tvList('Teiler von ' + b + ':', db) + '</div>',
+          nums: da, ans: com, cols: Math.min(6, da.length), why: S('Diese Zahlen sind Teiler von ' + a + ' und von ' + b + ': ' + tvL(com) + '. Der ggT ist ' + g + '.') };
+      }
+      if (t === 's') {
+        return { head: S('Lies genau. Rechne. Was ist die Antwort?'), body: story(one(SG)(a, b)), choices: nums(three(g, [1, Math.min(a, b), g + 1].filter(function (x) { return x !== g; }))), ans: g, cols: 3,
+          why: S('Gesucht ist der ggT: Teiler von ' + a + ': ' + tvL(da) + '. Teiler von ' + b + ': ' + tvL(db) + '. Der ggT ist ' + g + '.') };
+      }
+      var w = wks.pop();
+      return { head: S('Brauchst du das kgV oder den ggT?'), body: story(w[0]), choices: [{ v: 'kgV', h: 'kgV' }, { v: 'ggT', h: 'ggT' }], cols: 2, ans: w[1],
+        why: S(w[1] === 'kgV' ? 'Etwas wiederholt sich: Du suchst das kgV.' : 'Etwas wird in gleiche Gruppen oder Stücke geteilt: Du suchst den ggT.') };
+    }));
+  };
+
   // ------------------------------------------------------------ Tipps (Glühbirne): für jede Übung ein Tipp, einzelne Aufgaben haben eigene
   TIP = {
     runden: S('Schaue auf die Ziffer rechts neben dem Punkt. Bei 0, 1, 2, 3, 4 rundest du ab. Bei 5, 6, 7, 8, 9 rundest du auf.'),
@@ -2717,6 +2920,12 @@
     vok: 'Tippe auf „Anhören“. Dann hörst du das Wort noch einmal.'
   };
   if (D.tip) TIP.bank = D.tip;
+  TIP.tvviel = S('Die Vielfachen einer Zahl sind die Ergebnisse ihrer Einmaleinsreihe: 1-mal, 2-mal, 3-mal … die Zahl.');
+  TIP.tvteiler = S('Suche Malaufgaben mit dem Ergebnis. Jede Zahl aus einer Malaufgabe ist ein Teiler.');
+  TIP.tvregeln = S('Schaue auf die letzte Ziffer. Durch 2: 0, 2, 4, 6, 8. Durch 5: 0 oder 5. Durch 10: 0.');
+  TIP.tvprim = S('Eine Primzahl hat genau zwei Teiler: die 1 und sich selbst. Die 1 ist keine Primzahl.');
+  TIP.tvkgv = S('Schreibe die Vielfachen beider Zahlen auf. Das kgV ist die kleinste Zahl, die in beiden Reihen vorkommt.');
+  TIP.tvggt = S('Schreibe die Teiler beider Zahlen auf. Der ggT ist die größte Zahl, die in beiden Listen vorkommt.');
 
   // ------------------------------------------------------------ Ablauf
   var set, i, ok, rep = false, wrongs = [], tipOpen = false;
@@ -2739,6 +2948,7 @@
     if (it.kind === 'order') return order(it);
     if (it.kind === 'sort') return sortTask(it);
     if (it.kind === 'match') return matchTask(it);
+    if (it.kind === 'pick') return pickTask(it);
     app.innerHTML = head(it) + (it.body || '') +
       (it.kind === 'tap' ? '' : '<div class="rch c' + (it.cols || it.choices.length) + (it.imgc ? ' imgc' : '') + '">' + it.choices.map(function (c) {
         return '<button class="ch rc" type="button" data-v="' + c.v + '">' + c.h + '</button>';

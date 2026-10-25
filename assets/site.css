@@ -514,3 +514,18 @@ td.in.cur, td.fr.cur { box-shadow: inset 0 0 0 4px var(--ac-bg); outline: 4px so
 .dq { font-size: 30px; padding: 18px 16px; text-align: center; }
 .dq u { text-decoration-thickness: 3px; text-underline-offset: 6px; }
 @media (max-width: 520px) { .mkw { font-size: 22px; } .dq { font-size: 22px; } }
+
+/* Teiler und Vielfache: Zahlenfeld zum Antippen (Mehrfachauswahl), Listen */
+.pkg { display: grid; gap: 10px; margin: 14px 0 16px; }
+.pkg.c4 { grid-template-columns: repeat(4, 1fr); } .pkg.c5 { grid-template-columns: repeat(5, 1fr); } .pkg.c6 { grid-template-columns: repeat(6, 1fr); }
+.pkg.c2 { grid-template-columns: repeat(2, 1fr); } .pkg.c3 { grid-template-columns: repeat(3, 1fr); }
+.pkb { font: inherit; font-size: 26px; font-weight: 700; padding: 12px 0; border: 2px solid #c9c9c9; border-radius: 10px; background: #fff; color: var(--ink); cursor: pointer; }
+.pkb.on { border-color: var(--ac); background: #e3edfb; }
+.pkb.pok { border-color: var(--ok); background: var(--ok-bg); }
+.pkb.pmiss { border-style: dashed; border-color: #c98a12; background: #fff6dc; }
+.pkb.pno { border-color: var(--no); background: var(--no-bg); }
+.pkb[disabled] { cursor: default; opacity: 1; }
+.tvc { text-align: left; padding: 14px 18px; }
+.tvr { font-size: 24px; margin: 6px 0; line-height: 1.5; }
+.tvg { border: 3px solid var(--ac); border-radius: 18px; padding: 0 6px; }
+@media (max-width: 520px) { .pkb { font-size: 20px; padding: 9px 0; } .tvr { font-size: 19px; } }
