@@ -1,11 +1,11 @@
-/* Übungen am Tablet (Mathe): zehn Aufgaben zum Antippen, nach jeder Antwort Rückmeldung mit kurzer Begründung, am Ende Auswertung.
+/* Übungen am Tablet (Mathe, Deutsch, Englisch): 20 Aufgaben je Runde (Wunsch Dennis, 25.10.) zum Antippen, nach jeder Antwort Rückmeldung mit kurzer Begründung, am Ende Auswertung.
    Der Typ steht in den Seitendaten: runden, zahlwort, wert, nachbar, zstrahl, vergl (Natürliche Zahlen);
    begriffe, kopf, luecke, add, sub, ueb, sach, klammern (Addition und Subtraktion);
    mdbegriffe, einmaleins, mdluecke, regeln, mdueb, halb, mul1, mul2, div, mdsach (Multiplikation und Division);
    linien, messen, senkpar, koord, symm, spiegeln, schatz (Grundlagen der Geometrie: auch Ziehen, Zuordnen, Verbinden und Antippen in der Zeichnung);
    ufrechteck, ufumfang, ufurechnen, ufflaeche, ufeinheiten, ufarechnen, ufunterschied, ufsach (Umfang und Flächeninhalt);
    grgeld, grlaengen, grlumrechnen, grlrechnen, grmassen, gruhr, grzeit, grsach (Größen);
-   tvviel, tvteiler, tvregeln, tvprim, tvkgv, tvggt (Teiler und Vielfache, 6. Schuljahr; auch Mehrfachauswahl im Zahlenfeld).
+   tvviel, tvteiler, tvregeln, tvprim, tvkgv, tvggt, tv1x1, tv1x1b (Teiler und Vielfache, 6. Schuljahr; auch Mehrfachauswahl im Zahlenfeld).
    Schreibweise wie im Heft. */
 (function () {
   var D = JSON.parse(document.getElementById('data').textContent), L = D.labels;
@@ -2191,7 +2191,7 @@
   function pad() {
     var k = ['1', '2', '3', '4', '5', '6', '7', '8', '9'].map(function (d) { return '<button class="kp" type="button" data-d="' + d + '">' + d + '</button>'; }).join('');
     return '<div class="kpw"><div class="kpad">' + k + '<button class="kp kdel" type="button" data-d="del" aria-label="Löschen">' + L.icDel + '</button>' +
-      '<button class="kp" type="button" data-d="0">0</button><button class="kp kok" type="button" data-d="ok" disabled>' + L.icOk + '<span>' + L.check + '</span></button></div></div>';
+      '<button class="kp" type="button" data-d="0">0</button><button class="kp kok" type="button" data-d="ok" aria-label="' + L.check.replace(/<[^>]+>/g, '') + '" disabled>' + L.icOk + '</button></div></div>';
   }
   var keyFn = null;
   document.addEventListener('keydown', function (e) {
@@ -2589,27 +2589,37 @@
   GEN.vok = function () {
     var W = D.words.slice(), set = [], pics = W.filter(vHas), N = W.length;
     function others(w, pool, k) { return shuffle(pool.filter(function (x) { return x.id !== w.id && x.de !== w.de && x.en !== w.en; })).slice(0, k); }
-    var order = shuffle(W.slice()), nL = Math.min(6, N), used = order.slice(0, nL);
-    used.forEach(function (w) {   // hören → Bild (oder deutsches Wort) antippen
-      var usePic = vHas(w) && pics.length >= 3, pool = usePic ? pics : W, ch = [w].concat(others(w, pool, 2));
+    // Wörter reihum (jede Aufgabenart nimmt alle Wörter einmal, bevor sich eins wiederholt; nie zweimal hintereinander dasselbe)
+    function cyc() { var q = [], last = null; return function () { if (!q.length) { q = shuffle(W.slice()); if (q[q.length - 1] === last && q.length > 1) q.unshift(q.pop()); } last = q.pop(); return last; }; }
+    var nA = cyc(), nB = cyc(), nC = cyc();
+    function tA() {   // hören → Bild (oder deutsches Wort) antippen
+      var w = nA(), usePic = vHas(w) && pics.length >= 3, pool = usePic ? pics : W, ch = [w].concat(others(w, pool, 2));
       var lng = ch.some(function (x) { return x.de.length > 12; });
-      set.push(wire({ head: EH('Listen and tap.', 'Höre zu. Tippe an.'), body: vPlay(w), auto1: w.id, cols: usePic ? 3 : (lng ? 1 : 3), imgc: usePic, ans: w.id,
+      return wire({ head: EH('Listen and tap.', 'Höre zu. Tippe an.'), body: vPlay(w), auto1: w.id, cols: usePic ? 3 : (lng ? 1 : 3), imgc: usePic, ans: w.id,
         choices: shuffle(ch).map(function (x) { return { v: x.id, h: usePic ? vPic(x) : esc(x.de) }; }),
-        why: '<b>' + esc(w.en) + '</b> – ' + esc(w.de) }));
-    });
-    [order[nL % N], order[(nL + 1) % N]].forEach(function (w) {   // hören → englisches Wort antippen
-      var ch = [w].concat(others(w, W, 2));
-      set.push(wire({ head: EH('Listen. Which word is it?', 'Höre zu. Welches Wort ist es?'), body: vPlay(w), auto1: w.id, cols: 1, ans: w.id,
+        why: '<b>' + esc(w.en) + '</b> – ' + esc(w.de) });
+    }
+    function tB() {   // hören → englisches Wort antippen
+      var w = nB(), ch = [w].concat(others(w, W, 2));
+      return wire({ head: EH('Listen. Which word is it?', 'Höre zu. Welches Wort ist es?'), body: vPlay(w), auto1: w.id, cols: 1, ans: w.id,
         choices: shuffle(ch).map(function (x) { return { v: x.id, h: '<span class="ven">' + esc(x.en) + '</span>' }; }),
-        why: '<b>' + esc(w.en) + '</b> – ' + esc(w.de) }));
+        why: '<b>' + esc(w.en) + '</b> – ' + esc(w.de) });
+    }
+    function tC() {   // lesen → deutsches Wort antippen
+      var r = nC(), rc = [r].concat(others(r, W, 2));
+      return wire({ head: EH('Read and tap.', 'Lies. Tippe an.'), body: '<div class="card cmpq sm ven">' + esc(r.en) + '</div>' + vPlay(r), cols: 1, ans: r.id,
+        choices: shuffle(rc).map(function (x) { return { v: x.id, h: esc(x.de) }; }), why: '<b>' + esc(r.en) + '</b> – ' + esc(r.de) });
+    }
+    function tM() {
+      var M = []; shuffle(W.slice()).forEach(function (x) { if (M.length < 4 && !M.some(function (y) { return y.de === x.de || y.en === x.en; })) M.push(x); });
+      return { kind: 'match', mcls: 'eq vk', head: EH('Match.', 'Verbinde Englisch und Deutsch.'),
+        left: M.map(function (x) { return { h: esc(x.en), k: x.id }; }), right: shuffle(M.map(function (x) { return { h: esc(x.de), k: x.id }; })),
+        why: M.map(function (x) { return '<b>' + esc(x.en) + '</b> – ' + esc(x.de); }).join('; ') };
+    }
+    [0, 1].forEach(function () {   // zweimal derselbe Aufbau wie früher: 5 × hören und antippen, 2 × Wort wählen, 2 × lesen, 1 × verbinden
+      for (var k = 0; k < 5; k++) set.push(tA());
+      set.push(tB(), tB(), tC(), tC(), tM());
     });
-    var r = order[(nL + 2) % N], rc = [r].concat(others(r, W, 2));   // lesen → deutsches Wort antippen
-    set.push(wire({ head: EH('Read and tap.', 'Lies. Tippe an.'), body: '<div class="card cmpq sm ven">' + esc(r.en) + '</div>' + vPlay(r), cols: 1, ans: r.id,
-      choices: shuffle(rc).map(function (x) { return { v: x.id, h: esc(x.de) }; }), why: '<b>' + esc(r.en) + '</b> – ' + esc(r.de) }));
-    var M = []; shuffle(W.slice()).forEach(function (x) { if (M.length < 4 && !M.some(function (y) { return y.de === x.de || y.en === x.en; })) M.push(x); });
-    set.push({ kind: 'match', mcls: 'eq vk', head: EH('Match.', 'Verbinde Englisch und Deutsch.'),
-      left: M.map(function (x) { return { h: esc(x.en), k: x.id }; }), right: shuffle(M.map(function (x) { return { h: esc(x.de), k: x.id }; })),
-      why: M.map(function (x) { return '<b>' + esc(x.en) + '</b> – ' + esc(x.de); }).join('; ') });
     return set;
   };
 
@@ -2703,10 +2713,11 @@
   }
   var JN = [{ v: 'j', h: S('Ja') }, { v: 'n', h: S('Nein') }];
   function jn(head, body, yes, why) { return { head: S(head), body: body || '', choices: JN, cols: 2, ans: yes ? 'j' : 'n', why: S(why) }; }
-  function ldig(n) { var s = String(n); return '<div class="card cmpq"><span>' + fmt(n).slice(0, -1) + '<b class="nx">' + s.slice(-1) + '</b></span></div>'; }
+  function ldig(n) { var s = String(n); return '<div class="card cmpq"><span>' + fmt(n).slice(0, -1) + '<span class="nx">' + s.slice(-1) + '</span></span></div>'; }
 
   GEN.tvviel = function () {
-    var plan = shuffle(['p', 'f', 'q', 'k', 'p', 'f', 'q', 'k', 'f', 'q']);
+    var plan = shuffle(['p', 'f', 'q', 'l', 'p', 'f', 'q', 'l', 'f', 'l']), Q = '<b class="qb" id="qb">?</b>';
+    function setq(it, ans) { it.after = function () { var q = document.getElementById('qb'); if (q) { q.textContent = ans; q.classList.add('set'); } }; return it; }
     return mix(plan.map(function (t) {
       var n = R(3, 9);
       if (t === 'p') {
@@ -2718,17 +2729,19 @@
       }
       if (t === 'f') {
         var g = R(2, 4), v = tvMul(n, g + 1), ans = v[g];
-        return { head: S('Wie geht die Reihe weiter?'), body: '<div class="card cmpq"><span>' + tvL(v.slice(0, g)) + '; ?</span></div>', choices: nums(three(ans, [ans + 1, ans + n, ans - 1])), ans: ans, cols: 3,
-          why: S('Du rechnest immer ' + n + ' dazu: ' + v[g - 1] + ' + ' + n + ' = ' + ans + '.') };
+        return setq({ head: S('Wie geht die Reihe weiter?'), body: '<div class="card cmpq"><span>' + tvL(v.slice(0, g)) + '; ' + Q + ' …</span></div>', choices: nums(three(ans, [ans + 1, ans + n, ans - 1])), ans: ans, cols: 3,
+          why: S('Du rechnest immer ' + n + ' dazu: ' + v[g - 1] + ' + ' + n + ' = ' + ans + '.') }, ans);
       }
       if (t === 'q') {
         var yes = Math.random() < .5, k = R(3, 9), a = yes ? n * k : n * k + R(1, n - 1);
         return jn('Ist ' + a + ' ein Vielfaches von ' + n + '?', '', yes, yes ? k + ' · ' + n + ' = ' + a + '. Also ist ' + a + ' ein Vielfaches von ' + n + '.'
           : a + ' kommt in der Einmaleinsreihe von ' + n + ' nicht vor: ' + Math.floor(a / n) * n + ' und ' + (Math.floor(a / n) + 1) * n + ' liegen daneben.');
       }
-      var j = R(3, 8), an = n * j;
-      return { head: S('Was ist das ' + j + '. Vielfache von ' + n + '?'), body: '', choices: nums(three(an, [n + j, an - n, an + n])), ans: an, cols: 3,
-        why: S('Das ' + j + '. Vielfache: ' + j + ' · ' + n + ' = ' + an + '.') };
+      // Lücke mitten in der Reihe (statt „das 5. Vielfache“: das verstehen die Kinder nicht)
+      var len = R(5, 6), vv = tvMul(n, len), gi = R(1, len - 2), an = vv[gi];
+      return setq({ head: S('Welche Zahl fehlt in der Reihe?'), body: '<div class="card cmpq"><span>' + vv.map(function (x, k) { return k === gi ? Q : fmt(x); }).join('; ') + ' …</span></div>',
+        choices: nums(three(an, [an + 1, an - 1, an + n])), ans: an, cols: 3,
+        why: S('Die Reihe geht immer ' + n + ' weiter: ' + vv[gi - 1] + ' + ' + n + ' = ' + an + '.') }, an);
     }));
   };
 
@@ -2792,23 +2805,26 @@
 
   GEN.tvprim = function () {
     var plan = shuffle(['y', 'y', 'y', 'p', 'w', 'w', 'n', 'y', 'p', 'w']);
+    // jede Zahl nur einmal (sonst kam z. B. „Ist 9 eine Primzahl?“ dreimal)
+    var YN = shuffle([2, 3, 4, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 31, 33, 35, 37, 39, 41, 43, 45, 47, 49]),
+        WP = shuffle([7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47]), NQ = shuffle([3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41]), PS = shuffle([1, 11, 21, 31, 41]);
     return mix(plan.map(function (t) {
       if (t === 'y') {
-        var n = one([2, 3, 4, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 31, 33, 35, 37, 39, 41, 43, 45, 47, 49]), d = tvDiv(n), yes = d.length === 2;
+        var n = YN.pop(), d = tvDiv(n), yes = d.length === 2;
         return jn('Ist ' + n + ' eine Primzahl?', '', yes, 'Teiler von ' + n + ': ' + tvL(d) + '. ' + (yes ? 'Genau zwei Teiler: eine Primzahl.' : 'Mehr als zwei Teiler: keine Primzahl.'));
       }
       if (t === 'p') {
-        var s = one([1, 11, 21, 31, 41]), all = []; for (var k = s; k < s + 10; k++) all.push(k);
+        var s = PS.pop(), all = []; for (var k = s; k < s + 10; k++) all.push(k);
         var ans = all.filter(tvPrime);
         return { kind: 'pick', head: S('Tippe alle Primzahlen an.'), nums: all, ans: ans, cols: 5, why: S('Primzahlen hier: ' + tvL(ans) + '.') };
       }
       if (t === 'w') {
-        var p = one([7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47]), bad = [];
+        var p = WP.pop(), bad = [];
         while (bad.length < 2) { var z = R(4, 50); if (!tvPrime(z) && z > 1 && bad.indexOf(z) < 0) bad.push(z); }
         return { head: S('Welche Zahl ist eine Primzahl?'), body: '', choices: shuffle([p].concat(bad)).map(function (v) { return { v: 'x' + v, h: fmt(v) }; }), ans: 'x' + p, cols: 3,   // nicht zum Eintippen (mehrere Primzahlen möglich)
           why: S(p + ' hat nur die Teiler 1 und ' + p + '. ' + bad.map(function (b) { var d2 = tvDiv(b); return b + ' hat auch den Teiler ' + d2[1] + '.'; }).join(' ')) };
       }
-      var q = one([3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41]), nx = q + 1; while (!tvPrime(nx)) nx++;
+      var q = NQ.pop(), nx = q + 1; while (!tvPrime(nx)) nx++;
       return { head: S('Welche Primzahl kommt nach ' + q + '?'), body: '', choices: nums(three(nx, [q + 1, q + 2, nx + 2].filter(function (x) { return x !== nx; }))), ans: nx, cols: 3,
         why: S('Nach ' + q + ' kommt die Primzahl ' + nx + '.') };
     }));
@@ -2820,7 +2836,7 @@
     var SK = [
       function (a, b) { return 'Ein roter Bus fährt alle ' + a + ' Minuten ab, ein grüner Bus alle ' + b + ' Minuten. Gerade fahren beide zusammen ab. Nach wie vielen Minuten fahren sie wieder zusammen ab?'; },
       function (a, b) { return 'Zwei Lampen blinken: die eine alle ' + a + ' Sekunden, die andere alle ' + b + ' Sekunden. Jetzt blinken beide. Nach wie vielen Sekunden blinken sie wieder gleichzeitig?'; },
-      function (a, b) { return 'Mia braucht für eine Runde ' + a + ' Minuten, Ben ' + b + ' Minuten. Sie starten zusammen. Nach wie vielen Minuten sind beide wieder zusammen am Start?'; }];
+      function (a, b) { return 'Mia und Ben laufen auf dem Sportplatz Runden. Mia braucht für eine Runde ' + a + ' Minuten, Ben braucht ' + b + ' Minuten. Sie starten zusammen. Nach wie vielen Minuten sind beide wieder zusammen am Start?'; }];
     return mix(plan.map(function (t) {
       var pr = one(KGP), a = pr[0], b = pr[1], k = tvKgv(a, b), va = tvMul(a, Math.max(6, Math.ceil(k / a))), vb = tvMul(b, Math.max(6, Math.ceil(k / b)));
       if (t === 'k') {
@@ -2840,6 +2856,7 @@
   };
 
   var GGP = [[8, 12], [12, 18], [10, 15], [9, 12], [16, 24], [12, 16], [6, 9], [20, 30], [14, 21], [15, 20], [18, 24], [6, 15]];
+  var GGK = [[12, 16], [10, 15], [12, 15], [9, 12], [8, 12], [12, 14], [10, 14], [14, 7], [12, 9], [15, 10]];   // Mädchen, Jungen: zusammen höchstens 28
   GEN.tvggt = function () {
     var plan = shuffle(['g', 'g', 'g', 'c', 'c', 's', 's', 'w', 'w', 'g']);
     var SG = [
@@ -2862,13 +2879,61 @@
           nums: da, ans: com, cols: Math.min(6, da.length), why: S('Diese Zahlen sind Teiler von ' + a + ' und von ' + b + ': ' + tvL(com) + '. Der ggT ist ' + g + '.') };
       }
       if (t === 's') {
-        return { head: S('Lies genau. Rechne. Was ist die Antwort?'), body: story(one(SG)(a, b)), choices: nums(three(g, [1, Math.min(a, b), g + 1].filter(function (x) { return x !== g; }))), ans: g, cols: 3,
+        var si = R(0, SG.length - 1);
+        if (si === 1) {   // Klasse: höchstens 28 Kinder (realistisch)
+          pr = one(GGK); a = pr[0]; b = pr[1]; g = tvGgt(a, b); da = tvDiv(a); db = tvDiv(b);
+        }
+        return { head: S('Lies genau. Rechne. Was ist die Antwort?'), body: story(SG[si](a, b)), choices: nums(three(g, [1, Math.min(a, b), g + 1].filter(function (x) { return x !== g; }))), ans: g, cols: 3,
           why: S('Gesucht ist der ggT: Teiler von ' + a + ': ' + tvL(da) + '. Teiler von ' + b + ': ' + tvL(db) + '. Der ggT ist ' + g + '.') };
       }
       var w = wks.pop();
       return { head: S('Brauchst du das kgV oder den ggT?'), body: story(w[0]), choices: [{ v: 'kgV', h: 'kgV' }, { v: 'ggT', h: 'ggT' }], cols: 2, ans: w[1],
         why: S(w[1] === 'kgV' ? 'Etwas wiederholt sich: Du suchst das kgV.' : 'Etwas wird in gleiche Gruppen oder Stücke geteilt: Du suchst den ggT.') };
     }));
+  };
+
+  // ------------------------------------------------------------ Einmaleins (Kapitel 7): Kopfrechnen mit dem Ziffernblock
+  // Tipp mit Kernaufgabe (1-mal, 2-mal, 5-mal, 10-mal), passend zum Merkkasten im Heft
+  function kern(a, b) {
+    var c = a * b;
+    if (a === 1) return 'Mal 1 bleibt die Zahl gleich: 1 · ' + b + ' = ' + b + '.';
+    if (a === 2) return 'Das Doppelte: ' + b + ' + ' + b + ' = ' + c + '.';
+    if (a === 5) return '10 · ' + b + ' = ' + 10 * b + '. Die Hälfte davon ist ' + c + '.';
+    if (a === 10) return 'Mal 10: Hänge eine 0 an. 10 · ' + b + ' = ' + c + '.';
+    if (a === 3) return 'Kernaufgabe: 2 · ' + b + ' = ' + 2 * b + '. Dazu noch 1 · ' + b + ': ' + 2 * b + ' + ' + b + ' = ' + c + '.';
+    if (a === 4) return 'Kernaufgabe: 2 · ' + b + ' = ' + 2 * b + '. Das Doppelte davon: ' + 2 * b + ' + ' + 2 * b + ' = ' + c + '.';
+    if (a === 6) return 'Kernaufgabe: 5 · ' + b + ' = ' + 5 * b + '. Dazu noch 1 · ' + b + ': ' + 5 * b + ' + ' + b + ' = ' + c + '.';
+    if (a === 7) return 'Kernaufgabe: 5 · ' + b + ' = ' + 5 * b + '. Dazu noch 2 · ' + b + ' = ' + 2 * b + ': ' + 5 * b + ' + ' + 2 * b + ' = ' + c + '.';
+    if (a === 8) return 'Kernaufgabe: 10 · ' + b + ' = ' + 10 * b + '. 2 · ' + b + ' weniger: ' + 10 * b + ' – ' + 2 * b + ' = ' + c + '.';
+    return 'Kernaufgabe: 10 · ' + b + ' = ' + 10 * b + '. 1 · ' + b + ' weniger: ' + 10 * b + ' – ' + b + ' = ' + c + '.';
+  }
+  function eqIn(parts, ans) { return '<div class="card cmpq eqc">' + parts.map(function (p) { return '<span>' + (p === '?' ? nin(ans) : p) + '</span>'; }).join('') + '</div>'; }
+  // Aufgaben ohne Tauschdoppel in einer Runde
+  function pairsOf(list) { var o = []; list.forEach(function (a) { [2, 3, 4, 5, 6, 7, 8, 9].forEach(function (b) { o.push([a, b]); }); }); return shuffle(o); }
+  GEN.tv1x1 = function () {
+    var K = pairsOf([2, 5, 10]), H = pairsOf([3, 4, 6, 7, 8, 9]), out = [], used = {};
+    function take(src) { while (src.length) { var p = src.pop(), k = Math.min(p[0], p[1]) + 'x' + Math.max(p[0], p[1]); if (!used[k]) { used[k] = 1; return p; } } return null; }
+    var plan = shuffle(['k', 'k', 'k', 'h', 'h', 'h', 'h', 'h', 'h', 'h']);
+    plan.forEach(function (t) {
+      var p = take(t === 'k' ? K : H); if (!p) return;
+      var a = p[0], b = p[1];
+      out.push({ kind: 'inp', head: S('Rechne im Kopf.'), body: eqIn([a, MP, b, '=', '?'], a * b), ans: a * b, why: S(a + ' · ' + b + ' = ' + a * b + '. ' + kern(a, b)) });
+    });
+    return out;
+  };
+  GEN.tv1x1b = function () {
+    var H = pairsOf([2, 3, 4, 5, 6, 7, 8, 9]), out = [], used = {};
+    var plan = shuffle(['xb', 'ax', 'd', 'xb', 'ax', 'd', 'xb', 'd', 'ax', 'd']);
+    plan.forEach(function (t) {
+      var p; do { p = H.pop(); } while (p && used[p[0] + 'x' + p[1]]); if (!p) return; used[p[0] + 'x' + p[1]] = 1;
+      var x = p[0], b = p[1], c = x * b, it;
+      if (t === 'xb') it = { body: eqIn(['?', MP, b, '=', c], x), ans: x, why: 'Welche Zahl mal ' + b + ' ergibt ' + c + '? ' + x + ' · ' + b + ' = ' + c + '. Rechne auch: ' + c + ' : ' + b + ' = ' + x + '.' };
+      else if (t === 'ax') it = { body: eqIn([b, MP, '?', '=', c], x), ans: x, why: b + ' mal welche Zahl ergibt ' + c + '? ' + b + ' · ' + x + ' = ' + c + '. Rechne auch: ' + c + ' : ' + b + ' = ' + x + '.' };
+      else it = { body: eqIn([c, ':', b, '=', '?'], x), ans: x, why: 'Denke an die Malaufgabe: ' + x + ' · ' + b + ' = ' + c + '. Also ist ' + c + ' : ' + b + ' = ' + x + '.' };
+      it.kind = 'inp'; it.head = S(t === 'd' ? 'Rechne im Kopf.' : 'Welche Zahl fehlt?'); it.why = S(it.why);
+      out.push(it);
+    });
+    return out;
   };
 
   // ------------------------------------------------------------ Tipps (Glühbirne): für jede Übung ein Tipp, einzelne Aufgaben haben eigene
@@ -2922,10 +2987,12 @@
   if (D.tip) TIP.bank = D.tip;
   TIP.tvviel = S('Die Vielfachen einer Zahl sind die Ergebnisse ihrer Einmaleinsreihe: 1-mal, 2-mal, 3-mal … die Zahl.');
   TIP.tvteiler = S('Suche Malaufgaben mit dem Ergebnis. Jede Zahl aus einer Malaufgabe ist ein Teiler.');
-  TIP.tvregeln = S('Schaue auf die letzte Ziffer. Durch 2: 0, 2, 4, 6, 8. Durch 5: 0 oder 5. Durch 10: 0.');
+  TIP.tvregeln = S('Schaue auf die letzte Ziffer. Durch 2: 0, 2, 4, 6 oder 8. Durch 5: 0 oder 5. Durch 10: 0.');
   TIP.tvprim = S('Eine Primzahl hat genau zwei Teiler: die 1 und sich selbst. Die 1 ist keine Primzahl.');
   TIP.tvkgv = S('Schreibe die Vielfachen beider Zahlen auf. Das kgV ist die kleinste Zahl, die in beiden Reihen vorkommt.');
   TIP.tvggt = S('Schreibe die Teiler beider Zahlen auf. Der ggT ist die größte Zahl, die in beiden Listen vorkommt.');
+  TIP.tv1x1 = S('Nimm eine Kernaufgabe mit 1, 2, 5 oder 10. Bei 6 · 7: 5 · 7 = 35, dazu noch 7. Das ist 42.');
+  TIP.tv1x1b = S('Denke an die Malaufgabe. 42 : 7: Welche Zahl mal 7 ergibt 42? 6 · 7 = 42. Also ist 42 : 7 = 6.');
 
   // ------------------------------------------------------------ Ablauf
   var set, i, ok, rep = false, wrongs = [], tipOpen = false;
@@ -3021,7 +3088,22 @@
     top();
   }
   function run(s, r) { set = s; rep = r; i = 0; ok = 0; wrongs = []; show(); }
-  function start() { run(GEN[D.type](), false); }
+  var NSET = 20;
+  function ikey(it) {
+    var ch = (it.choices || []).map(function (c) { return String(c.v) + ':' + String(c.h); }).sort().join(',');
+    var ex = JSON.stringify([it.nums || '', it.left || '', it.lab || '', it.cats || '', it.vals || '',
+      (it.items || []).map(function (x) { return String(x.h) + '>' + x.c; }).sort()]);
+    return [it.kind || '', it.head || '', it.body || '', it.s || '', String(it.ans), ch, ex].join('|');
+  }
+  function build() {
+    var out = [], seen = {}, t = 0;
+    while (out.length < NSET && t < 12) {
+      (GEN[D.type]() || []).forEach(function (it) { var k = ikey(it); if (out.length < NSET && !seen[k]) { seen[k] = 1; out.push(it); } });
+      t++;
+    }
+    return out;
+  }
+  function start() { run(build(), false); }
   start();
   window.__mt = { set: function () { return set; }, i: function () { return i; }, rep: function () { return rep; }, go: function (k) { i = k; show(); }, auto: function (g) { var it = set[i]; if (it.auto) it.auto(g); } };
 })();

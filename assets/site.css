@@ -429,7 +429,7 @@ td.in.cur, td.fr.cur { box-shadow: inset 0 0 0 4px var(--ac-bg); outline: 4px so
 .kp .ic { width: 34px; height: 34px; }
 .kp.kok { background: var(--ink); color: #fff; font-size: 22px; }
 .kp.kok[disabled] { opacity: .35; }
-.kp.kok .ic { width: 28px; height: 28px; }
+.kp.kok .ic { width: 38px; height: 38px; }   /* nur der Haken, ohne „Prüfen“ */
 .solc { margin: 12px 0 0; padding: 10px 12px 4px; }
 .solt { display: flex; align-items: center; gap: 8px; font-size: 20px; font-weight: 700; margin: 0 0 4px; }
 .solt .ic { width: 28px; height: 28px; color: var(--ac); }
@@ -469,7 +469,7 @@ td.in.cur, td.fr.cur { box-shadow: inset 0 0 0 4px var(--ac-bg); outline: 4px so
 @media (max-width: 520px) {
   .kin .kgr td { font-size: 25px; } .kin .sgr td { font-size: 32px; }
   .cmpq.eqc { font-size: 32px; gap: .35em; flex-wrap: wrap; }
-  .kp.kok { font-size: 17px; gap: 3px; } .kp.kok .ic { width: 22px; height: 22px; }
+  .kp.kok { font-size: 17px; gap: 3px; } .kp.kok .ic { width: 30px; height: 30px; }
   .ninw { flex-wrap: wrap; }
 }
 .uclk { touch-action: none; cursor: grab; }
@@ -529,3 +529,10 @@ td.in.cur, td.fr.cur { box-shadow: inset 0 0 0 4px var(--ac-bg); outline: 4px so
 .tvr { font-size: 24px; margin: 6px 0; line-height: 1.5; }
 .tvg { border: 3px solid var(--ac); border-radius: 18px; padding: 0 6px; }
 @media (max-width: 520px) { .pkb { font-size: 20px; padding: 9px 0; } .tvr { font-size: 19px; } }
+
+/* Teilbarkeitsregeln: letzte Ziffer farbig (nicht fett) */
+.cmpq .nx { color: var(--ac); }
+/* Erklärung ggT: Obst wandert in die Tüten (Startpunkt per --dx/--dy, Verzögerung --d) */
+.stg .mv .it { transform: translate(var(--dx), var(--dy)); transition: transform .8s ease-in-out var(--d, 0s); }
+.stg .mv.on .it { transform: translate(0px, 0px); }
+@media (prefers-reduced-motion: reduce) { .stg .mv .it { transition: none; } }
