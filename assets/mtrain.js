@@ -3747,18 +3747,26 @@
     var d = ((a2 - a1) % 360 + 360) % 360, p1 = g2P(S, a1, r), p2 = g2P(S, a2, r);
     return '<path d="M' + f1(p1[0]) + ' ' + f1(p1[1]) + ' A' + r + ' ' + r + ' 0 ' + (d > 180 ? 1 : 0) + ' 0 ' + f1(p2[0]) + ' ' + f1(p2[1]) + '" fill="none" stroke="' + (c || INK) + '" stroke-width="' + (sw || 4) + '"/>';
   }
-  function g2Wink(S, a1, size, L1, L2, c, name, r) {   // Winkel ab S: Schenkel in Richtung a1 und a1 + size
-    c = c || INK; r = r || 40; L2 = L2 || L1;
+  function g2NameR(size, fs) {   // Winkelname im Bogen: [Abstand des Buchstabens vom Scheitelpunkt, Bogenradius]
+    fs = fs || 32;
+    if (Math.abs(size - 90) < .01) return [fs * 1.5, fs * 2.3];
+    var d = Math.max(fs * 1.15, fs * .55 / Math.sin(Math.min(size, 180) / 2 * Math.PI / 180));
+    return [d, d + fs * .88];
+  }
+  function g2WinkR(size, name, r) { return name ? Math.max(r || 40, g2NameR(size)[1]) : (r || 40); }
+  function g2Wink(S, a1, size, L1, L2, c, name, r) {   // Winkel ab S: Schenkel in Richtung a1 und a1 + size; Name im Bogen
+    c = c || INK; r = g2WinkR(size, name, r); L2 = L2 || L1;
     var p1 = g2P(S, a1, L1), p2 = g2P(S, a1 + size, L2);
     var o = ln(S[0], S[1], p1[0], p1[1], c, 5) + ln(S[0], S[1], p2[0], p2[1], c, 5);
-    if (Math.abs(size - 90) < .01) { var m = g2P(S, a1 + 45, r * .45); o += g2Arc(S, a1, a1 + 90, r, c, 4) + dt(m[0], m[1], 4, c); }
+    if (Math.abs(size - 90) < .01) { var m = g2P(S, a1 + 45, name ? 20 : r * .45); o += g2Arc(S, a1, a1 + 90, r, c, 4) + dt(m[0], m[1], 4, c); }
     else if (size) o += g2Arc(S, a1, a1 + size, r, c, 4);
-    if (name) { var q = g2P(S, a1 + size / 2, r + (size >= 40 ? 30 : 46)); o += tx(q[0], q[1] + 11, name, 32, c, 700, 'middle', true); }
+    if (name) { var q = g2P(S, a1 + size / 2, g2NameR(size)[0]); o += tx(q[0], q[1] + 11, name, 32, c, 700, 'middle', true); }
     return o;
   }
   function g2AngSvg(a1, size, L1, L2, c, name, r, maxw) {   // Winkel als SVG, Größe passend
     var S = [0, 0], pts = [S, g2P(S, a1, L1), g2P(S, a1 + size, L2 || L1)];
-    for (var t = 0; t <= 360; t += 15) if ((((t - a1) % 360) + 360) % 360 <= size) pts.push(g2P(S, t, (r || 40) + 46));
+    var rr = g2WinkR(size, name, r) + 8;
+    for (var t = 0; t <= 360; t += 15) if ((((t - a1) % 360) + 360) % 360 <= size) pts.push(g2P(S, t, rr));
     var x0 = Math.min.apply(null, pts.map(function (p) { return p[0]; })) - 14, x1 = Math.max.apply(null, pts.map(function (p) { return p[0]; })) + 14;
     var y0 = Math.min.apply(null, pts.map(function (p) { return p[1]; })) - 14, y1 = Math.max.apply(null, pts.map(function (p) { return p[1]; })) + 14;
     return '<svg class="gsv" viewBox="' + f1(x0) + ' ' + f1(y0) + ' ' + f1(x1 - x0) + ' ' + f1(y1 - y0) + '" style="max-width:' + (maxw || 360) + 'px">' + g2Wink(S, a1, size, L1, L2, c, name, r) + '</svg>';
@@ -3873,9 +3881,10 @@
         return it;
       }
       if (t === 'gr') {
-        var s1 = R(2, 15) * 10, s2; do { s2 = R(2, 15) * 10; } while (Math.abs(s1 - s2) < 20);
-        var l1 = s1 > s2 ? 70 : 170, l2 = s1 > s2 ? 170 : 70;   // der größere Winkel hat die kürzeren Schenkel
-        return { head: S('Welcher Winkel ist größer?'), body: '<div class="card g2two">' + g2AngSvg(R(0, 2) * 15, s1, l1, l1, INK, 'α', 34, 280) + g2AngSvg(R(0, 2) * 15, s2, l2, l2, INK, 'β', 34, 280) + '</div>',
+        var s1 = R(3, 15) * 10, s2; do { s2 = R(3, 15) * 10; } while (Math.abs(s1 - s2) < 20);
+        var l1 = s1 > s2 ? 120 : 200, l2 = s1 > s2 ? 200 : 120;   // der größere Winkel hat die kürzeren Schenkel
+        var rg = Math.max(g2NameR(s1)[1], g2NameR(s2)[1]);   // beide Bögen gleich groß
+        return { head: S('Welcher Winkel ist größer?'), body: '<div class="card g2two">' + g2AngSvg(R(0, 2) * 15, s1, l1, l1, INK, 'α', rg, 280) + g2AngSvg(R(0, 2) * 15, s2, l2, l2, INK, 'β', rg, 280) + '</div>',
           choices: [{ v: 'a', h: 'α' }, { v: 'b', h: 'β' }], cols: 2, ans: s1 > s2 ? 'a' : 'b', ansk: s1 + '/' + s2,
           why: S('Die Länge der Schenkel ist egal. ' + (s1 > s2 ? 'Bei α' : 'Bei β') + ' gehen die Schenkel weiter auseinander.') };
       }
