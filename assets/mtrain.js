@@ -4060,7 +4060,7 @@
     if (kind === 'quader') { return kpQuader([cx - (150 * s + 35 * s) / 2, by], 150 * s, 70 * s, 70 * s).s; }
     if (kind === 'quaderh') { return kpQuader([cx - (70 * s + 30 * s) / 2, by], 70 * s, 60 * s, 140 * s).s; }
     if (kind === 'prisma') {
-      w = 110 * s; t = 110 * s; h = 95 * s; o = [cx - (w + t / 2) / 2, by];
+      w = 110 * s; t = 160 * s; h = 95 * s; o = [cx - (w + t / 2) / 2, by];   // Tiefe ≠ Breite: keine quadratische Fläche
       F = [kpP(o, 0, 0, 0), kpP(o, w, 0, 0), kpP(o, w / 2, h, 0)]; B = [kpP(o, 0, 0, t), kpP(o, w, 0, t), kpP(o, w / 2, h, t)];
       out = kpPg(F, KPF) + kpPg([F[1], B[1], B[2], F[2]], KPS);
       [[F[0], F[1]], [F[1], F[2]], [F[2], F[0]], [F[2], B[2]], [F[1], B[1]], [B[1], B[2]]].forEach(function (e) { out += ln(e[0][0], e[0][1], e[1][0], e[1][1], INK, 4); });
@@ -4211,7 +4211,7 @@
           why: S(kpDer(n, true) + ' hat ' + e[0] + (e[0] === 1 ? ' Ecke, ' : ' Ecken, ') + e[1] + (e[1] === 1 ? ' Kante und ' : ' Kanten und ') + e[2] + (e[2] === 1 ? ' Fläche.' : ' Flächen.')) }; }
       if (t === 'f') { var FF = { 'Würfel': 'Quadrate', 'Quader': 'Rechtecke', 'Prisma': 'Dreiecke und Rechtecke', 'Pyramide': 'ein Quadrat und Dreiecke', 'Zylinder': 'Kreise und eine gebogene Fläche', 'Kegel': 'ein Kreis und eine gebogene Fläche', 'Kugel': 'nur eine gebogene Fläche' };
         var right = FF[n], opts = shuffle(Object.keys(FF).filter(function (x) { return FF[x] !== right; }).map(function (x) { return FF[x]; })).filter(function (v, i, a) { return a.indexOf(v) === i; }).slice(0, 2).concat([right]);
-        return { head: S('Welche Flächen hat ' + kpDer(n) + '?'), body: '<div class="card gsw">' + kpPic(k, 1.1) + '</div>', choices: shuffle(opts).map(function (x) { return { v: x, h: S(x) }; }), cols: 1, ans: right, ansk: 'f' + n,
+        return { head: S('Welche Flächen hat ' + kpDer(n) + '?'), body: '<div class="card gsw">' + kpPic(k === 'quader' ? 'quaderh' : k, 1.1) + '</div>', choices: shuffle(opts).map(function (x) { return { v: x, h: S(x) }; }), cols: 1, ans: right, ansk: 'f' + n,
           why: S(kpDer(n, true) + ' hat ' + right + '.') }; }
       var st = one([['Ein Würfel hat 8 Ecken.', true], ['Eine Kugel hat eine Ecke.', false], ['Ein Quader hat 12 Kanten.', true], ['Die Spitze vom Kegel ist eine Ecke.', false],
         ['Ein Zylinder hat 3 Flächen.', true], ['Eine Pyramide hat 4 Flächen.', false], ['Ein Würfel hat 6 Flächen.', true], ['Ein Prisma hat 8 Ecken.', false]]);
