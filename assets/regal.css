@@ -39,8 +39,8 @@ a { color: inherit; }
   max-width: 1240px; margin: 0 auto; padding: 8px 14px;
 }
 .bar h1 {
-  grid-column: 2; grid-row: 1; margin: 0; font-size: 23px; font-weight: 600; text-align: center; letter-spacing: .01em;
-  color: #1a1a1a;
+  grid-column: 2; grid-row: 1; margin: 0; font-size: 23px; font-weight: 800; text-align: center; letter-spacing: .01em;
+  color: #fffaf0; text-shadow: 0 -1px 0 rgba(70, 40, 5, .55);
 }
 .bar-l { grid-column: 1; grid-row: 1; justify-self: start; min-width: 0; }
 .btn, .dd summary {
@@ -109,14 +109,14 @@ main.wood { flex: 1; width: 100%; padding: 0 0 10px; }
   position: relative;
   background: linear-gradient(rgba(55, 28, 6, .36), rgba(55, 28, 6, .15) 9px, rgba(55, 28, 6, .05) 22px, rgba(55, 28, 6, 0) 36px) top / 100% 36px no-repeat;
 }
-.shelf-h {   /* Fach-Überschrift auf der Rückwand (schwarz wie die Kopfzeile, ohne Schatten) */
+.shelf-h {   /* eingravierte Fach-Überschrift auf der Rückwand */
   display: flex; align-items: center; justify-content: center; gap: 14px;
-  margin: 0; padding: 20px 0 0; font-size: 22px; font-weight: 600; letter-spacing: .05em;
-  color: #1a1a1a;
+  margin: 0; padding: 20px 0 0; font-size: 22px; font-weight: 800; letter-spacing: .05em;
+  color: rgba(78, 44, 12, .88); text-shadow: 0 1px 0 rgba(255, 240, 214, .7), 0 -1px 0 rgba(70, 35, 5, .12);
 }
 .shelf-h::before, .shelf-h::after {
-  content: ""; width: 54px; height: 2px; border-radius: 1px;
-  background: rgba(26, 26, 26, .45);
+  content: ""; width: 54px; height: 3px; border-radius: 2px;
+  background: linear-gradient(rgba(90, 50, 15, .38) 0 1px, rgba(255, 238, 210, .65) 1px 3px);
 }
 .books {
   --bw: 170px; --bh: calc(var(--bw) * 1.4142);   /* große Bücher, damit die Titel lesbar sind (Wunsch Dennis, 25.10.) */
@@ -160,7 +160,7 @@ main.wood { flex: 1; width: 100%; padding: 0 0 10px; }
 .book:active, .book:hover { transform: translateY(-4px); }
 .empty-note {
   grid-column: 1 / -1; align-self: center; margin: 0 0 var(--bd); text-align: center; font-size: 18px; font-weight: 700;
-  color: rgba(78, 44, 12, .7);
+  color: rgba(78, 44, 12, .7); text-shadow: 0 1px 0 rgba(255, 240, 214, .7);
 }
 
 /* ---------- Heft-Seite (Karte wie das iBooks-Menü) ---------- */
