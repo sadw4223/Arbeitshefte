@@ -2242,12 +2242,16 @@
     }
     function check() {
       fin = true; keyFn = null; sel(null);
-      var good = chk.every(function (f) {
-        var a = f.getAttribute('data-a'), v = val(f);
-        return isCell(f) ? v === a : v !== '' && String(+v) === String(+a);
+      var fok = [];   // freie Brüche (.brx.kz): auch die gekürzte Form gilt als richtig
+      [].slice.call(app.querySelectorAll('.brx.kz')).forEach(function (b) {
+        var ff = b.querySelectorAll('.nin'); if (ff.length !== 2) return;
+        var vz = val(ff[0]), vn = val(ff[1]), az = +ff[0].getAttribute('data-a'), an = +ff[1].getAttribute('data-a');
+        if (vz !== '' && vn !== '' && +vn > 0 && +vz * an === az * +vn && an % +vn === 0) fok.push(ff[0], ff[1]);
       });
+      function okf(f) { if (fok.indexOf(f) >= 0) return true; var a = f.getAttribute('data-a'), v = val(f); return isCell(f) ? v === a : v !== '' && String(+v) === String(+a); }
+      var good = chk.every(okf);
       chk.forEach(function (f) {
-        var a = f.getAttribute('data-a'), v = val(f), r = isCell(f) ? v === a : v !== '' && String(+v) === String(+a);
+        var a = f.getAttribute('data-a'), v = val(f), r = okf(f);
         f.classList.add(r ? 'iok' : 'ino');
         if (!r && !isCell(f)) f.insertAdjacentHTML('afterend', '<span class="nfix">' + fmt(a) + '</span>');
       });
@@ -2933,6 +2937,7 @@
     return '<span class="brx">' + (show === 'z' ? '<span class="brg">' + z + '</span>' : nin(z)) + '<span class="brl"></span>' +
       (show === 'n' ? '<span class="brg">' + n + '</span>' : nin(n)) + '</span>';
   }
+  function FXK(z, n) { return FX(z, n).replace('<span class="brx">', '<span class="brx kz">'); }   // freier Bruch: gekürzte Form wird auch akzeptiert
   function FC(z, n) { return { v: z + '/' + n, h: FR(z, n) }; }
   function fracChoices(z, n, wrong) {
     var c = [[z, n]], seen = {}; seen[z + '/' + n] = 1;
@@ -3062,7 +3067,7 @@
       var f = bFrac(12), z = f[0], n = f[1], kind = bKind(n), sel = Math.random() < .3 && kind === 'g' ? shuffle(firstK(n)).slice(0, z) : firstK(z);
       var why = S(z + ' von ' + n + ' gleich großen Teilen sind gefärbt: ') + FR(z, n) + '.';
       if (t === 'mc') return { head: S('Welcher Anteil ist gefärbt?'), body: figCard(bFig(n, sel, kind)), choices: fracChoices(z, n, [[n - z, n], [z, n - z], [z, n + 1]]), ans: z + '/' + n, cols: 3, why: why };
-      if (t === 'in') return { kind: 'inp', head: S('Welcher Anteil ist gefärbt? Trage Zähler und Nenner ein.'), body: figCard(bFig(n, sel, kind)) + '<div class="card cmpq">' + FX(z, n) + '</div>', ans: z + '/' + n, why: why };
+      if (t === 'in') return { kind: 'inp', head: S('Welcher Anteil ist gefärbt? Trage Zähler und Nenner ein.'), body: figCard(bFig(n, sel, kind)) + '<div class="card cmpq">' + FXK(z, n) + '</div>', ans: z + '/' + n, why: why };
       if (t === 'w') return { head: S('Welcher Bruch ist das?'), body: '<div class="card cmpq sm">' + S(bName(z, n)) + '</div>', choices: fracChoices(z, n, [[n, z], [z, n + 1], [z + 1, n]]), ans: z + '/' + n, cols: 3,
         why: S(bName(z, n) + ': Das erste Wort ist der Zähler, das zweite der Nenner: ') + FR(z, n) + '.' };
       if (t === 'w2') {
@@ -3106,7 +3111,7 @@
     return plan.map(function (t) {
       var n = one([2, 3, 4, 5, 6, 8, 10]), k = R(1, n - 1);
       var why = S('Die Strecke von 0 bis 1 hat ' + n + ' gleich große Teile. Bis zum Strich sind es ' + k + ' Teile: ') + FR(k, n) + '.';
-      if (t === 'r') return { kind: 'inp', head: S('Welcher Bruch ist markiert? Trage Zähler und Nenner ein.'), body: '<div class="rlw">' + bLine(n, { arrow: k }) + '</div><div class="card cmpq">' + FX(k, n) + '</div>', ans: k + '/' + n, why: why };
+      if (t === 'r') return { kind: 'inp', head: S('Welcher Bruch ist markiert? Trage Zähler und Nenner ein.'), body: '<div class="rlw">' + bLine(n, { arrow: k }) + '</div><div class="card cmpq">' + FXK(k, n) + '</div>', ans: k + '/' + n, why: why };
       if (t === 'c') {
         var it = { head: S('Welcher Bruch ist markiert?'), body: '<div class="rlw" id="lw">' + bLine(n, { arrow: k }) + '</div>', choices: fracChoices(k, n, [[k, n + 1], [k + 1, n], [n - k, n]]), ans: k + '/' + n, cols: 3, why: why };
         it.after = function () { var r = {}; r[k] = 'ok'; document.getElementById('lw').innerHTML = bLine(n, { res: r }); };
@@ -3319,7 +3324,7 @@
       var s = dzS(n === 10 ? z * 10 : z);
       var why = FR(z, n) + ' = ' + s + S(n === 10 ? '. Zehntel: 1 Stelle nach dem Komma.' : '. Hundertstel: 2 Stellen nach dem Komma.');
       if (t === 'bd') return { kind: 'inp', head: S('Schreibe als Dezimalzahl.'), body: dzQ(FR(z, n) + ' = ', s), ans: 'b' + z + '/' + n, why: why };
-      if (t === 'db') return { kind: 'inp', head: S('Schreibe als Bruch. Trage Zähler und Nenner ein.'), body: '<div class="card cmpq">' + s + ' = ' + FX(z, n) + '</div>', ans: 'd' + s, why: why };
+      if (t === 'db') return { kind: 'inp', head: S('Schreibe als Bruch. Trage Zähler und Nenner ein.'), body: '<div class="card cmpq">' + s + ' = ' + FXK(z, n) + '</div>', ans: 'd' + s, why: why };
       if (t === 'hv') {
         var q = one(HV);
         return { head: S('Welche Dezimalzahl ist ') + FR(q[0], q[1]) + S('?'), body: '<div class="card cmpq">' + FR(q[0], q[1]) + ' = ?</div>',
@@ -3541,6 +3546,7 @@
   }
   function rbQ(t) { return '<div class="card cmpq rbq2">' + t + '</div>'; }
   function rbO(o) { return '<span class="rbo">' + o + '</span>'; }
+  function rbG(t) { return '<span class="rbg">' + t + '</span>'; }   // Rechenschritt, der nicht umbrochen wird (Umbruch nur vor „=“)
   function rbF(z, n) { return FR(z, n); }
   function rbWrong(z, n, extra) {   // typische Fehler als Auswahl (Nenner addiert, Zähler und Nenner vertauscht …)
     return fracChoices(z, n, extra);
@@ -3566,9 +3572,9 @@
       var why = S('Zähler plus Zähler: ' + a + ' + ' + b + ' = ' + r + '. Der Nenner bleibt ' + n + ': ') + FR(a, n) + ' + ' + FR(b, n) + ' = ' + FR(r, n) + '.';
       if (t === 'bild') { if (n > 10) n = R(4, 10), a = R(1, n - 2), b = R(1, n - 1 - a), r = a + b;
         var fig = Math.random() < .5 ? rbPie(n, a, b, 0, 220) : rbStrip(n, a, b, 0, null, 420);
-        return { kind: 'inp', head: S('Blau und orange zusammen: Welcher Bruch ist das? Trage Zähler und Nenner ein.'), body: figCard(fig) + rbQ(FR(a, n) + rbO('+') + FR(b, n) + rbO('=') + FX(r, n)), ans: 'b' + a + '+' + b + '/' + n,
+        return { kind: 'inp', head: S('Blau und orange zusammen: Welcher Bruch ist das? Trage Zähler und Nenner ein.'), body: figCard(fig) + rbQ(FR(a, n) + rbO('+') + FR(b, n) + rbO('=') + FXK(r, n)), ans: 'b' + a + '+' + b + '/' + n,
           why: S(a + ' blaue und ' + b + ' orange Teile sind ' + r + ' von ' + n + ' Teilen: ') + FR(r, n) + '.' }; }
-      if (t === 'in') return { kind: 'inp', head: S('Addiere. Trage Zähler und Nenner ein.'), body: rbQ(FR(a, n) + rbO('+') + FR(b, n) + rbO('=') + FX(r, n)), ans: 'i' + a + '+' + b + '/' + n, why: why };
+      if (t === 'in') return { kind: 'inp', head: S('Addiere. Trage Zähler und Nenner ein.'), body: rbQ(FR(a, n) + rbO('+') + FR(b, n) + rbO('=') + FXK(r, n)), ans: 'i' + a + '+' + b + '/' + n, why: why };
       if (t === 'fehlt') return { kind: 'inp', head: S('Welcher Zähler fehlt?'), body: rbQ(FR(a, n) + rbO('+') + FX(b, n, 'n') + rbO('=') + FR(r, n)), ans: 'f' + a + '+' + b + '/' + n,
         why: S(a + ' plus ' + b + ' ist ' + r + '. Es fehlt ') + FR(b, n) + '.' };
       if (t === 'mc') return { head: S('Was ist ') + FR(a, n) + ' + ' + FR(b, n) + S('?'), choices: rbWrong(r, n, [[r, 2 * n], [a + b, n + 1], [r + 1, n]]), ans: r + '/' + n, cols: 3, why: why };
@@ -3587,11 +3593,11 @@
       var why = S('Zähler minus Zähler: ' + a + ' – ' + b + ' = ' + r + '. Der Nenner bleibt ' + n + ': ') + FR(a, n) + ' – ' + FR(b, n) + ' = ' + FR(r, n) + '.';
       if (t === 'bild') { if (n > 10) { n = R(4, 10); a = R(2, n); b = R(1, a - 1); r = a - b; }
         var fig = Math.random() < .5 ? rbPie(n, a, 0, b, 220) : rbStrip(n, a, 0, b, null, 420);
-        return { kind: 'inp', head: S('Die durchgestrichenen Teile werden weggenommen. Welcher Bruch bleibt?'), body: figCard(fig) + rbQ(FR(a, n) + rbO('–') + FR(b, n) + rbO('=') + FX(r, n)), ans: 'b' + a + '-' + b + '/' + n,
+        return { kind: 'inp', head: S('Die durchgestrichenen Teile werden weggenommen. Welcher Bruch bleibt?'), body: figCard(fig) + rbQ(FR(a, n) + rbO('–') + FR(b, n) + rbO('=') + FXK(r, n)), ans: 'b' + a + '-' + b + '/' + n,
           why: S('Von ' + a + ' gefärbten Teilen werden ' + b + ' weggenommen. Es bleiben ' + r + ' Teile: ') + FR(r, n) + '.' }; }
-      if (t === 'in') return { kind: 'inp', head: S('Subtrahiere. Trage Zähler und Nenner ein.'), body: rbQ(FR(a, n) + rbO('–') + FR(b, n) + rbO('=') + FX(r, n)), ans: 'i' + a + '-' + b + '/' + n, why: why };
+      if (t === 'in') return { kind: 'inp', head: S('Subtrahiere. Trage Zähler und Nenner ein.'), body: rbQ(FR(a, n) + rbO('–') + FR(b, n) + rbO('=') + FXK(r, n)), ans: 'i' + a + '-' + b + '/' + n, why: why };
       if (t === 'ganz') { var g = R(1, n - 1);
-        return { kind: 'inp', head: S('Wie viel fehlt bis zum Ganzen?'), body: rbQ('1' + rbO('–') + FR(g, n) + rbO('=') + FX(n - g, n)), ans: 'g' + g + '/' + n,
+        return { kind: 'inp', head: S('Wie viel fehlt bis zum Ganzen? Schreibe zuerst 1 als Bruch.'), body: rbQ(rbG('1' + rbO('–') + FR(g, n)) + rbG(rbO('=') + FX(n, n, 'n') + rbO('–') + FR(g, n)) + rbG(rbO('=') + FX(n - g, n, 'n'))), ans: 'g' + g + '/' + n,
           why: S('Ein Ganzes sind ') + FR(n, n) + '. ' + FR(n, n) + ' – ' + FR(g, n) + ' = ' + FR(n - g, n) + '.' }; }
       if (t === 'fehlt') return { kind: 'inp', head: S('Welcher Zähler fehlt?'), body: rbQ(FR(a, n) + rbO('–') + FX(b, n, 'n') + rbO('=') + FR(r, n)), ans: 'f' + a + '-' + b + '/' + n,
         why: S(a + ' minus ' + b + ' ist ' + r + '. Es fehlt ') + FR(b, n) + '.' };
@@ -3613,7 +3619,7 @@
           why: S(Q[1] + ' ist ein Vielfaches von ' + Q[0] + '. Darum ist ' + Q[1] + ' der gemeinsame Nenner.') }; }
       var op = t === 'add' ? '+' : '–', p = rbPair(op);
       var steps = FR(p.a, p.n1) + ' ' + op + ' ' + FR(p.b, p.n2) + ' = ' + FR(p.A, p.m) + ' ' + op + ' ' + FR(p.B, p.m) + ' = ' + FR(p.r, p.m) + '.';
-      return { kind: 'inp', head: S('Bringe auf den gemeinsamen Nenner. Rechne. Trage das Ergebnis ein.'), body: rbQ(FR(p.a, p.n1) + rbO(op) + FR(p.b, p.n2) + rbO('=') + FX(p.r, p.m)), ans: t + p.a + '/' + p.n1 + op + p.b + '/' + p.n2,
+      return { kind: 'inp', head: S('Bringe zuerst auf den gemeinsamen Nenner ' + p.m + '. Rechne dann.'), body: rbQ(rbG(FR(p.a, p.n1) + rbO(op) + FR(p.b, p.n2)) + rbG(rbO('=') + FX(p.A, p.m, 'n') + rbO(op) + FX(p.B, p.m, 'n')) + rbG(rbO('=') + FXK(p.r, p.m))), ans: t + p.a + '/' + p.n1 + op + p.b + '/' + p.n2,
         sol: '<div class="card cmpq sm">' + steps + '</div>', why: S('Der gemeinsame Nenner ist ' + p.m + '. ') + steps };
     });
   };
@@ -3639,10 +3645,10 @@
           why: S(k === 'plus' ? 'Es kommt etwas dazu: plus. ' : 'Es geht etwas weg: minus. ') + st.why }; }
       if (t === 'g') { var p = rbPair('+'), nm = one(RBNM);
         var tx = nm + ' geht [' + p.a + '/' + p.n1 + '] km zum Bäcker und dann [' + p.b + '/' + p.n2 + '] km zur Schule. Wie weit geht ' + (nm === 'Ben' || nm === 'Jonas' ? 'er' : 'sie') + ' insgesamt?';
-        return { kind: 'inp', head: S('Lies genau. Rechne. Trage das Ergebnis ein.'), body: bStory(TF(tx)) + '<div class="card cmpq">' + FX(p.r, p.m) + '<span class="pfu2">km</span></div>', ans: 'g' + tx,
+        return { kind: 'inp', head: S('Lies genau. Rechne. Trage das Ergebnis ein.'), body: bStory(TF(tx)) + '<div class="card cmpq">' + FXK(p.r, p.m) + '<span class="pfu2">km</span></div>', ans: 'g' + tx,
           why: FR(p.a, p.n1) + ' + ' + FR(p.b, p.n2) + ' = ' + FR(p.A, p.m) + ' + ' + FR(p.B, p.m) + ' = ' + FR(p.r, p.m) + S(' km.') }; }
       var s2 = rbStory(t === 'p' ? 'plus' : 'minus');
-      return { kind: 'inp', head: S('Lies genau. Rechne. Trage das Ergebnis ein.'), body: bStory(TF(s2.t)) + '<div class="card cmpq">' + FX(s2.z, s2.n) + (s2.u ? '<span class="pfu2">' + s2.u + '</span>' : '') + '</div>', ans: t + s2.t, why: s2.why };
+      return { kind: 'inp', head: S('Lies genau. Rechne. Trage das Ergebnis ein.'), body: bStory(TF(s2.t)) + '<div class="card cmpq">' + FXK(s2.z, s2.n) + (s2.u ? '<span class="pfu2">' + s2.u + '</span>' : '') + '</div>', ans: t + s2.t, why: s2.why };
     });
   };
 
@@ -3652,13 +3658,13 @@
       var n, z, k; do { n = R(3, 12); z = R(1, n - 1); k = R(2, 5); } while (k * z > n);
       var why = S('Zähler mal Zahl: ' + k + ' · ' + z + ' = ' + k * z + '. Der Nenner bleibt ' + n + ': ') + k + ' · ' + FR(z, n) + ' = ' + FR(k * z, n) + '.';
       if (t === 'plus') { var pl = []; for (var j = 0; j < k; j++) pl.push(FR(z, n));
-        return { kind: 'inp', head: S('Mal ist wie plus. Rechne.'), body: rbQ(k + rbO(MP) + FR(z, n) + rbO('=') + pl.join(rbO('+')) + rbO('=') + FX(k * z, n)), ans: 'p' + k + '*' + z + '/' + n, why: why }; }
-      if (t === 'in') return { kind: 'inp', head: S('Rechne. Trage Zähler und Nenner ein.'), body: rbQ(k + rbO(MP) + FR(z, n) + rbO('=') + FX(k * z, n)), ans: 'i' + k + '*' + z + '/' + n, why: why };
+        return { kind: 'inp', head: S('Rechne als Plusaufgabe.'), body: rbQ(k + rbO(MP) + FR(z, n) + rbO('=') + pl.join(rbO('+')) + rbO('=') + FXK(k * z, n)), ans: 'p' + k + '*' + z + '/' + n, why: why }; }
+      if (t === 'in') return { kind: 'inp', head: S('Rechne. Trage Zähler und Nenner ein.'), body: rbQ(k + rbO(MP) + FR(z, n) + rbO('=') + FXK(k * z, n)), ans: 'i' + k + '*' + z + '/' + n, why: why };
       if (t === 'fehlt') return { kind: 'inp', head: S('Welche Zahl fehlt?'), body: rbQ(nin(k) + rbO(MP) + FR(z, n) + rbO('=') + FR(k * z, n)), ans: 'f' + k + '*' + z + '/' + n,
         why: S(k + ' · ' + z + ' = ' + k * z + '. Es fehlt die ' + k + '.') };
       if (t === 'bild') { var nn = one([3, 4, 5, 6, 8]), zz = R(1, Math.floor(nn / 2)), kk = Math.min(R(2, 4), Math.floor(nn / zz)), figs = '';
         for (var i = 0; i < kk; i++) figs += bPie(nn, firstK(zz), { mw: 110 });
-        return { kind: 'inp', head: S('Jeder Kreis zeigt denselben Bruch. Wie viel ist es zusammen?'), body: '<div class="card brfc rbfs">' + figs + '</div>' + rbQ(kk + rbO(MP) + FR(zz, nn) + rbO('=') + FX(kk * zz, nn)), ans: 'b' + kk + '*' + zz + '/' + nn,
+        return { kind: 'inp', head: S('Jeder Kreis zeigt denselben Bruch. Wie viel ist es zusammen?'), body: '<div class="card brfc rbfs">' + figs + '</div>' + rbQ(kk + rbO(MP) + FR(zz, nn) + rbO('=') + FXK(kk * zz, nn)), ans: 'b' + kk + '*' + zz + '/' + nn,
           why: S(kk + ' · ' + zz + ' = ' + kk * zz + ': ') + FR(kk * zz, nn) + '.' }; }
       var yes = k * z === n || Math.random() < .4; if (yes && k * z !== n) { for (;;) { n = R(3, 12); k = one([2, 3, 4]); if (n % k === 0) { z = n / k; break; } } }
       return { head: S('Ist das Ergebnis ein Ganzes?'), body: rbQ(k + rbO(MP) + FR(z, n)), choices: JN, cols: 2, ans: k * z === n ? 'j' : 'n',
@@ -3672,9 +3678,9 @@
       var n, k, g; do { n = R(3, 12); k = R(2, 5); g = R(1, Math.floor((n - 1) / k)); } while (g * k >= n || g < 1);
       var z = g * k;
       var why = S('Zähler geteilt durch die Zahl: ' + z + ' : ' + k + ' = ' + g + '. Der Nenner bleibt ' + n + ': ') + FR(z, n) + ' : ' + k + ' = ' + FR(g, n) + '.';
-      if (t === 'in') return { kind: 'inp', head: S('Teile. Trage Zähler und Nenner ein.'), body: rbQ(FR(z, n) + rbO(':') + k + rbO('=') + FX(g, n)), ans: 'i' + z + '/' + n + ':' + k, why: why };
+      if (t === 'in') return { kind: 'inp', head: S('Teile. Trage Zähler und Nenner ein.'), body: rbQ(FR(z, n) + rbO(':') + k + rbO('=') + FXK(g, n)), ans: 'i' + z + '/' + n + ':' + k, why: why };
       if (t === 'bild') { var seps = []; for (var j = 1; j < k; j++) seps.push(j * g);
-        return { kind: 'inp', head: S('Die dicken Striche teilen gerecht. Wie viel ist ein Teil?'), body: figCard(rbStrip(n, z, 0, 0, seps, 420)) + rbQ(FR(z, n) + rbO(':') + k + rbO('=') + FX(g, n)), ans: 'b' + z + '/' + n + ':' + k, why: why }; }
+        return { kind: 'inp', head: S('Die dicken Striche teilen gerecht. Wie viel ist ein Teil?'), body: figCard(rbStrip(n, z, 0, 0, seps, 420)) + rbQ(FR(z, n) + rbO(':') + k + rbO('=') + FXK(g, n)), ans: 'b' + z + '/' + n + ':' + k, why: why }; }
       if (t === 'fehlt') return { kind: 'inp', head: S('Welche Zahl fehlt?'), body: rbQ(FR(z, n) + rbO(':') + nin(k) + rbO('=') + FR(g, n)), ans: 'f' + z + '/' + n + ':' + k,
         why: S(z + ' : ' + k + ' = ' + g + '. Es fehlt die ' + k + '.') };
       if (t === 'probe') return { head: S('Welche Malaufgabe passt als Probe zu ') + FR(z, n) + ' : ' + k + ' = ' + FR(g, n) + S('?'),
@@ -3695,10 +3701,10 @@
       if (Math.random() < .5) { var s = n; n = m; m = s; s = a; a = b; b = s; }
       var why = S('Zähler mal Zähler: ' + a + ' · ' + b + ' = ' + a * b + '. Nenner mal Nenner: ' + n + ' · ' + m + ' = ' + n * m + '. ') + FR(a * b, n * m) + '.';
       if (t === 'bild') { var cols = one([3, 4, 5]), ca = R(1, cols - 1), rows = one([2, 3]), rb = R(1, rows - 1);
-        return { kind: 'inp', head: S('Wie viel vom Ganzen ist dunkelblau? Trage Zähler und Nenner ein.'), body: figCard(rbArea(cols, ca, rows, rb, 300)) + rbQ(FR(rb, rows) + ' ' + S('von') + ' ' + FR(ca, cols) + rbO('=') + FX(ca * rb, cols * rows)),
+        return { kind: 'inp', head: S('Wie viel vom Ganzen ist dunkelblau? Trage Zähler und Nenner ein.'), body: figCard(rbArea(cols, ca, rows, rb, 300)) + rbQ(FR(rb, rows) + ' ' + S('von') + ' ' + FR(ca, cols) + rbO('=') + FXK(ca * rb, cols * rows)),
           ans: 'b' + cols + ca + rows + rb, why: S('Das Rechteck hat ' + cols * rows + ' kleine Teile. ' + ca * rb + ' davon sind dunkelblau: ') + FR(ca * rb, cols * rows) + '.' }; }
-      if (t === 'in') return { kind: 'inp', head: S('Rechne: Zähler mal Zähler, Nenner mal Nenner.'), body: rbQ(FR(a, n) + rbO(MP) + FR(b, m) + rbO('=') + FX(a * b, n * m)), ans: 'i' + a + '/' + n + '*' + b + '/' + m, why: why };
-      if (t === 'von') return { kind: 'inp', head: S('„von“ heißt „mal“. Rechne.'), body: rbQ(FR(a, n) + ' ' + S('von') + ' ' + FR(b, m) + rbO('=') + FX(a * b, n * m)), ans: 'v' + a + '/' + n + '*' + b + '/' + m, why: why };
+      if (t === 'in') return { kind: 'inp', head: S('Rechne: Zähler mal Zähler, Nenner mal Nenner.'), body: rbQ(FR(a, n) + rbO(MP) + FR(b, m) + rbO('=') + FXK(a * b, n * m)), ans: 'i' + a + '/' + n + '*' + b + '/' + m, why: why };
+      if (t === 'von') return { kind: 'inp', head: S('„von“ heißt „mal“. Rechne.'), body: rbQ(FR(a, n) + ' ' + S('von') + ' ' + FR(b, m) + rbO('=') + FXK(a * b, n * m)), ans: 'v' + a + '/' + n + '*' + b + '/' + m, why: why };
       var yes = Math.random() < .5, shown = yes ? [a * b, n * m] : one([[a + b, n + m], [a * b, n + m]]);
       return { head: S(one(RBNM) + ' hat gerechnet. Stimmt das?'), body: rbQ(FR(a, n) + rbO(MP) + FR(b, m) + rbO('=') + FR(shown[0], shown[1])), choices: JN, cols: 2, ans: yes ? 'j' : 'n',
         why: yes ? why : S('Bei mal wird nicht addiert. ') + why };
@@ -3727,12 +3733,12 @@
         return { head: S('Mal oder geteilt? Du musst nicht rechnen.'), body: bStory(TF(st.t)), choices: [{ v: 'mal', h: S('mal') }, { v: 'geteilt', h: S('geteilt') }], cols: 2, ans: op,
           why: S(kind === 'teil' ? 'Gerecht teilen oder in gleiche Stücke schneiden: geteilt. ' : (kind === 'mal' ? 'Mehrmals gleich viel: mal. ' : 'Ein Teil von einem Teil: mal. ')) + st.why }; }
       var s2 = mk(t);
-      return { kind: 'inp', head: S('Lies genau. Rechne. Trage das Ergebnis ein.'), body: bStory(TF(s2.t)) + '<div class="card cmpq">' + FX(s2.z, s2.n) + (s2.u ? '<span class="pfu2">' + s2.u + '</span>' : '') + '</div>', ans: t + s2.t, why: s2.why };
+      return { kind: 'inp', head: S('Lies genau. Rechne. Trage das Ergebnis ein.'), body: bStory(TF(s2.t)) + '<div class="card cmpq">' + FXK(s2.z, s2.n) + (s2.u ? '<span class="pfu2">' + s2.u + '</span>' : '') + '</div>', ans: t + s2.t, why: s2.why };
     });
   };
   TIP.rbadd = S('Gleiche Nenner: Addiere die Zähler. Der Nenner bleibt gleich. Die Nenner werden nicht addiert.');
-  TIP.rbsub = S('Gleiche Nenner: Subtrahiere die Zähler. Der Nenner bleibt gleich. Ein Ganzes ist zum Beispiel ') + FR(8, 8) + '.';
-  TIP.rbnenner = S('Der größere Nenner ist der gemeinsame Nenner. Erweitere den anderen Bruch: ') + FR(1, 2) + ' = ' + FR(2, 4) + '.';
+  TIP.rbsub = S('Gleiche Nenner: Subtrahiere die Zähler. Der Nenner bleibt gleich. Ein Ganzes kannst du als Bruch schreiben, zum Beispiel ') + FR(8, 8) + '.';
+  TIP.rbnenner = S('Passt der kleinere Nenner in den größeren? Dann ist der größere Nenner der gemeinsame Nenner. Erweitere den anderen Bruch: ') + FR(1, 2) + ' = ' + FR(2, 4) + '.';
   TIP.rbsach = S('Kommt etwas dazu, rechnest du plus. Geht etwas weg oder bleibt etwas übrig, rechnest du minus.');
   TIP.rbmal = S('Bruch mal Zahl: Nimm den Zähler mal die Zahl. Der Nenner bleibt gleich.');
   TIP.rbteil = S('Bruch geteilt durch Zahl: Teile den Zähler durch die Zahl. Der Nenner bleibt gleich.');
