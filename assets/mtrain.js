@@ -3266,7 +3266,7 @@
     if (o.res) Object.keys(o.res).forEach(function (k) {
       var c = o.res[k] === 'ok' ? OKC : NOC, xx = f1(X(+k));
       s += '<circle cx="' + xx + '" cy="' + y + '" r="12" fill="' + c + '"/>';
-      if (o.res[k] === 'ok') s += '<rect x="' + (xx - 38) + '" y="' + (y + 20) + '" width="76" height="34" fill="#fff"/><text x="' + xx + '" y="' + (y + 44) + '" font-size="26" font-weight="800" fill="' + OKC + '" text-anchor="middle">' + dzS(lo + k * st) + '</text>';
+      if (o.res[k] === 'ok') s += '<text x="' + xx + '" y="' + (y - 26) + '" font-size="26" font-weight="800" fill="' + OKC + '" text-anchor="middle">' + dzS(lo + k * st) + '</text>';   // über dem Strahl: überdeckt keine Beschriftung (z. B. 3,64 neben 3,65)
     });
     return s;
   }
