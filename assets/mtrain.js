@@ -6,7 +6,8 @@
    ufrechteck, ufumfang, ufurechnen, ufflaeche, ufeinheiten, ufarechnen, ufunterschied, ufsach (Umfang und Flächeninhalt);
    grgeld, grlaengen, grlumrechnen, grlrechnen, grmassen, gruhr, grzeit, grsach (Größen);
    tvviel, tvteiler, tvregeln, tvprim, tvkgv, tvggt, tv1x1, tv1x1b (Teiler und Vielfache, 6. Schuljahr; auch Mehrfachauswahl im Zahlenfeld);
-   brerkennen, brdarst, brzstrahl, brteile, brerw, brkurz (Brüche, 6. Schuljahr; Färben durch Antippen, Bruch mit zwei Eingabefeldern).
+   brerkennen, brdarst, brzstrahl, brteile, brerw, brkurz (Brüche, 6. Schuljahr; Färben durch Antippen, Bruch mit zwei Eingabefeldern);
+   empunkt, emkern, emverd, emnachbar, emluecke, emgross, emquadrat, emsach (Einmaleins; dazu tv1x1 für das kleine Einmaleins gemischt).
    Schreibweise wie im Heft. */
 (function () {
   var D = JSON.parse(document.getElementById('data').textContent), L = D.labels;
@@ -4498,6 +4499,196 @@
   TIP.brteile = S('Erst durch den Nenner, dann mal den Zähler. ') + FR(3, 4) + S(' von 12: 12 : 4 = 3 und 3 · 3 = 9.');
   TIP.brerw = S('Erweitern: Nimm den Zähler und den Nenner mal dieselbe Zahl.');
   TIP.brkurz = S('Kürzen: Teile den Zähler und den Nenner durch dieselbe Zahl.');
+
+
+  // ============================================================ Einmaleins (Heft „Einmaleins“, 17.11.2026): Punktfeld, Kernaufgaben, Verdoppeln, Nachbaraufgaben,
+  // Lücken und Malmauern, großes Einmaleins (Zerlegen, Malkreuz), Quadratzahlen mit Hochzahl, Sachaufgaben. Schreibweise wie im Heft:
+  // 3 Reihen zu je 5 = 3 · 5; Hochzahl als 5<sup>2</sup>; nur Multiplikation. Eingaben über den Ziffernblock (kind 'inp').
+  function emPf(r, s) {   // Punktfeld als exakte Zeichnung: r Reihen zu je s Punkten
+    var d = 26, w = s * d + 8, h = r * d + 8, c = '';
+    for (var y = 0; y < r; y++) for (var x = 0; x < s; x++) c += '<circle cx="' + (4 + d / 2 + x * d) + '" cy="' + (4 + d / 2 + y * d) + '" r="9" fill="' + AC + '"/>';
+    return '<div class="card" style="padding:16px"><svg width="' + w + '" height="' + h + '" viewBox="0 0 ' + w + ' ' + h + '" style="max-width:100%;height:auto">' + c + '</svg></div>';
+  }
+  function emRows(rows) {   // mehrere Rechenzeilen untereinander (je Zeile Teile wie bei eqIn, '?' = Eingabefeld mit Antwort)
+    return '<div class="card cmpq eqc" style="flex-direction:column;align-items:flex-start;gap:14px;font-size:40px">' + rows.map(function (r) {
+      return '<div style="display:flex;align-items:center;gap:.35em;flex-wrap:wrap">' + r.map(function (p) {
+        return '<span>' + (p && p.q !== undefined ? nin(p.q) : p) + '</span>';
+      }).join('') + '</div>';
+    }).join('') + '</div>';
+  }
+  function Q(a) { return { q: a }; }
+  function emHoch(n) { return n + '<sup style="font-size:.6em">2</sup>'; }
+
+  GEN.empunkt = function () {
+    var plan = shuffle(['bild', 'bild', 'bild', 'erg', 'erg', 'erg', 'plus', 'plus', 'tausch', 'erg']);
+    return plan.map(function (t) {
+      var r = R(2, 6), s = R(2, 8);
+      if (r === s) s = r + 1;
+      if (t === 'bild') {
+        var good = r + ' · ' + s, alt = uniq([r + ' · ' + (s + 1), (r + 1) + ' · ' + s, r + ' + ' + s]).filter(function (x) { return x !== good; }).slice(0, 2);
+        return { head: S('Welche Malaufgabe passt zum Punktfeld?'), body: emPf(r, s), cols: 3, ans: good,
+          choices: shuffle([good].concat(alt)).map(function (c) { return { v: c, h: c }; }),
+          why: S(r + ' Reihen zu je ' + s + ' Punkten: ' + r + ' · ' + s + ' = ' + r * s + '.') };
+      }
+      if (t === 'erg') return { kind: 'inp', head: S('Wie viele Punkte sind es? Rechne.'), body: emPf(r, s) + eqIn([r, MP, s, '=', '?'], r * s), ans: r * s,
+        why: S(r + ' Reihen zu je ' + s + ' Punkten: ' + r + ' · ' + s + ' = ' + r * s + '.') };
+      if (t === 'plus') {
+        var plus = Array(r + 1).join(s + ' + ').slice(0, -3), g2 = r + ' · ' + s, a2 = uniq([s + ' · ' + s, r + ' + ' + s, (r + 1) + ' · ' + s]).filter(function (x) { return x !== g2; }).slice(0, 2);
+        return { head: S('Welche Malaufgabe passt zur Plusaufgabe?'), body: big(plus), cols: 3, ans: g2,
+          choices: shuffle([g2].concat(a2)).map(function (c) { return { v: c, h: c }; }),
+          why: S('Die ' + s + ' kommt ' + r + '-mal vor. Also ' + r + ' · ' + s + ' = ' + r * s + '.') };
+      }
+      return { kind: 'inp', head: S('Schreibe die Tauschaufgabe.'), body: emRows([[r, MP, s, '=', r * s], [s, MP, Q(r), '=', r * s]]), ans: r,
+        why: S('Tauschaufgabe: ' + s + ' · ' + r + ' = ' + r * s + '. Das Ergebnis bleibt gleich.') };
+    });
+  };
+
+  GEN.emkern = function () {
+    var plan = shuffle([1, 2, 2, 5, 5, 5, 10, 10, 10, 0]);
+    return plan.map(function (k) {
+      var b = R(2, 10), why;
+      if (k === 1) why = 'Mal 1: Die Zahl bleibt gleich. 1 · ' + b + ' = ' + b + '.';
+      if (k === 2) why = 'Mal 2 ist das Doppelte: ' + b + ' + ' + b + ' = ' + 2 * b + '.';
+      if (k === 5) why = 'Mal 5 ist die Hälfte von mal 10: 10 · ' + b + ' = ' + 10 * b + ', die Hälfte ist ' + 5 * b + '.';
+      if (k === 10) why = 'Mal 10: Hänge eine 0 an. 10 · ' + b + ' = ' + 10 * b + '.';
+      if (k === 0) why = 'Mal 0 ist immer 0.';
+      var parts = Math.random() < .5 || k === 0 ? [k, MP, b, '=', '?'] : [b, MP, k, '=', '?'];
+      return { kind: 'inp', head: S('Rechne im Kopf.'), body: eqIn(parts, k * b), ans: k * b, why: S(why) };
+    });
+  };
+
+  GEN.emverd = function () {
+    var plan = shuffle(['24', '24', '48', '48', '36', '36', '36', '105', '105', '24']);
+    return plan.map(function (t) {
+      var b = R(3, 9), a1 = +t.slice(0, t.length === 3 ? 2 : 1), a2 = +t.slice(t.length === 3 ? 2 : 1), r1 = a1 * b, r2 = a2 * b, why;
+      if (a2 > a1) why = a2 + ' · ' + b + ' ist das Doppelte von ' + a1 + ' · ' + b + ': ' + r1 + ' + ' + r1 + ' = ' + r2 + '.';
+      else why = '5 · ' + b + ' ist die Hälfte von 10 · ' + b + ': Die Hälfte von ' + r1 + ' ist ' + r2 + '.';
+      return { kind: 'inp', head: S(a2 > a1 ? 'Verdopple. Rechne.' : 'Halbiere. Rechne.'), body: emRows([[a1, MP, b, '=', r1], [a2, MP, b, '=', Q(r2)]]), ans: r2, why: S(why) };
+    });
+  };
+
+  GEN.emnachbar = function () {
+    var plan = shuffle(['6', '6', '6', '9', '9', '9', '4', '4', '6', '9']);
+    return plan.map(function (t) {
+      var a = +t, b = R(3, 9), n = a === 9 ? 10 : 5, z = n * b, plus = a === 6;
+      return { kind: 'inp', head: S('Rechne mit der Nachbaraufgabe.'),
+        body: emRows([['<span class="nx">' + a + ' · ' + b + '</span>'], [n, MP, b, '=', Q(z)], [Q(z), plus ? '+' : '–', b, '=', Q(a * b)]]),
+        ans: a * b, why: S(a + ' · ' + b + ' ist eine Reihe ' + (plus ? 'mehr' : 'weniger') + ' als ' + n + ' · ' + b + ' = ' + z + '. ' + z + (plus ? ' + ' : ' – ') + b + ' = ' + a * b + '.') };
+    });
+  };
+
+  function emMauer(u, sol) {   // Malmauer mit 3 Steinen unten; sol: Eingabefelder für die oberen Steine
+    var m1 = [u[0] * u[1], u[1] * u[2]], top = m1[0] * m1[1];
+    function st(x) { return '<span style="display:inline-flex;align-items:center;justify-content:center;width:2.6em;height:1.5em;border:3px solid var(--ink);margin:-1.5px">' + x + '</span>'; }
+    var row = function (xs) { return '<div style="display:flex;justify-content:center">' + xs.map(st).join('') + '</div>'; };
+    return { html: '<div class="card cmpq" style="flex-direction:column;gap:0;font-size:34px">' + row([nin(top, 'sm')]) + row([nin(m1[0], 'sm'), nin(m1[1], 'sm')]) + row(u) + '</div>', top: top, m1: m1 };
+  }
+  GEN.emluecke = function () {
+    var plan = shuffle(['xb', 'ax', 'xb', 'ax', 'xb', 'ax', 'xb', 'ax', 'mauer', 'mauer']);
+    return plan.map(function (t) {
+      if (t === 'mauer') {
+        var u; do { u = [R(1, 3), R(2, 4), R(1, 3)]; } while (u[0] * u[1] * u[1] * u[2] > 100);
+        var m = emMauer(u);
+        return { kind: 'inp', head: S('Rechne die Malmauer aus.'), body: m.html, ans: m.top, tip: S('Multipliziere die zwei Steine nebeneinander. Das Ergebnis steht im Stein darüber.'),
+          why: S(u[0] + ' · ' + u[1] + ' = ' + m.m1[0] + '; ' + u[1] + ' · ' + u[2] + ' = ' + m.m1[1] + '; oben: ' + m.m1[0] + ' · ' + m.m1[1] + ' = ' + m.top + '.') };
+      }
+      var x = R(3, 9), b = R(3, 9), c = x * b;
+      return { kind: 'inp', head: S('Welche Zahl fehlt?'), body: eqIn(t === 'xb' ? ['?', MP, b, '=', c] : [b, MP, '?', '=', c], x), ans: x,
+        why: S((t === 'xb' ? x + ' · ' + b : b + ' · ' + x) + ' = ' + c + '. Sage die Reihe von ' + b + ' auf, bis du bei ' + c + ' bist.') };
+    });
+  };
+
+  function emZer(n) { return n > 10 && n % 10 ? [10 * Math.floor(n / 10), n % 10] : [n]; }
+  function emKreuz(a, b) {   // Malkreuz zum Zerlegen mit Eingabefeldern und Summe
+    var za = emZer(a), zb = emZer(b), teile = [];
+    var th = 'style="border:2px solid var(--line);background:var(--ac-bg);padding:6px 14px"', td = 'style="border:2px solid var(--line);padding:8px 10px"';
+    var t = '<table style="border-collapse:collapse;font-size:32px;margin:0 auto 14px"><tr><th ' + th + '>·</th>' + zb.map(function (y) { return '<th ' + th + '>' + y + '</th>'; }).join('') + '</tr>' +
+      za.map(function (x) { return '<tr><th ' + th + '>' + x + '</th>' + zb.map(function (y) { teile.push(x * y); return '<td ' + td + '>' + nin(x * y, 'sm') + '</td>'; }).join('') + '</tr>'; }).join('') + '</table>';
+    var sum = '<div style="display:flex;align-items:center;justify-content:center;gap:.3em;flex-wrap:wrap;font-size:32px"><span>' + a + ' · ' + b + '</span>' +
+      '<span>=</span>' + nin(a * b) + '</div>';   // die Teilprodukte stehen nicht da (sonst wäre das Malkreuz verraten)
+    return { html: '<div class="card" style="padding:16px">' + t + sum + '</div>', teile: teile };
+  }
+  GEN.emgross = function () {
+    var plan = shuffle(['z', 'z', 'z', 'z', 'k1', 'k1', 'k2', 'k2', 'k2', 'z']);
+    return plan.map(function (t) {
+      var a, b, why;
+      if (t === 'z') {
+        a = R(11, 19); if (a % 10 === 0) a = 12; b = R(2, 9);
+        var e = a % 10;
+        return { kind: 'inp', head: S('Zerlege und rechne.'), body: emRows([[10, MP, b, '=', Q(10 * b)], [e, MP, b, '=', Q(e * b)], [a, MP, b, '=', Q(a * b)]]), ans: a * b,
+          why: S(a + ' = 10 + ' + e + '. 10 · ' + b + ' = ' + 10 * b + '; ' + e + ' · ' + b + ' = ' + e * b + '; ' + 10 * b + ' + ' + e * b + ' = ' + a * b + '.') };
+      }
+      if (t === 'k1') { a = R(11, 19); if (a % 10 === 0) a = 13; b = R(3, 9); }
+      else { do { a = R(11, 16); b = R(11, 18); } while (a === b || a % 10 === 0 || b % 10 === 0); }
+      var k = emKreuz(a, b);
+      return { kind: 'inp', head: S('Fülle das Malkreuz aus. Addiere.'), body: k.html, ans: a * b,
+        why: S(k.teile.join(' + ') + ' = ' + a * b + '. Also ' + a + ' · ' + b + ' = ' + a * b + '.') };
+    });
+  };
+
+  GEN.emquadrat = function () {
+    var plan = shuffle(['k', 'k', 'k', 'g', 'g', 'mal', 'falle', 'jn', 'jn', 'k']);
+    return plan.map(function (t) {
+      var n = t === 'k' ? R(2, 10) : R(3, 10), why = n + '² = ' + n + ' · ' + n + ' = ' + n * n + '.';
+      if (t === 'k') return { kind: 'inp', head: S('Rechne die Quadratzahl aus.'), body: eqIn([emHoch(n), '=', '?'], n * n), ans: n * n, why: S(why) };
+      if (t === 'g') {
+        n = R(11, 20); var e = n % 10, w;
+        if (n === 20) w = '20² = 20 · 20 = 400. Rechne 2 · 2 = 4 und hänge zwei Nullen an.';
+        else w = n + '² = ' + n + ' · ' + n + ' = 100 + ' + 10 * e + ' + ' + 10 * e + ' + ' + e * e + ' = ' + n * n + '.';
+        return { kind: 'inp', head: S('Rechne die Quadratzahl aus. Zerlege, wenn du willst.'), body: eqIn([emHoch(n), '=', '?'], n * n), ans: n * n, why: S(w) };
+      }
+      if (t === 'mal') {
+        var c = [n + ' · ' + n, n + ' · 2', n + ' + ' + n];
+        return { head: S('Was bedeutet die Hochzahl?'), body: big(emHoch(n)), cols: 3, ans: c[0], choices: shuffle(c.slice()).map(function (x) { return { v: x, h: x }; }),
+          why: S('Die Hochzahl 2 heißt: Die Grundzahl ' + n + ' 2-mal als Faktor. ' + why) };
+      }
+      if (t === 'falle') {
+        n = R(3, 9);
+        var ch = uniq([n * n, 2 * n, n + 2]);
+        return { head: S('Welches Ergebnis ist richtig?'), body: big(emHoch(n) + ' = ?'), cols: 3, ans: n * n, choices: shuffle(nums(ch)),
+          why: S('Achtung: ' + n + '² ist nicht ' + n + ' · 2. ' + why) };
+      }
+      var q = Math.random() < .5, z;
+      if (q) { n = R(2, 15); z = n * n; } else { do { z = R(10, 150); } while (Math.round(Math.sqrt(z)) * Math.round(Math.sqrt(z)) === z); }
+      var rt = Math.round(Math.sqrt(z));
+      return jn('Ist ' + fmt(z) + ' eine Quadratzahl?', big(fmt(z)), q,
+        q ? z + ' = ' + rt + ' · ' + rt + '. Also ist ' + z + ' eine Quadratzahl.' : 'Keine Zahl mal sich selbst ergibt ' + z + '. ' + (Math.floor(Math.sqrt(z))) + ' · ' + Math.floor(Math.sqrt(z)) + ' = ' + Math.floor(Math.sqrt(z)) * Math.floor(Math.sqrt(z)) + ' und ' + (Math.floor(Math.sqrt(z)) + 1) + ' · ' + (Math.floor(Math.sqrt(z)) + 1) + ' = ' + (Math.floor(Math.sqrt(z)) + 1) * (Math.floor(Math.sqrt(z)) + 1) + '.');
+    });
+  };
+
+  GEN.emsach = function () {
+    var T = [
+      function () { var a = R(4, 7), b = R(5, 8); return { t: 'In der Bäckerei in Lauterbach liegen Brötchen auf einem Blech: ' + a + ' Reihen zu je ' + b + ' Brötchen. Wie viele Brötchen sind es?', x: a, y: b }; },
+      function () { var a = R(3, 9); return { t: 'Auf dem Ferienhof Zinn passen in einen Karton 6 Eier. Es werden ' + a + ' Kartons gefüllt. Wie viele Eier sind das?', x: a, y: 6 }; },
+      function () { var a = R(3, 8); return { t: 'In eine Kiste passen 12 Flaschen Wasser. Die Klasse holt ' + a + ' Kisten. Wie viele Flaschen sind das?', x: a, y: 12 }; },
+      function () { var a = R(11, 14), b = R(12, 15); return { t: 'Für das Schulfest stehen ' + a + ' Reihen zu je ' + b + ' Stühlen auf dem Schulhof. Wie viele Stühle sind das?', x: a, y: b }; },
+      function () { var a = R(5, 12); return { t: 'Ein Platz auf dem Schulhof ist ein Quadrat aus Steinen: ' + a + ' Reihen zu je ' + a + ' Steinen. Wie viele Steine sind es?', x: a, y: a }; },
+      function () { var a = R(11, 19); return { t: 'Im Eiscafé am Marktplatz kostet eine Kugel Eis 2 €. ' + a + ' Kinder kaufen je eine Kugel. Wie viel Euro bezahlen sie zusammen?', x: a, y: 2, e: ' €' }; },
+      function (n) { var a = R(3, 8), b = R(4, 9); return { t: n[0] + ' liest jeden Tag ' + b + ' Seiten in einem neuen Buch. Wie viele Seiten liest ' + n[1] + ' in ' + a + ' Tagen?', x: a, y: b }; },
+      function () { var a = R(3, 9), b = R(4, 8); return { t: 'Im Bus sitzen die Kinder in ' + a + ' Reihen. In jeder Reihe sitzen ' + b + ' Kinder. Wie viele Kinder sitzen im Bus?', x: a, y: b }; },
+      function (n) { var a = R(2, 6); return { t: 'Ein Heft kostet 3 €. ' + n[0] + ' kauft ' + a + ' Hefte. Wie viel bezahlt ' + n[1] + '?', x: a, y: 3, e: ' €' }; },
+      function () { var a = R(3, 7); return { t: 'Eine Packung hat 10 Stifte. Die Lehrerin kauft ' + a + ' Packungen. Wie viele Stifte sind das?', x: a, y: 10 }; }
+    ];
+    var names = shuffle(NAMES.slice());
+    return shuffle(T.slice()).map(function (f, k) {
+      var q = f(names[k % names.length]), r = q.x * q.y;
+      if (k % 2 === 0) {
+        var good = q.x + ' · ' + q.y, alt = [q.x + ' + ' + q.y, (q.x + 1) + ' · ' + q.y];
+        return { head: S('Welche Rechnung passt?'), body: story(q.t), cols: 1, ans: good, choices: shuffle([good].concat(alt)).map(function (c) { return { v: c, h: c }; }),
+          why: S('Gleich viele, und das mehrmals: Du rechnest mal. ' + good + ' = ' + fmt(r) + (q.e || '') + '.') };
+      }
+      return { kind: 'inp', head: S('Lies genau. Rechne.'), body: story(q.t) + eqIn([q.x, MP, q.y, '=', '?'], r), ans: r,
+        why: S(q.x + ' · ' + q.y + ' = ' + fmt(r) + (q.e || '') + '.') };
+    });
+  };
+  TIP.empunkt = S('Zähle zuerst die Reihen. Zähle dann die Punkte in einer Reihe. 3 Reihen zu je 5 Punkten sind 3 · 5.');
+  TIP.emkern = S('Mal 10: Hänge eine 0 an. Mal 5: Rechne mal 10 und nimm die Hälfte. Mal 2: das Doppelte.');
+  TIP.emverd = S('Verdoppeln: Rechne das Ergebnis plus sich selbst. Halbieren: Nimm die Hälfte.');
+  TIP.emnachbar = S('Eine Reihe mehr: plus die Zahl. Eine Reihe weniger: minus die Zahl.');
+  TIP.emluecke = S('Sage die Reihe der Zahl auf, bis du beim Ergebnis bist.');
+  TIP.emgross = S('Zerlege die große Zahl in Zehner und Einer: 14 = 10 + 4. Rechne jedes Feld. Addiere dann.');
+  TIP.emquadrat = S('Die Hochzahl 2 heißt: die Zahl mal sich selbst. 5² = 5 · 5 = 25.');
+  TIP.emsach = S('Gleich viele, und das mehrmals? Dann rechnest du mal.');
 
   // ------------------------------------------------------------ Ablauf
   var set, i, ok, rep = false, wrongs = [], tipOpen = false;
