@@ -13,14 +13,17 @@
 .f-ma { --fc: var(--ma); --fcd: var(--ma-d); }
 .f-en { --fc: var(--en); --fcd: var(--en-d); }
 * { box-sizing: border-box; }
-html { -webkit-text-size-adjust: 100%; }
+html {
+  -webkit-text-size-adjust: 100%;
+  /* außerhalb des Regals (sehr breite Bildschirme, „festes“ Weiterscrollen über das Seitenende): dunkleres Holz.
+     Liegt am html, damit das eingravierte dg-Logo (fest am unteren Rand, hinter dem Regal) davor sichtbar wird. */
+  background: linear-gradient(rgba(70, 36, 8, .55), rgba(70, 36, 8, .55)), var(--wood);
+  background-color: #8a5a2b;
+}
 body.regal-body {
   margin: 0; min-height: 100vh; color: var(--ink);
   font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
   display: flex; flex-direction: column;
-  /* außerhalb des Regals (nur auf sehr breiten Bildschirmen sichtbar): dunkleres Holz */
-  background: linear-gradient(rgba(70, 36, 8, .55), rgba(70, 36, 8, .55)), var(--wood);
-  background-color: #8a5a2b;
 }
 a { color: inherit; }
 .ic { display: inline-flex; width: 26px; height: 26px; flex: none; }
@@ -202,7 +205,8 @@ main.wood { flex: 1; width: 100%; padding: 0 0 10px; }
 .lc1 { color: var(--lc1); } .lc2 { color: var(--lc2); }
 
 /* ---------- dg-Logo, unter dem Regal ins dunkle Holz graviert ---------- */
-.dg-w { display: flex; justify-content: center; padding: 30px 0 40px; }
+/* fest am unteren Bildschirmrand HINTER dem Regal: sichtbar nur, wenn man über das Seitenende hinaus zieht (iPad/iPhone/Mac) */
+.dg-w { position: fixed; left: 0; right: 0; bottom: 0; z-index: -1; display: flex; justify-content: center; padding: 0 0 34px; pointer-events: none; }
 .dg { width: 46px; height: 46px; overflow: visible; }
 .dg path { fill: none; stroke-width: 14; stroke-linecap: round; stroke-linejoin: round; }
 .dg-licht { stroke: rgba(255, 222, 175, .16); transform: translate(0, 7px); }
