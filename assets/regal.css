@@ -201,6 +201,13 @@ main.wood { flex: 1; width: 100%; padding: 0 0 10px; }
 .foot img { width: 24px; height: 24px; }
 .lc1 { color: var(--lc1); } .lc2 { color: var(--lc2); }
 
+/* ---------- dg-Logo, unter dem Regal ins dunkle Holz graviert ---------- */
+.dg-w { display: flex; justify-content: center; padding: 30px 0 40px; }
+.dg { width: 46px; height: 46px; overflow: visible; }
+.dg path { fill: none; stroke-width: 14; stroke-linecap: round; stroke-linejoin: round; }
+.dg-licht { stroke: rgba(255, 222, 175, .16); transform: translate(0, 7px); }
+.dg-kerbe { stroke: rgba(28, 12, 0, .5); }
+
 /* ---------- mittel (iPad hochkant) ---------- */
 @media (max-width: 920px) {
   .dd.fa .long { display: none; } .dd.fa .mid { display: inline; }
