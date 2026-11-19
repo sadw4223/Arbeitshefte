@@ -73,6 +73,10 @@ a { color: inherit; }
   background: #fdf8ee; border-left: 1px solid #a37a48; border-top: 1px solid #a37a48;
 }
 .dd.fa .dd-menu::before { left: auto; right: 22px; }
+/* Fassung (seit 19.11.2026): rechts neben dem Fach, Menü nach rechts ausgerichtet */
+.bar-r { display: flex; gap: 8px; }
+.dd.fs .dd-menu { left: auto; right: 0; }
+.dd.fs .dd-menu::before { left: auto; right: 22px; }
 .dd-menu a {
   position: relative; display: flex; align-items: center; justify-content: space-between; gap: 12px;
   padding: 10px 12px; border-radius: 8px; text-decoration: none; font-size: 16px; font-weight: 700; color: #4b2e10; white-space: nowrap;
@@ -158,6 +162,10 @@ main.wood { flex: 1; width: 100%; padding: 0 0 10px; }
     linear-gradient(118deg, rgba(255, 255, 255, .16) 0, rgba(255, 255, 255, 0) 42%, rgba(0, 0, 0, 0) 75%, rgba(0, 0, 0, .05) 100%);
 }
 .book:active, .book:hover { transform: translateY(-4px); }
+/* Fassung auf dem Umschlag (Mindest-, Regel-, Expertenstandard haben dasselbe Titelbild) */
+.fs-tag { position: absolute; left: 50%; bottom: 9%; transform: translateX(-50%); z-index: 2; white-space: nowrap;
+  padding: 4px 10px; border-radius: 7px; background: #5a3812; color: #fff8ea; font-size: 13px; font-weight: 800;
+  letter-spacing: .02em; box-shadow: 0 2px 6px rgba(40, 20, 0, .35); }
 .empty-note {
   grid-column: 1 / -1; align-self: center; margin: 0 0 var(--bd); text-align: center; font-size: 18px; font-weight: 700;
   color: rgba(78, 44, 12, .7); text-shadow: 0 1px 0 rgba(255, 240, 214, .7);
@@ -198,6 +206,7 @@ main.wood { flex: 1; width: 100%; padding: 0 0 10px; }
 /* ---------- mittel (iPad hochkant) ---------- */
 @media (max-width: 920px) {
   .dd.fa .long { display: none; } .dd.fa .mid { display: inline; }
+  .dd.fs .long { display: none; } .dd.fs .mid { display: inline; }
 }
 /* ---------- schmal (Handy): Fächer in eine zweite Zeile ---------- */
 @media (max-width: 760px) {
@@ -207,7 +216,11 @@ main.wood { flex: 1; width: 100%; padding: 0 0 10px; }
   .btn, .dd summary { font-size: 14px; padding: 6px 7px 6px 9px; }
   .btn { padding: 6px 9px 6px 2px; }
   .bar-in { gap: 6px; }
-  .dd .long, .dd.fa .mid { display: none; } .dd .short { display: inline; }   /* Handy: nur „5“ bzw. „M“ */
+  .dd .long, .dd.fa .mid, .dd.fs .mid { display: none; } .dd .short { display: inline; }
+  .bar-r { gap: 6px; }
+  .bar-in { grid-template-columns: auto minmax(0, 1fr) auto; }   /* zwei Menüs rechts: Titel nimmt den Rest */
+  .fs-tag { font-size: 11px; padding: 3px 7px; }
+  /* Handy: nur „5“ bzw. „M“ */
   .books { --bw: min(calc(46vw - 30px), 170px); --gap: 24px; --bd: 18px; padding: 0 calc(var(--side) + 2px);
     grid-template-columns: repeat(auto-fill, minmax(calc(var(--bw) + var(--sp) + 12px), 1fr)); }
   .shelf-h { font-size: 20px; padding-top: 16px; }
